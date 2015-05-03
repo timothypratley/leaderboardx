@@ -1,27 +1,8 @@
 (ns algopop.leaderboardx.app.views.graph
-  (:require [reagent.core :as reagent]
+  (:require [algopop.leaderboardx.app.views.d3 :as d3]
+            [goog.dom.forms :as forms]
             [clojure.string :as string]
-            [cljsjs.d3]))
-
-(defn create-force-layout [g tick]
-  (-> (js/cola.d3adaptor)
-      (.nodes (.-nodes g))
-      (.links (.-links g))
-      (.linkDistance 50)
-      (.size #js [800, 400])
-      (.on "tick" tick)))
-
-(def test-graph-old
-  {:nodes {"susan" {:hair "brown"}
-           "sam" {:hair "red"}
-           "bobby" {:hair "black"}
-           "kate" {:hair "blonde"}}
-   :edges {"susan" {"sam" {:value 3}
-                    "kate" {:value 2}}
-           "bobby" {"kate" {:value 5}}
-           "sam" {"kate" {:value 4}}
-           "kate" {"susan" {:value 1}
-                   "sam" {:value 2}}}})
+            [reagent.core :as reagent]))
 
 (defn rand-char []
   (char (+ 97 (rand-int 26))))
@@ -39,102 +20,97 @@
                    (iterate next-char (rand-char)))))
 
 (def test-graph
-  (let [ks (distinct (repeatedly 20 rand-name))
+  (let [ks (distinct (repeatedly 10 rand-name))
         nodes (into {} (for [k ks]
                          [k {:hair (rand-nth ["red" "brown" "black" "blonde"])}]))]
     {:nodes nodes
      :edges (into {} (for [k ks]
-                       [k (into {} (for [x (take 3 (shuffle ks))]
+                       [k (into {} (for [x (remove #{k} (take (+ 2 (rand-int 2)) (shuffle ks)))]
                                      [x {:value 1}]))]))}))
 
-(defn d3g
-  ([g] (d3g g {}))
-  ([{:keys [nodes edges]} existing-nodes]
-   (let [ks (keys nodes)
-         k->idx (into {} (map vector ks (range)))]
-     (clj->js {:nodes (for [k ks]
-                        (get existing-nodes k {:id k}))
-               :links (for [[source targets] edges
-                            [target] targets]
-                        {:source (k->idx source)
-                         :target (k->idx target)})}))))
+(defonce g (reagent/atom test-graph))
 
-(defn overwrite [a b]
-  (set! (.-length b) 0)
-  (.apply (.-push a) a b))
+(defn merge-left [& maps]
+  (apply merge (reverse maps)))
 
-(defn reconcile [g mutable-graph]
-  (let [existing (into {} (for [node (.-nodes mutable-graph)]
-                            [(:id node) node]))
-        replacement (d3g g existing)]
-    (overwrite (.-nodes mutable-graph) (.-nodes replacement))
-    (overwrite (.-links mutable-graph) (.-links replacement))))
+;; TODO: move server side but keep an action list to fast UI update
+(defn add-em [g source targets]
+  (-> g
+      (update-in [:nodes] merge-left {source {}} (zipmap targets (repeat {})))
+      (update-in [:edges source] merge-left (zipmap targets (repeat {})))))
 
-;; TODO: is dragging index right? need to update when graph changes?
-(def dragging (reagent/atom nil))
+(defn form-data [form]
+  (into {}
+        (for [[k v] (js->clj (.toObject (forms/getFormDataMap form)))]
+          [(keyword k) (if (<= (count v) 1)
+                         (first v)
+                         v)])))
 
-(defn allow-drop [e]
-  (.preventDefault e))
+(defn submit [e]
+  (.preventDefault e)
+  (let [{:keys [source targets]} (form-data (.-target e))]
+    (swap! g add-em (string/trim source) (map string/trim (string/split targets #",")))))
 
-(defn bnode [node idx attrs]
-  [:circle.node
-   (merge {:cx (:x node)
-           :cy (:y node)
-           :r 5
-           :on-mouse-down (fn [e]
-                            (.stopPropagation e)
-                            (swap! dragging #(if % nil idx)))}
-          attrs)])
+(defn handle-resize [e]
+  (println "RESIZE" e))
 
-(defn draw-graph [drawable mutable-graph force-layout]
-  (let [{:keys [nodes links]} @drawable]
-    (into
-     [:svg {:style {:width 1024 :height 800
-                    :position "absolute"
-                    :top 100
-                    :left 200}
-            :on-mouse-down (fn [e]
-                             (reset! dragging nil))
-            :on-mouse-move (fn [e]
-                             (when @dragging
-                               (when-let [node (aget (.nodes force-layout) @dragging)]
-                                 (set! (.-fixed node) 1)
-                                 (set! (.-px node) (- (.-pageX e) 200))
-                                 (set! (.-py node) (- (.-pageY e) 100))
-                                 (.resume force-layout))))
-            ;;:view-box "0 0 300 200"
-            }]
-     (concat
-      (for [{:keys [source target]} links]
-        [:line.link {:x1 (:x source) :y1 (:y source)
-                     :x2 (:x target) :y2 (:y target)}])
-      (for [[node idx] (map vector nodes (range))]
-        [bnode node idx
-         (when (= idx @dragging)
-           {:r 10})])))))
+(defn delete-node [g id]
+  (-> g
+      (update-in [:nodes] dissoc id)
+      (assoc :edges
+             (into {}
+                   (for [[k links] (dissoc (:edges g) id)]
+                     [k (dissoc links id)])))))
 
-(let [mutable-graph (d3g test-graph)
-      drawable (reagent/atom {})
-      force-layout (create-force-layout
-                    mutable-graph
-                    (fn tick []
-                      (reset! drawable (js->clj mutable-graph :keywordize-keys true))))]
+(defn delete-edge [g [from to]]
+  (println from to "EDGE")
+  (update-in g [:edges from] dissoc to))
 
-  (defn d3-graph [g]
-    (reconcile g mutable-graph)
-    (.start force-layout)
-    [draw-graph drawable mutable-graph force-layout]))
+(defn handle-keydown [e]
+  (case (.-keyCode e)
+    46 (do
+         (println "DELETE" @d3/selected-id "!")
+         (when @d3/selected
+           (if (string? @d3/selected-id)
+             (swap! g delete-node @d3/selected-id)
+             (swap! g delete-edge @d3/selected-id))))
+    (.log js/console "KEYDOWN" e)))
 
-;; TODO: pass in session instead
+;; metadata gah, riddiculous
+(def hook
+  (with-meta (fn [])
+    {:component-did-mount
+     (fn did-mount [this]
+       (.addEventListener js/document "keydown" handle-keydown)
+       (.addEventListener js/window "resize" handle-resize))
+     :component-will-unmount
+     (fn will-unmount [this]
+       (.removeEventListener js/document "resize" handle-resize)
+       (.removeEventListener js/window "keydown" handle-keydown))}))
+
 (defn graph-page []
+  ;; TODO: pass in session instead
   [:div
-   [:form
-    [:dl.dl-horizontal
-     [:dt [:input {:type "text" :name "source"}]]
-     [:dd [:input {:type "text" :name "targets"}]]]]
-   (into [:dl.dl-horizontal]
-         (apply concat
-                (for [[k v] (:nodes test-graph)]
-                  [[:dt k]
-                   [:dd (string/join ", " (keys (get-in test-graph [:edges k])))]])))
-   [d3-graph test-graph]])
+   [hook]
+   [:div.row
+    [:form.col-md-6 {:on-submit submit}
+     [:dl.dl-horizontal
+      [:dt [:input {:type "text"
+                    :name "source"}]]
+      [:dd [:input {:type "text"
+                    :name "targets"}]
+       [:input {:type :submit
+                :value "↩"}]]]
+     (into [:dl.dl-horizontal]
+           (apply concat
+                  (for [[k v] (:nodes @g)]
+                    [[:dt k]
+                     [:dd (string/join ", " (keys (get-in @g [:edges k])))]])))]
+    [:div.col-md-6
+     [:ul.list-unstyled
+      [:li "Enter a node name and press ENTER to add it."]
+      [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
+      [:li "Select a node or edge by mouse clicking it and press DEL to delete it."]
+      [:li "Drag nodes or edges around by click hold and move."]
+      [:li "Double click to unpin nodes and edges."]]]]
+   [d3/graph @g]])

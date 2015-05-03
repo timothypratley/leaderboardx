@@ -65,6 +65,11 @@
   (when-let [uid (get-in ring-req [:session :uid])]
     (swap! app-states dissoc uid)))
 
+(defmethod event-msg-handler :chsk/ws-ping
+  [_]
+  ;; TODO: timeout old connections? Does sente already do this?
+  )
+
 (defmethod event-msg-handler :patchin/patch
   [{:keys [ring-req ?data]}]
   (when-let [uid (get-in ring-req [:session :uid])]

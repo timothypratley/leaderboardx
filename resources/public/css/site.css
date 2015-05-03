@@ -30,8 +30,9 @@ html, body {
 
 circle.node {
   cursor: pointer;
-  stroke: #3182bd;
+  stroke: #9ecae1;
   stroke-width: 1.5px;
+  fill: #ddddff;
 }
 
 .node text {
@@ -40,7 +41,7 @@ circle.node {
   text-anchor: middle;
 }
 
-line.link {
+.link {
   fill: none;
   stroke: #9ecae1;
   stroke-width: 1.5px;
