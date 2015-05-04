@@ -126,6 +126,13 @@
        (.removeEventListener js/document "resize" handle-resize)
        (.removeEventListener js/window "keydown" handle-keydown))}))
 
+(defn in-edges [g k]
+  (distinct
+   (for [[from es] (:edges g)
+         [to v] es
+         :when (= k to)]
+     from)))
+
 (defn graph-page []
   ;; TODO: pass in session instead, and rank g earlier
   (let [gr (with-ranks @g)]
@@ -147,10 +154,15 @@
                [:th "Recommended by"]
                [:th "Recommends"]]]
              (for [[k v] (sort-by (comp :rank val) (:nodes gr))]
-               [:tr
+               [:tr {:class (when (= k @d3/selected-id)
+                              "info")
+                     :on-click (fn [e]
+                                 ;; TODO: set selected as well
+                                 (reset! d3/selected-id k)
+                                 (println "SELECTED" k))}
                 [:td (:rank v)]
                 [:td k]
-                [:td (string/join ", " (keys (get-in gr [:edges k])))]
+                [:td (string/join ", " (in-edges gr k))]
                 [:td (string/join ", " (keys (get-in gr [:edges k])))]]))]
       [:div.col-md-4
        [:ul.list-unstyled

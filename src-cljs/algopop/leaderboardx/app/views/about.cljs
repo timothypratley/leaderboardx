@@ -6,4 +6,4 @@
     [:h2 "Welcome to Leaderboard" [:span {:style {:font-family "cursive"}} "X"]]
     [:p "How do you rank?"]]
    [:div
-    [:p "Athletes know exactly where they rank. Your employees will too."]]])
+    [:p "Contact timothypratley@gmail.com if you like this."]]])
