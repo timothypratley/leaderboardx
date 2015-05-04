@@ -12,7 +12,8 @@
          ks (concat mids ks)
          k->idx (into {} (map vector ks (range)))
          nodes (for [k ks]
-                 (get existing-nodes k {:id k}))]
+                 (merge (get existing-nodes k {:id k})
+                        (nodes k)))]
      (clj->js {:nodes nodes
                :paths (for [[source targets] edges
                             [target] targets]
@@ -60,6 +61,9 @@
                         (reset! selected-id (aget mutable-graph "nodes" idx "id"))
                         (aset mutable-graph "nodes" idx "fixed" 1))}
    [:circle.node {:r 20}]
+   [:text {:text-anchor "middle"
+           :y 18}
+    (:rank node)]
    [:text {:text-anchor "middle"
            :y 4}
     (:id node)]])

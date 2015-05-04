@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.views.graph
   (:require [algopop.leaderboardx.app.views.d3 :as d3]
+            [algopop.leaderboardx.app.pagerank :as pagerank]
             [goog.dom.forms :as forms]
             [clojure.string :as string]
             [reagent.core :as reagent]))
@@ -25,10 +26,47 @@
                          [k {:hair (rand-nth ["red" "brown" "black" "blonde"])}]))]
     {:nodes nodes
      :edges (into {} (for [k ks]
-                       [k (into {} (for [x (remove #{k} (take (+ 2 (rand-int 2)) (shuffle ks)))]
+                       [k (into {} (for [x (remove #{k} (take (+ 1 (rand-int 2)) (shuffle ks)))]
                                      [x {:value 1}]))]))}))
 
 (defonce g (reagent/atom test-graph))
+
+
+;;;;
+
+(defn with-link [acc [to from]]
+  (assoc-in acc [to from] 1))
+
+(defn g2m [g ks]
+  (let [n (count (:nodes g))
+        k->idx (zipmap ks (range))
+        matrix (vec (repeat n (vec (repeat n 0))))]
+    (reduce with-link matrix
+            (for [[from es] (:edges g)
+                  [to v] es]
+              [(k->idx to) (k->idx from)]))))
+
+(defn rank [g]
+  (let [ks (keys (:nodes g))
+        prs (pagerank/pagerank (g2m g ks))]
+    (reverse (sort-by second (map vector ks prs)))))
+
+(defn with-rank [[g prev-rank prev-score] [k pagerank]]
+  (let [rank (if (= pagerank prev-score)
+               prev-rank
+               (inc prev-rank))]
+    [(-> g
+         (assoc-in [:nodes k :rank] rank)
+         (assoc-in [:nodes k :pagerank] pagerank))
+     rank
+     pagerank]))
+
+(defn with-ranks [g]
+  (let [ranks (rank g)]
+    (println "RANKS" ranks)
+    (first (reduce with-rank [g 0 0] ranks))))
+
+;;;;
 
 (defn merge-left [& maps]
   (apply merge (reverse maps)))
@@ -89,28 +127,35 @@
        (.removeEventListener js/window "keydown" handle-keydown))}))
 
 (defn graph-page []
-  ;; TODO: pass in session instead
-  [:div
-   [hook]
-   [:div.row
-    [:form.col-md-6 {:on-submit submit}
-     [:dl.dl-horizontal
-      [:dt [:input {:type "text"
-                    :name "source"}]]
-      [:dd [:input {:type "text"
-                    :name "targets"}]
+  ;; TODO: pass in session instead, and rank g earlier
+  (let [gr (with-ranks @g)]
+    [:div
+     [hook]
+     [d3/graph gr]
+     [:div.row
+      [:form.col-md-8 {:on-submit submit}
+       [:input {:type "text"
+                :name "source"}]
+       [:input {:type "text"
+                :name "targets"}]
        [:input {:type :submit
-                :value "↩"}]]]
-     (into [:dl.dl-horizontal]
-           (apply concat
-                  (for [[k v] (:nodes @g)]
-                    [[:dt k]
-                     [:dd (string/join ", " (keys (get-in @g [:edges k])))]])))]
-    [:div.col-md-6
-     [:ul.list-unstyled
-      [:li "Enter a node name and press ENTER to add it."]
-      [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
-      [:li "Select a node or edge by mouse clicking it and press DEL to delete it."]
-      [:li "Drag nodes or edges around by click hold and move."]
-      [:li "Double click to unpin nodes and edges."]]]]
-   [d3/graph @g]])
+                :value "↩"}]
+       (into [:table.table.table-responsive
+              [:thead
+               [:th "Rank"]
+               [:th "Person"]
+               [:th "Recommended by"]
+               [:th "Recommends"]]]
+             (for [[k v] (sort-by (comp :rank val) (:nodes gr))]
+               [:tr
+                [:td (:rank v)]
+                [:td k]
+                [:td (string/join ", " (keys (get-in gr [:edges k])))]
+                [:td (string/join ", " (keys (get-in gr [:edges k])))]]))]
+      [:div.col-md-4
+       [:ul.list-unstyled
+        [:li "Enter a node name and press ENTER to add it."]
+        [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
+        [:li "Select a node or edge by mouse clicking it and press DEL to delete it."]
+        [:li "Drag nodes or edges around by click hold and move."]
+        [:li "Double click to unpin nodes and edges."]]]]]))
