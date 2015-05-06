@@ -114,18 +114,6 @@
              (swap! g delete-edge @d3/selected-id))))
     (.log js/console "KEYDOWN" e)))
 
-;; metadata gah, riddiculous
-(def hook
-  (with-meta (fn [])
-    {:component-did-mount
-     (fn did-mount [this]
-       (.addEventListener js/document "keydown" handle-keydown)
-       (.addEventListener js/window "resize" handle-resize))
-     :component-will-unmount
-     (fn will-unmount [this]
-       (.removeEventListener js/document "resize" handle-resize)
-       (.removeEventListener js/window "keydown" handle-keydown))}))
-
 (defn in-edges [g k]
   (distinct
    (for [[from es] (:edges g)
@@ -133,41 +121,55 @@
          :when (= k to)]
      from)))
 
+(defn graph-page* []
+  (let [gr (with-ranks @g)]
+  [:div
+   [d3/graph gr]
+   [:div.row
+    [:form.col-md-8 {:on-submit submit}
+     [:input {:type "text"
+              :name "source"}]
+     [:input {:type "text"
+              :name "targets"}]
+     [:input {:type :submit
+              :value "↩"}]
+     [:table.table.table-responsive
+      [:thead
+       [:th "Rank"]
+       [:th "Person"]
+       [:th "Recommended by"]
+       [:th "Recommends"]]
+      (into
+       [:tbody]
+       (for [[k v] (sort-by (comp :rank val) (:nodes gr))]
+         [:tr {:class (when (= k @d3/selected-id)
+                        "info")
+               :on-click (fn [e]
+                           ;; TODO: set selected as well
+                           (reset! d3/selected-id k)
+                           (println "SELECTED" k))}
+          [:td (:rank v)]
+          [:td k]
+          [:td (string/join ", " (in-edges gr k))]
+          [:td (string/join ", " (keys (get-in gr [:edges k])))]]))]]
+    [:div.col-md-4
+     [:ul.list-unstyled
+      [:li "Enter a node name and press ENTER to add it."]
+      [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
+      [:li "Select a node or edge by mouse clicking it and press DEL to delete it."]
+      [:li "Drag nodes or edges around by click hold and move."]
+      [:li "Double click to unpin nodes and edges."]]]]]))
+
 (defn graph-page []
   ;; TODO: pass in session instead, and rank g earlier
-  (let [gr (with-ranks @g)]
-    [:div
-     [hook]
-     [d3/graph gr]
-     [:div.row
-      [:form.col-md-8 {:on-submit submit}
-       [:input {:type "text"
-                :name "source"}]
-       [:input {:type "text"
-                :name "targets"}]
-       [:input {:type :submit
-                :value "↩"}]
-       (into [:table.table.table-responsive
-              [:thead
-               [:th "Rank"]
-               [:th "Person"]
-               [:th "Recommended by"]
-               [:th "Recommends"]]]
-             (for [[k v] (sort-by (comp :rank val) (:nodes gr))]
-               [:tr {:class (when (= k @d3/selected-id)
-                              "info")
-                     :on-click (fn [e]
-                                 ;; TODO: set selected as well
-                                 (reset! d3/selected-id k)
-                                 (println "SELECTED" k))}
-                [:td (:rank v)]
-                [:td k]
-                [:td (string/join ", " (in-edges gr k))]
-                [:td (string/join ", " (keys (get-in gr [:edges k])))]]))]
-      [:div.col-md-4
-       [:ul.list-unstyled
-        [:li "Enter a node name and press ENTER to add it."]
-        [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
-        [:li "Select a node or edge by mouse clicking it and press DEL to delete it."]
-        [:li "Drag nodes or edges around by click hold and move."]
-        [:li "Double click to unpin nodes and edges."]]]]]))
+  (reagent/create-class
+   {:display-name "graph-page"
+    :reagent-render graph-page*
+    :component-did-mount
+    (fn did-mount [this]
+      (.addEventListener js/document "keydown" handle-keydown)
+      (.addEventListener js/window "resize" handle-resize))
+    :component-will-unmount
+    (fn will-unmount [this]
+      (.removeEventListener js/document "resize" handle-resize)
+      (.removeEventListener js/window "keydown" handle-keydown))}))
