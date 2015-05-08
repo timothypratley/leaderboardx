@@ -2,6 +2,7 @@
   (:require [algopop.leaderboardx.app.communication :as communication]
             [algopop.leaderboardx.app.views.header :as header]
             [algopop.leaderboardx.app.views.about :as about]
+            [algopop.leaderboardx.app.views.commend :as commend]
             [algopop.leaderboardx.app.views.home :as home]
             [algopop.leaderboardx.app.views.graph :as graph]
             [reagent.core :as reagent]
@@ -17,6 +18,7 @@
 
 (def page {:home #'home/home-page
            :about #'about/about-page
+           :commend #'commend/commend-page
            :graph #'graph/graph-page})
 
 (defn current-page []
@@ -31,6 +33,8 @@
   (session/assoc-in! [:viewpoint :current-page] :home))
 (secretary/defroute "/about" []
   (session/assoc-in! [:viewpoint :current-page] :about))
+(secretary/defroute "/commend" []
+  (session/assoc-in! [:viewpoint :current-page] :commend))
 (secretary/defroute "/graph" []
   (session/assoc-in! [:viewpoint :current-page] :graph))
 (secretary/defroute "*" []

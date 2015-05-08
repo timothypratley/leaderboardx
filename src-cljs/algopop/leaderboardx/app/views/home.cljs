@@ -1,15 +1,13 @@
 (ns algopop.leaderboardx.app.views.home
   (:require [reagent.session :as session]))
 
-(defn item [x]
-  [:div
-   [:button.btn.btn-default [:span.glyphicon.glyphicon-chevron-up]]
-   [:button.btn.btn-default [:span.glyphicon.glyphicon-chevron-down]]
-   x])
-
-;; TODO: pass in session instead
 (defn home-page []
   [:div
-   (into [:ul.list-unstyled]
-         (for [x ["usain" "jordan" "ronaldo"]]
-           [:li [item x]]))])
+   [:div.jumbotron
+    [:h2 "Welcome to Leaderboard" [:span {:style {:font-family "cursive"}} "X"]]
+    [:p "How do you rank?"]]
+   [:div
+    [:p "Contact timothypratley@gmail.com"]
+    [:p [:a {:href "//algopop.herokuapp.com"
+             :target "_blank"}
+         "Created by Algopop"]]]])

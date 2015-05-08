@@ -15,8 +15,7 @@
     [:link {:rel "stylesheet"
             :href "//netdna.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"}]
     [:script {:src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"}]
-    [:script {:src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"}]
-    [:script {:src "http://marvl.infotech.monash.edu/webcola/cola.v3.min.js"}]]
+    [:script {:src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"}]]
 
    [:body
     [:div {:id "app"}]

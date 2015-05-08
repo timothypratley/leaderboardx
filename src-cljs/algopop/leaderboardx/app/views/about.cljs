@@ -6,4 +6,7 @@
     [:h2 "Welcome to Leaderboard" [:span {:style {:font-family "cursive"}} "X"]]
     [:p "How do you rank?"]]
    [:div
-    [:p "Contact timothypratley@gmail.com if you like this."]]])
+    [:p "Contact timothypratley@gmail.com"]
+    [:p [:a {:href "//algopop.herokuapp.com"
+             :target "_blank"}
+         "Created by Algopop"]]]])

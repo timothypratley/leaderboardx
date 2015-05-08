@@ -106,12 +106,10 @@
 
 (defn handle-keydown [e]
   (case (.-keyCode e)
-    46 (do
-         (println "DELETE" @d3/selected-id "!")
-         (when @d3/selected
-           (if (string? @d3/selected-id)
-             (swap! g delete-node @d3/selected-id)
-             (swap! g delete-edge @d3/selected-id))))
+    46 (when @d3/selected-id
+         (if (string? @d3/selected-id)
+           (swap! g delete-node @d3/selected-id)
+           (swap! g delete-edge @d3/selected-id)))
     (.log js/console "KEYDOWN" e)))
 
 (defn in-edges [g k]
@@ -137,8 +135,8 @@
       [:thead
        [:th "Rank"]
        [:th "Person"]
-       [:th "Recommended by"]
-       [:th "Recommends"]]
+       [:th "Commended by"]
+       [:th "Commends"]]
       (into
        [:tbody]
        (for [[k v] (sort-by (comp :rank val) (:nodes gr))]

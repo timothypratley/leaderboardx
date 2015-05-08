@@ -3,8 +3,7 @@
 
 (defn header []
   [:header
-   [:nav.navbar.navbar-inverse {:role "navigation"
-                               }
+   [:nav.navbar.navbar-inverse {:role "navigation"}
     [:div.container-fluid
      [:div.navbar-header
       [:button.navbar-toggle {:type "button"
@@ -14,7 +13,7 @@
        [:span.icon-bar]
        [:span.icon-bar]
        [:span.icon-bar]]
-      [:a.navbar-brand {:href "#"}
+      [:a.navbar-brand {:href "#/"}
        [:panel
         [:img {:src "img/brand.png"
                       :height "40px"}]
@@ -27,6 +26,7 @@
           [:p.navbar-text
            [:span.glyphicon.glyphicon-exclamation-sign]
            " Disconnected from server."]])
+       [:li [:a {:href "#/commend"} [:kbd "commend"]]]
        [:li [:a {:href "#/graph"} [:kbd "graph"]]]
        [:li [:a {:href "#/about"} [:kbd "about"]]]
        (let [username "tim"]

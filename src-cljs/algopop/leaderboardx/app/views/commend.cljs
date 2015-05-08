@@ -1,15 +1,23 @@
 (ns algopop.leaderboardx.app.views.commend
-  (:require [reagent.session :as session]))
+  (:require [reagent.session :as session]
+            [reagent.core :as reagent]))
 
-(defn item [x]
+(defn item [k {:keys [rank]}]
   [:div
+   rank
    [:button.btn.btn-default [:span.glyphicon.glyphicon-chevron-up]]
    [:button.btn.btn-default [:span.glyphicon.glyphicon-chevron-down]]
-   x])
+   k])
+
+(defonce commendations
+  (reagent/atom {"jordan" {:rank 1}
+                 "usain" {:rank 1}
+                 "ronaldo" {:rank 2}
+                 "leroy jenkins" {:rank 3}}))
 
 ;; TODO: pass in session instead
-(defn home-page []
+(defn commend-page []
   [:div
    (into [:ul.list-unstyled]
-         (for [x ["usain" "jordan" "ronaldo"]]
-           [:li [item x]]))])
+         (for [[k v] (sort-by :rank @commendations)]
+           [:li [item k v]]))])

@@ -30,7 +30,6 @@ html, body {
 
 circle.node {
   cursor: pointer;
-  stroke: #9ecae1;
   stroke-width: 1.5px;
   fill: #ddddff;
 }
