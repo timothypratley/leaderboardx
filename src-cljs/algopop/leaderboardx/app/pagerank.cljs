@@ -58,7 +58,9 @@
     (recur g click-through epsilon prs (improve prs g click-through))))
 
 (defn pagerank
-  "Calculates the pagerank of each node in a graph."
+  "Calculates the pagerank of each node in a graph.
+  Takes a 2x2 matrix where a 1 represents a connection.
+  Returns a vector of Pageranks."
   ([g]
    (pagerank g 0.85 0.001))
   ([g click-through epsilon]

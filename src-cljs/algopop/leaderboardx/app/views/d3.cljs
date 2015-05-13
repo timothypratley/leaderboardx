@@ -124,17 +124,17 @@
                                      (set! (.-px node) x)
                                      (set! (.-py node) y))
                                    (.resume force-layout)))))
-            :view-box      "0 0 1000 500"}
-      [:rect {:width  1000
-              :height 500
-              :fill   :none
-              :stroke :black}]]
+            :view-box      "0 0 1000 500"}]
      (concat
       (for [path paths]
         [blink path mutable-graph force-layout nodes])
       (for [[node idx] (map vector nodes (range))
             :when (not (vector? (:id node)))]
-        [bnode node idx mutable-graph force-layout])))))
+        [bnode node idx mutable-graph force-layout])
+      [[:rect {:width  1000
+                :height 500
+                :fill   :none
+                :stroke :black}]]))))
 
 (defn create-force-layout [g tick]
   (-> (js/d3.layout.force)

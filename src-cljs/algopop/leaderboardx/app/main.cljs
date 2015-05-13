@@ -4,7 +4,7 @@
             [algopop.leaderboardx.app.views.about :as about]
             [algopop.leaderboardx.app.views.commend :as commend]
             [algopop.leaderboardx.app.views.home :as home]
-            [algopop.leaderboardx.app.views.graph :as graph]
+            [algopop.leaderboardx.app.views.graph-editor :as graph-editor]
             [reagent.core :as reagent]
             [reagent.session :as session]
             [secretary.core :as secretary :include-macros true]
@@ -19,7 +19,7 @@
 (def page {:home #'home/home-page
            :about #'about/about-page
            :commend #'commend/commend-page
-           :graph #'graph/graph-page})
+           :graph-editor #'graph-editor/graph-editor})
 
 (defn current-page []
   [:div.container
@@ -29,14 +29,15 @@
 
 (secretary/set-config! :prefix "#")
 
+;TODO: generate these!
 (secretary/defroute "/" []
   (session/assoc-in! [:viewpoint :current-page] :home))
 (secretary/defroute "/about" []
   (session/assoc-in! [:viewpoint :current-page] :about))
 (secretary/defroute "/commend" []
   (session/assoc-in! [:viewpoint :current-page] :commend))
-(secretary/defroute "/graph" []
-  (session/assoc-in! [:viewpoint :current-page] :graph))
+(secretary/defroute "/graph-editor" []
+  (session/assoc-in! [:viewpoint :current-page] :graph-editor))
 (secretary/defroute "*" []
   (session/assoc-in! [:viewpoint :current-page] :home))
 

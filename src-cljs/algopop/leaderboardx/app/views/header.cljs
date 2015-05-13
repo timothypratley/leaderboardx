@@ -27,7 +27,7 @@
            [:span.glyphicon.glyphicon-exclamation-sign]
            " Disconnected from server."]])
        [:li [:a {:href "#/commend"} [:kbd "commend"]]]
-       [:li [:a {:href "#/graph"} [:kbd "graph"]]]
+       [:li [:a {:href "#/graph-editor"} [:kbd "graph editor"]]]
        [:li [:a {:href "#/about"} [:kbd "about"]]]
        (let [username "tim"]
          (when username
