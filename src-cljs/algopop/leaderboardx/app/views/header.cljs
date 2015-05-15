@@ -1,5 +1,28 @@
 (ns algopop.leaderboardx.app.views.header
-  (:require [reagent.session :as session]))
+  (:require [algopop.leaderboardx.app.pages :as pages]
+            [reagent.session :as session]))
+
+;; TODO: what if empty?
+(defn notifications []
+  (when-not (session/get :open?)
+            [:li
+             [:p.navbar-text
+              [:span.glyphicon.glyphicon-exclamation-sign]
+              " Disconnected from server."]]))
+
+(defn user-menu []
+  (let [username "tim"]
+    (when username
+      [:li.dropdown
+       [:a.dropdown-toggle {:href "#"
+                            :data-toggle "dropdown"}
+        [:kbd
+         [:span.glyphicon.glyphicon-user]
+         (str " " username)
+         [:span.caret]]]
+       [:ul.dropdown-menu {:role "menu"}
+        [:li [:a {:href "#"} "preferences"]]
+        [:li [:a {:href "#"} "logout"]]]])))
 
 (defn header []
   [:header
@@ -20,24 +43,10 @@
         "  Leaderboard"
         [:span {:style {:font-family "cursive"}} "X"]]]]
      [:div.collapse.navbar-collapse {:id "navbar-collapse"}
-      [:ul.nav.navbar-nav.navbar-right
-       (when-not (session/get :open?)
-         [:li
-          [:p.navbar-text
-           [:span.glyphicon.glyphicon-exclamation-sign]
-           " Disconnected from server."]])
-       [:li [:a {:href "#/commend"} [:kbd "commend"]]]
-       [:li [:a {:href "#/graph-editor"} [:kbd "graph editor"]]]
-       [:li [:a {:href "#/about"} [:kbd "about"]]]
-       (let [username "tim"]
-         (when username
-           [:li.dropdown
-            [:a.dropdown-toggle {:href "#"
-                                 :data-toggle "dropdown"}
-             [:kbd
-              [:span.glyphicon.glyphicon-user]
-              (str " " username)
-              [:span.caret]]]
-            [:ul.dropdown-menu {:role "menu"}
-             [:li [:a {:href "#"} "preferences"]]
-             [:li [:a {:href "#"} "logout"]]]]))]]]]])
+      (into
+       [:ul.nav.navbar-nav.navbar-right]
+       (concat
+        [[notifications]]
+        (for [[k v] (sort-by key pages/page)]
+          [:li [:a {:href (str "#/" (name k))} [:kbd (name k)]]])
+        [[user-menu]]))]]]])

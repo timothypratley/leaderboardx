@@ -19,6 +19,14 @@
 (defn without-edge [g [from to]]
   (update-in g [:edges from] dissoc to))
 
+(defn merge-left [& maps]
+  (apply merge (reverse maps)))
+
+(defn add-edges [g source targets]
+  (-> g
+      (update-in [:nodes] merge-left {source {}} (zipmap targets (repeat {})))
+      (update-in [:edges source] merge-left (zipmap targets (repeat {})))))
+
 (defn matrix-with-link [acc [to from]]
   (assoc-in acc [to from] 1))
 

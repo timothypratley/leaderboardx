@@ -46,17 +46,18 @@
 ;; TODO: is selected index right? need to update when graph changes?
 (defonce selected-id (reagent/atom nil))
 (defonce mouse-down (reagent/atom nil))
+;; TODO: move these to per component
 
-(defn bnode [node idx mutable-graph force-layout]
+(defn draw-node [node idx mutable-graph force-layout]
   (let [selected? (= (:id node) @selected-id)]
     [:g {:transform (str "translate(" (:x node) "," (:y node) ")"
                          (when selected?
                            " scale(1.25,1.25)"))
-         :on-double-click (fn [e]
+         :on-double-click (fn node-double-click [e]
                             (reset! selected-id nil)
                             (aset mutable-graph "nodes" idx "fixed" 0)
                             (.resume force-layout))
-         :on-mouse-down (fn [e]
+         :on-mouse-down (fn node-mouse-down [e]
                           (.stopPropagation e)
                           (reset! mouse-down true)
                           (reset! selected-id (aget mutable-graph "nodes" idx "id"))
@@ -78,13 +79,13 @@
 (defn ror [o a]
   (/ (* 180 (js/Math.atan2 o a)) Math.PI))
 
-(defn blink [path mutable-graph force-layout nodes]
+(defn draw-link [path mutable-graph force-layout nodes]
   (let [idx (second path)]
-    [:g {:on-double-click (fn [e]
+    [:g {:on-double-click (fn link-double-click [e]
                             (reset! selected-id nil)
                             (aset mutable-graph "nodes" idx "fixed" 0)
                             (.resume force-layout))
-         :on-mouse-down (fn [e]
+         :on-mouse-down (fn link-mouse-down [e]
                           (.stopPropagation e)
                           (reset! mouse-down true)
                           (reset! selected-id (aget mutable-graph "nodes" idx "id"))
@@ -107,34 +108,41 @@
                                    (when (= id @selected-id)
                                      " scale(1.25,1.25)"))}]])]))
 
-(defn draw-graph [drawable mutable-graph force-layout]
+(defn draw-svg [drawable mutable-graph force-layout]
   (let [{:keys [nodes paths]} @drawable]
     (into
-     [:svg {:on-mouse-down (fn [e]
-                             (reset! mouse-down true)
-                             (reset! selected-id nil))
-            :on-mouse-up (fn [e]
-                           (reset! mouse-down nil))
-            :on-mouse-move (fn [e]
-                             (when (and @selected-id @mouse-down)
-                               (when-let [idx (aget mutable-graph "idx" @selected-id)]
-                                 (when-let [node (aget (.-nodes mutable-graph) idx)]
-                                   (let [x (- (.-pageX e) 250)
-                                         y (- (.-pageY e) 220)]
-                                     (set! (.-px node) x)
-                                     (set! (.-py node) y))
-                                   (.resume force-layout)))))
-            :view-box      "0 0 1000 500"}]
+     [:svg
+      {:view-box (str "0 0 " 1000 " " 500)}]
      (concat
       (for [path paths]
-        [blink path mutable-graph force-layout nodes])
+        [draw-link path mutable-graph force-layout nodes])
       (for [[node idx] (map vector nodes (range))
             :when (not (vector? (:id node)))]
-        [bnode node idx mutable-graph force-layout])
+        [draw-node node idx mutable-graph force-layout])
       [[:rect {:width  1000
-                :height 500
-                :fill   :none
-                :stroke :black}]]))))
+               :height 500
+               :fill   :none
+               :stroke :black}]]))))
+
+(defn draw-graph [size drawable mutable-graph force-layout]
+  [:div {:on-mouse-down (fn graph-mouse-down [e]
+                          (reset! mouse-down true)
+                          (reset! selected-id nil))
+         :on-mouse-up (fn graph-mouse-up [e]
+                        (reset! mouse-down nil))
+         :on-mouse-move (fn graph-mouse-move [e]
+                          (when (and @selected-id @mouse-down)
+                            (when-let [idx (aget mutable-graph "idx" @selected-id)]
+                              (when-let [node (aget mutable-graph "nodes" idx)]
+                                (let [{:keys [width height left top]} @size
+                                      divx (- (.-clientX e) left)
+                                      divy (- (.-clientY e) top)
+                                      x (/ (* 1000 divx) width)
+                                      y (/ (* 500 divy) height)]
+                                  (set! (.-px node) x)
+                                  (set! (.-py node) y)
+                                  (.resume force-layout))))))}
+   [draw-svg drawable mutable-graph force-layout]])
 
 (defn create-force-layout [g tick]
   (-> (js/d3.layout.force)
@@ -143,18 +151,40 @@
       (.links (.-links g))
       (.linkDistance 50)
       (.charge -200)
-      ;; TODO: handle resizing
       (.size #js [1000, 500])
       (.on "tick" tick)))
 
-(let [mutable-graph (d3g nil)
-      drawable (reagent/atom {})
-      force-layout (create-force-layout
-                    mutable-graph
-                    (fn tick []
-                      (reset! drawable (js->clj mutable-graph :keywordize-keys true))))]
+(defn resize [size]
+  (let [elem (.getDOMNode (:this size))
+        r (.getBoundingClientRect elem)]
+    (assoc size
+           :width (.-offsetWidth elem)
+           :height (.-offsetHeight elem)
+           :left (.-left r)
+           :top (.-top r))))
 
-  (defn graph [g]
-    (reconcile g mutable-graph)
-    (.start force-layout)
-    [draw-graph drawable mutable-graph force-layout]))
+(defn graph [g]
+  (let [mutable-graph (d3g nil)
+        drawable (reagent/atom {})
+        size (reagent/atom {})
+        handle-resize (fn [e]
+                        (swap! size resize))
+        force-layout (create-force-layout
+                      mutable-graph
+                      (fn layout-tick []
+                        (reset! drawable (js->clj mutable-graph
+                                                  :keywordize-keys true))))]
+    (reagent/create-class
+     {:display-name "graph"
+      :reagent-render
+      (fn graph-render [g]
+        (reconcile g mutable-graph)
+        (.start force-layout)
+        [draw-graph size drawable mutable-graph force-layout])
+      :component-did-mount
+      (fn graph-did-mount [this]
+        (reset! size (resize {:this this}))
+        (.addEventListener js/window "resize" handle-resize))
+      :component-will-unmount
+      (fn graph-will-unmount [this]
+        (.removeEventListener js/window "resize" handle-resize))})))
