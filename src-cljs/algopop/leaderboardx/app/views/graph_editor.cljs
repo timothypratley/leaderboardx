@@ -52,12 +52,18 @@
       (.startsWith k @search-term)))
 
 (defn help []
-  [:ul.list-unstyled
-   [:li "Enter a node name and press ENTER to add it."]
-   [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
-   [:li "Select a node or edge by mouse clicking it and press DEL to delete it."]
-   [:li "Drag nodes or edges around by click hold and move."]
-   [:li "Double click to unpin nodes and edges."]])
+  (let [show-help (reagent/atom false)]
+    (fn a-help []
+      [:span.btn.btn-default.pull-right {:on-click (fn help-click [e]
+                                          (swap! show-help not))}
+       [:span.glyphicon.glyphicon-question-sign {:aria-hidden "true"}]
+       (when @show-help
+         [:ul.list-unstyled.pull-right
+          [:li "Enter a node name and press ENTER to add it."]
+          [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
+          [:li "Select a node or edge by mouse clicking it and press DEL to delete it."]
+          [:li "Drag nodes or edges around by click hold and move."]
+          [:li "Double click to unpin nodes and edges."]])])))
 
 (defn toolbar [gr]
   [:div
@@ -70,7 +76,8 @@
    [:a.btn.btn-default
     {:href (js/encodeURI (str "data:text/csv;charset=utf-8," (pr-str gr)))
      :download "graph.csv"}
-    "Export"]])
+    "Export"]
+   [help]])
 
 ;; TODO: pass args instead of globals
 ;; TODO: form has to wrap table??
@@ -81,6 +88,7 @@
                   "Edit")]]
    [:td [:input {:type "text"
                  :name "source"
+                 ;; TODO: reset search-term and commends when selection made
                  :value @search-term
                  :on-change (fn source-on-change [e]
                               (let [k (.. e -target -value)]
@@ -128,8 +136,7 @@
       [:div.col-md-8
        [table gr]]
       [:div.col-md-4
-       [toolbar gr]
-       [help]]]]))
+       [toolbar gr]]]]))
 
 (defn graph-editor-page []
   ;; TODO: pass in session instead, and rank g earlier
