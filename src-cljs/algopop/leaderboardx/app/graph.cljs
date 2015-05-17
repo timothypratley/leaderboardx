@@ -27,6 +27,30 @@
       (update-in [:nodes] merge-left {source {}} (zipmap targets (repeat {})))
       (update-in [:edges source] merge-left (zipmap targets (repeat {})))))
 
+(defn rebuild-in-edge [g from k new-k]
+  (-> g
+      (update-in [:edges from] dissoc k)
+      (update-in [:edges from] merge-left {new-k {}})))
+
+(defn update-in-edges [g k new-k ins]
+  (reduce (fn collect [acc from]
+            (rebuild-in-edge acc from k new-k))
+          g
+          ins))
+
+(defn rename-node [g k new-k]
+  (if (= k new-k)
+    g
+    (let [node (get-in g [:nodes k])
+          outs (get-in g [:edges k])
+          ins (in-edges g k)]
+      (-> g
+          (update-in [:nodes] dissoc k)
+          (update-in [:edges] dissoc k)
+          (assoc-in [:nodes new-k] node)
+          (assoc-in [:edges new-k] outs)
+          (update-in-edges k new-k ins)))))
+
 (defn matrix-with-link [acc [to from]]
   (assoc-in acc [to from] 1))
 
@@ -59,6 +83,8 @@
   Takes a map of nodes and edges.
   Returns a map of nodes and edges."
   [g]
-  (let [ranks (rank g)]
-    (println "RANKS" ranks)
-    (first (reduce with-rank [g 0 0] ranks))))
+  (if (seq (:nodes g))
+    (let [ranks (rank g)]
+      (println "RANKS" ranks)
+      (first (reduce with-rank [g 0 0] ranks)))
+    g))

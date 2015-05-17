@@ -15,7 +15,7 @@
   (apply str (take (+ 3 (rand-int 3))
                    (iterate next-char (rand-char)))))
 
-(def test-graph
+(defn rand-graph []
   (let [ks (distinct (repeatedly 10 rand-name))
         nodes (into {} (for [k ks]
                          [k {:hair (rand-nth ["red" "brown" "black" "blonde"])}]))]
