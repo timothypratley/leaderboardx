@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.views.graph-editor
   (:require [algopop.leaderboardx.app.graph :as graph]
+            [algopop.leaderboardx.app.graph-translation :as graph-translation]
             [algopop.leaderboardx.app.seed :as seed]
             [algopop.leaderboardx.app.views.d3 :as d3]
             [goog.dom.forms :as forms]

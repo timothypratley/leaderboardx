@@ -5,6 +5,7 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/clojurescript "0.0-3196" :scope "provided"]
                  [org.clojure/tools.logging "0.3.1"]
+                 [com.lucasbradstreet/instaparse-cljs "1.3.5"]
                  [com.taoensso/sente "1.4.1"]
                  [compojure "1.3.3"]
                  [cljsjs/d3 "3.5.5-3"]
