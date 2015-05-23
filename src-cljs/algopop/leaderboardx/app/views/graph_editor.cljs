@@ -1,6 +1,7 @@
 (ns algopop.leaderboardx.app.views.graph-editor
   (:require [algopop.leaderboardx.app.graph :as graph]
-            [algopop.leaderboardx.app.graph-translation :as graph-translation]
+            [algopop.leaderboardx.app.io.dot :as dot]
+            [algopop.leaderboardx.app.io.csv :as csv]
             [algopop.leaderboardx.app.seed :as seed]
             [algopop.leaderboardx.app.views.d3 :as d3]
             [goog.dom.forms :as forms]
@@ -67,27 +68,47 @@
             [:li "Drag nodes or edges around by click hold and move."]
             [:li "Double click to unpin nodes and edges."]]]])])))
 
+[:button {:on-click (fn save-svg-click [e]
+                         (.log js/console (.-firstChild (.getDOMNode (:component @size))))
+                         (save-svg (.-firstChild (.getDOMNode (:component @size)))))}
+    "Save graph SVG"]
+
 (defn toolbar [gr]
   [:div
    [:span.btn.btn-default
-    {:on-click (fn [e]
-                 (reset! g (seed/rand-graph)))}
-    "Random"]
-   [:span.btn.btn-default
-    {:on-click (fn [e]
+    {:on-click (fn clear-click [e]
                  (reset! g {:nodes {"root" {}}
                             :edges {"root" {}}}))}
     "Clear"]
+   [:span.btn.btn-default
+    {:on-click (fn random-click [e]
+                 (reset! g (seed/rand-graph)))}
+    "Random"]
    [:span.btn.btn-default.btn-file
-    "Import"
+    "Import CSV"
     [:input
      {:type "file"
       :name "import"
       :accept "text/csv"}]]
+   [:span.btn.btn-default
+    {:on-click (fn import-graphviz-click [e]
+                 (doto
+                     (reset! g (dot/read-graph dot/dot2))
+                   (prn "GRAPH")))}
+    "Import Graphviz"]
+   ;; TODO: make these calculate when you click not before
    [:a.btn.btn-default
-    {:href (js/encodeURI (str "data:text/csv;charset=utf-8," (pr-str gr)))
+    {:href (js/encodeURI (str "data:text/csv;charset=utf-8," (csv/write-graph gr)))
      :download "graph.csv"}
-    "Export"]
+    "Export CSV"]
+   [:a.btn.btn-default
+    {:href (js/encodeURI (str "data:text/dot;charset=utf-8," (dot/write-graph gr)))
+     :download "graph.dot"}
+    "Export Graphviz"]
+   [:a.btn.btn-default
+    {:href (js/encodeURI (str "data:image/svg+xml;base64," (d3/graph gr)))
+     :download "graph.dot"}
+    "Export SVG"]
    [help]])
 
 (defn input-row [gr search-term commends]
@@ -95,6 +116,7 @@
    [:td [:label "Add"]]
    [:td [:input {:type "text"
                  :name "source"
+                 :style {:width "100%"}
                  ;; TODO: reset search-term and commends when selection made
                  :value @search-term
                  :on-change (fn source-on-change [e]
@@ -106,6 +128,7 @@
                                   (reset! commends (keys (get-in gr [:edges k]))))))}]]
    [:td [:input {:type "text"
                  :name "targets"
+                 :style {:width "100%"}
                  :value @commends
                  :on-change (fn targets-on-change [e]
                               (reset! commends (.. e -target -value)))}]]])
@@ -202,11 +225,8 @@
   (let [gr (graph/with-ranks @g)]
     [:div
      [d3/graph gr]
-     [:div.row
-      [:div.col-md-8
-       [table gr]]
-      [:div.col-md-4
-       [toolbar gr]]]]))
+     [toolbar gr]
+     [table gr]]))
 
 (defn graph-editor-page []
   ;; TODO: pass in session instead, and rank g earlier

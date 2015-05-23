@@ -20,7 +20,7 @@ subgraph  : [ subgraph [ <WS> id ] <WS> ] <'{'> <WS> stmt_list <WS> <'}'>
 WS : #'\\s*'
 <id> : #'[a-zA-Z\\200-\\377][a-zA-Z\\200-\\377\\_0-9]*' | numeral | quoted | html
 <numeral> : #'[-]?(.[0-9]+|[0-9]+(.[0-9]*)?)'
-<quoted> : #'\"(?:[^\"\\\\]|\\\\.)*\"'
+<quoted> : <'\"'> #'(?:[^\"\\\\]|\\\\.)*' <'\"'>
 <html> : #'<[^>]*>'")
 
 (def parse-dot

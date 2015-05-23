@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.views.d3
-  (:require [reagent.core :as reagent]
+  (:require [clojure.string :as string]
+            [reagent.core :as reagent]
             [cljsjs.d3]))
 
 (defn d3g
@@ -62,15 +63,20 @@
                           (reset! mouse-down true)
                           (reset! selected-id (aget mutable-graph "nodes" idx "id"))
                           (aset mutable-graph "nodes" idx "fixed" 1))}
-     [:circle.node {:r 20
-                    :stroke (if selected?
-                              "#6699aa"
-                              "#9ecae1")}]
-     [:text {:text-anchor "middle"
-             :y 18}
+     [:circle {:r 20
+               :fill "#ddddff"
+               :stroke (if selected?
+                         "#6699aa"
+                         "#9ecae1")
+               :stroke-width "1.5px"
+               :style {:cursor "pointer"}}]
+     [:text.unselectable {:text-anchor "middle"
+                          :y 18
+                          :style {:pointer-events "none"}}
       (:rank node)]
-     [:text {:text-anchor "middle"
-             :y 4}
+     [:text.unselectable {:text-anchor "middle"
+                          :y 4
+                          :style {:pointer-events "none"}}
       (:id node)]]))
 
 (defn average [& args]
@@ -90,11 +96,14 @@
                           (reset! mouse-down true)
                           (reset! selected-id (aget mutable-graph "nodes" idx "id"))
                           (aset mutable-graph "nodes" idx "fixed" 1))}
-     [:path.link {:d (apply str (interleave
-                                 ["M" "," "Q" "," " " ","]
-                                 (for [idx path
-                                       dim [:x :y]]
-                                   (get-in nodes [idx dim]))))}]
+     [:path {:fill "none"
+             :stroke "#9ecae1"
+             :stroke-width "1.5px"
+             :d (apply str (interleave
+                            ["M" "," "Q" "," " " ","]
+                            (for [idx path
+                                  dim [:x :y]]
+                              (get-in nodes [idx dim]))))}]
      (let [{x1 :x y1 :y} (get-in nodes [(first path)])
            {:keys [x y id]} (get-in nodes [(second path)])
            {x3 :x y3 :y} (get-in nodes [(nth path 2)])
@@ -112,7 +121,9 @@
   (let [{:keys [nodes paths]} @drawable]
     (into
      [:svg
-      {:view-box (str "0 0 " 1000 " " 500)}]
+      {:view-box (str "0 0 " 1000 " " 500)
+       :xmlns "http://www.w3.org/2000/svg"
+       :version "1.1"}]
      (concat
       (for [path paths]
         [draw-link path mutable-graph force-layout nodes])
@@ -123,6 +134,18 @@
                :height 500
                :fill   :none
                :stroke :black}]]))))
+
+;; TODO: doesn't work
+(defn save-svg [node]
+  (let [link (.createElement js/document "a")]
+    (set! (.-download link) "graph.svg")
+    (set! (.-href link) (str "data:image/svg+xml;utf8,"
+                             (js/encodeURIComponent
+                              (str
+                               "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
+                               (string/replace (.-innerHTML node) #" data-reactid=\"[^\"]*\"" "")
+                               "</svg>"))))
+    (.click link)))
 
 (defn draw-graph [size drawable mutable-graph force-layout]
   [:div {:on-mouse-down (fn graph-mouse-down [e]
@@ -142,7 +165,12 @@
                                   (set! (.-px node) x)
                                   (set! (.-py node) y)
                                   (.resume force-layout))))))}
-   [draw-svg drawable mutable-graph force-layout]])
+   [draw-svg drawable mutable-graph force-layout]
+   [:button.btn.btn-default.pull-right
+    {:on-click (fn save-svg-click [e]
+                 (.log js/console (.-firstChild (.getDOMNode (:component @size))))
+                 (save-svg (.-firstChild (.getDOMNode (:component @size)))))}
+    "Save Image"]])
 
 (defn create-force-layout [g tick]
   (-> (js/d3.layout.force)
@@ -155,7 +183,7 @@
       (.on "tick" tick)))
 
 (defn resize [size]
-  (let [elem (.getDOMNode (:this size))
+  (let [elem (.getDOMNode (:component size))
         r (.getBoundingClientRect elem)]
     (assoc size
            :width (.-offsetWidth elem)
@@ -166,14 +194,14 @@
 (defn graph [g]
   (let [mutable-graph (d3g nil)
         drawable (reagent/atom {})
-        size (reagent/atom {})
-        handle-resize (fn [e]
-                        (swap! size resize))
         force-layout (create-force-layout
                       mutable-graph
                       (fn layout-tick []
                         (reset! drawable (js->clj mutable-graph
-                                                  :keywordize-keys true))))]
+                                                  :keywordize-keys true))))
+        size (reagent/atom {})
+        resize-handler (fn a-resize-handler [e]
+                         (swap! size resize))]
     (reagent/create-class
      {:display-name "graph"
       :reagent-render
@@ -183,8 +211,8 @@
         [draw-graph size drawable mutable-graph force-layout])
       :component-did-mount
       (fn graph-did-mount [this]
-        (reset! size (resize {:this this}))
-        (.addEventListener js/window "resize" handle-resize))
+        (reset! size (resize {:component this}))
+        (.addEventListener js/window "resize" resize-handler))
       :component-will-unmount
       (fn graph-will-unmount [this]
-        (.removeEventListener js/window "resize" handle-resize))})))
+        (.removeEventListener js/window "resize" resize-handler))})))

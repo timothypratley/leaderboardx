@@ -27,23 +27,13 @@ html, body {
   height: 90%;
 }
 
-
-circle.node {
-  cursor: pointer;
-  stroke-width: 1.5px;
-  fill: #ddddff;
-}
-
-.node text {
-  font: 10px sans-serif;
-  pointer-events: none;
-  text-anchor: middle;
-}
-
-.link {
-  fill: none;
-  stroke: #9ecae1;
-  stroke-width: 1.5px;
+.unselectable {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .btn-file {
