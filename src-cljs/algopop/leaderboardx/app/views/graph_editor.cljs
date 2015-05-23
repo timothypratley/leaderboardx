@@ -68,11 +68,6 @@
             [:li "Drag nodes or edges around by click hold and move."]
             [:li "Double click to unpin nodes and edges."]]]])])))
 
-[:button {:on-click (fn save-svg-click [e]
-                         (.log js/console (.-firstChild (.getDOMNode (:component @size))))
-                         (save-svg (.-firstChild (.getDOMNode (:component @size)))))}
-    "Save graph SVG"]
-
 (defn toolbar [gr]
   [:div
    [:span.btn.btn-default
@@ -93,7 +88,7 @@
    [:span.btn.btn-default
     {:on-click (fn import-graphviz-click [e]
                  (doto
-                     (reset! g (dot/read-graph dot/dot2))
+                     (reset! g (dot/read-graph dot/dot))
                    (prn "GRAPH")))}
     "Import Graphviz"]
    ;; TODO: make these calculate when you click not before
