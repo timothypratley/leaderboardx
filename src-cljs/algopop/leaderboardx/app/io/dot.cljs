@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.io.dot
-  (:require [instaparse.core :as insta]))
+  (:require [clojure.string :as string]
+            [instaparse.core :as insta]))
 
 (def dot-gramma
   "graph : <WS> [ <'strict'> <WS> ] ('graph' | 'digraph') <WS> [ id <WS> ] <'{'> stmt_list <'}'> <WS>
@@ -56,20 +57,25 @@ WS : #'\\s*'
                     {})]
         (reduce collect graph statements)))))
 
-(def dot
-  "digraph deps {
-\"dev/browser-repl\" -> \"cemerick.piggieback/cljs-repl\";
-\"dev/start-figwheel\" -> \"leiningen.core.main/-main\";
-\"dev/browser-repl\" -> \"weasel.repl.websocket/repl-env\";
-\"dev/browser-repl\"[label=\"dev/browser-repl\"];
-\"weasel.repl.websocket/repl-env\"[label=\"weasel.repl.websocket/repl-env\"];
-\"dev/start-figwheel\"[label=\"dev/start-figwheel\"];
-\"leiningen.core.main/-main\"[label=\"leiningen.core.main/-main\"];
-\"cemerick.piggieback/cljs-repl\"[label=\"cemerick.piggieback/cljs-repl\"];}")
+(defn maybe-attrs [attrs]
+  (when (seq attrs)
+    (str " [" (string/join "," (for [[k v] attrs] (str k " = " v))) "]")))
 
-#_(prn "PARSE:" (parse-dot dot))
-#_(prn "READ:" (read-graph dot))
+(defn edges [g]
+  (for [[from tos] (:edges g)
+        [to attrs] tos]
+    (str from " -> " to (maybe-attrs attrs) ";")))
 
+(defn nodes [g]
+  (for [[k attrs] (sort-by (comp :rank val) (:nodes g))]
+    (str k (maybe-attrs attrs) ";")))
+
+;; TODO: don't keywordize
+;; TODO: why do sometimes ranks exist, sometimes not? not merging?
 (defn write-graph [g]
-  (str "digraph " (:title g) " {"
-       "}"))
+  (str "digraph " (:title g) " {" \newline
+       (string/join \newline
+                    (concat
+                     (nodes g)
+                     (edges g)))
+       \newline "}"))

@@ -85,6 +85,5 @@
   [g]
   (if (seq (:nodes g))
     (let [ranks (rank g)]
-      (println "RANKS" ranks)
       (first (reduce with-rank [g 0 0] ranks)))
     g))

@@ -1,9 +1,8 @@
 (ns algopop.leaderboardx.app.views.graph-editor
   (:require [algopop.leaderboardx.app.graph :as graph]
-            [algopop.leaderboardx.app.io.dot :as dot]
-            [algopop.leaderboardx.app.io.csv :as csv]
             [algopop.leaderboardx.app.seed :as seed]
             [algopop.leaderboardx.app.views.d3 :as d3]
+            [algopop.leaderboardx.app.views.toolbar :as toolbar]
             [goog.dom.forms :as forms]
             [clojure.string :as string]
             [reagent.core :as reagent])
@@ -27,85 +26,27 @@
         targets (map string/trim (string/split targets #","))]
     (swap! g graph/add-edges source targets)))
 
-(defn unselect []
-  (reset! d3/selected-id nil))
+(defn unselect [selected-id]
+  (reset! selected-id nil))
 
-(defn delete-selected []
-  (when-let [id @d3/selected-id]
+(defn delete-selected [selected-id]
+  (when-let [id @selected-id]
     (if (string? id)
       (swap! g graph/without-node id)
       (swap! g graph/without-edge id))
-    (unselect)))
+    (unselect selected-id)))
 
 (defn key-match [k e]
   (= (aget KeyCodes k) (.-keyCode e)))
 
-(defn handle-keydown [e]
+(defn handle-keydown [e selected-id]
   (condp key-match e
-    "ESC" (unselect)
+    "ESC" (unselect selected-id)
     "DELETE" (when-not (instance? js/HTMLInputElement (.-target e))
-               (delete-selected))
+               (delete-selected selected-id))
     nil))
 
-(defn help []
-  (let [show-help (reagent/atom false)]
-    (fn a-help []
-      [:div.pull-right
-       [:span.btn.btn-default.pull-right
-        {:on-click (fn help-click [e]
-                     (swap! show-help not))}
-        [:span.glyphicon.glyphicon-question-sign {:aria-hidden "true"}]]
-       (when @show-help
-         [:div.panel.panel-default
-          {:on-click (fn help-panel-click [e]
-                       (swap! show-help not))}
-          [:div.panel-body
-           [:ul.list-unstyled
-            [:li "Enter a node name and press ENTER to add it."]
-            [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
-            [:li "Select a node or edge by mouse clicking it and press DEL to delete it."]
-            [:li "Drag nodes or edges around by click hold and move."]
-            [:li "Double click to unpin nodes and edges."]]]])])))
-
-(defn toolbar [gr]
-  [:div
-   [:span.btn.btn-default
-    {:on-click (fn clear-click [e]
-                 (reset! g {:nodes {"root" {}}
-                            :edges {"root" {}}}))}
-    "Clear"]
-   [:span.btn.btn-default
-    {:on-click (fn random-click [e]
-                 (reset! g (seed/rand-graph)))}
-    "Random"]
-   [:span.btn.btn-default.btn-file
-    "Import CSV"
-    [:input
-     {:type "file"
-      :name "import"
-      :accept "text/csv"}]]
-   [:span.btn.btn-default
-    {:on-click (fn import-graphviz-click [e]
-                 (doto
-                     (reset! g (dot/read-graph dot/dot))
-                   (prn "GRAPH")))}
-    "Import Graphviz"]
-   ;; TODO: make these calculate when you click not before
-   [:a.btn.btn-default
-    {:href (js/encodeURI (str "data:text/csv;charset=utf-8," (csv/write-graph gr)))
-     :download "graph.csv"}
-    "Export CSV"]
-   [:a.btn.btn-default
-    {:href (js/encodeURI (str "data:text/dot;charset=utf-8," (dot/write-graph gr)))
-     :download "graph.dot"}
-    "Export Graphviz"]
-   [:a.btn.btn-default
-    {:href (js/encodeURI (str "data:image/svg+xml;base64," (d3/graph gr)))
-     :download "graph.dot"}
-    "Export SVG"]
-   [help]])
-
-(defn input-row [gr search-term commends]
+(defn input-row [gr search-term commends selected-id]
   [:tr
    [:td [:label "Add"]]
    [:td [:input {:type "text"
@@ -117,7 +58,7 @@
                               (let [k (.. e -target -value)]
                                 (reset! search-term k)
                                 (when (get-in gr [:nodes k])
-                                  (reset! d3/selected-id k)
+                                  (reset! selected-id k)
                                   ;; TODO: react instead!
                                   (reset! commends (keys (get-in gr [:edges k]))))))}]]
    [:td [:input {:type "text"
@@ -175,7 +116,7 @@
             :value k}]
    [edge-input edges editing]])
 
-(defn table [gr]
+(defn table [gr selected-id]
   (let [search-term (reagent/atom "")
         commends (reagent/atom "")
         editing (reagent/atom nil)]
@@ -189,9 +130,9 @@
          [:th "Commended by"]]
         (into
          [:tbody
-          [input-row gr search-term commends]]
+          [input-row gr search-term commends selected-id]]
          (for [[k v] (sort-by (comp :rank val) (:nodes gr))
-               :let [selected? (= k @d3/selected-id)
+               :let [selected? (= k @selected-id)
                      match? (and (seq @search-term) (.startsWith k @search-term))
                      edges (string/join ", " (keys (get-in gr [:edges k])))]]
            [:tr {:class (cond
@@ -199,37 +140,46 @@
                           match? "warning")
                  :on-mouse-down (fn table-mouse-down [e]
                                   (reset! search-term k)
-                                  (reset! d3/selected-id k))}
+                                  (reset! selected-id k))}
             [:td (:rank v)]
             [:td {:on-mouse-down (fn node-name-mouse-down [e]
-                                   (when (= k @d3/selected-id)
+                                   (when (= k @selected-id)
                                      (reset! editing :node)))}
              (if (and selected? (#{:node} @editing))
                [rename-node k editing]
                k)]
             [:td {:on-mouse-down (fn edges-mouse-down [e]
-                                   (when (= k @d3/selected-id)
+                                   (when (= k @selected-id)
                                      (reset! editing :edges)))}
              (if (and selected? (#{:edges} @editing))
                [edit-edges k edges editing]
                edges)]
             [:td (string/join ", " (graph/in-edges gr k))]]))]])))
 
-(defn graph-editor []
-  (let [gr (graph/with-ranks @g)]
-    [:div
-     [d3/graph gr]
-     [toolbar gr]
-     [table gr]]))
-
 (defn graph-editor-page []
   ;; TODO: pass in session instead, and rank g earlier
-  (reagent/create-class
-   {:display-name "graph-editor"
-    :reagent-render graph-editor
-    :component-did-mount
-    (fn graph-editor-did-mount [this]
-      (.addEventListener js/document "keydown" handle-keydown))
-    :component-will-unmount
-    (fn graph-editor-will-unmount [this]
-      (.removeEventListener js/document "keydown" handle-keydown))}))
+  (let [selected-id (reagent/atom nil)
+        keydown-handler (fn a-keydown-handler [e]
+                          (handle-keydown e selected-id))]
+    (reagent/create-class
+     {:display-name "graph-editor"
+      :reagent-render
+      (fn graph-editor []
+        (let [gr (graph/with-ranks @g)
+              this (reagent/current-component)
+              get-svg (fn a-get-svg []
+                        (-> this
+                            (.getDOMNode)
+                            (.-firstChild)
+                            (.-firstChild)
+                            (.-innerHTML)))]
+          [:div
+           [d3/graph gr selected-id]
+           [toolbar/toolbar g get-svg]
+           [table gr selected-id]]))
+      :component-did-mount
+      (fn graph-editor-did-mount [this]
+        (.addEventListener js/document "keydown" keydown-handler))
+      :component-will-unmount
+      (fn graph-editor-will-unmount [this]
+        (.removeEventListener js/document "keydown" keydown-handler))})))
