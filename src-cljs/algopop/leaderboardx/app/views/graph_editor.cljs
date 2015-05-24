@@ -21,7 +21,6 @@
                          (first v)
                          v)])))
 
-;; TODO: don't take empty str, etc
 (defn submit-add-node-and-edges [e]
   (let [{:keys [source targets]} (form-data e)
         source (string/trim source)
@@ -32,20 +31,20 @@
   (reset! d3/selected-id nil))
 
 (defn delete-selected []
-  (when @d3/selected-id
-    (if (string? @d3/selected-id)
-      (swap! g graph/without-node @d3/selected-id)
-      (swap! g graph/without-edge @d3/selected-id))
+  (when-let [id @d3/selected-id]
+    (if (string? id)
+      (swap! g graph/without-node id)
+      (swap! g graph/without-edge id))
     (unselect)))
 
 (defn key-match [k e]
-  (= (.-keyCode e) (aget KeyCodes k)))
+  (= (aget KeyCodes k) (.-keyCode e)))
 
 (defn handle-keydown [e]
   (condp key-match e
     "ESC" (unselect)
     "DELETE" (when-not (instance? js/HTMLInputElement (.-target e))
-                 (delete-selected))
+               (delete-selected))
     nil))
 
 (defn help []

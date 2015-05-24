@@ -68,7 +68,6 @@
                :stroke (if selected?
                          "#6699aa"
                          "#9ecae1")
-               :stroke-width "1.5px"
                :style {:cursor "pointer"}}]
      [:text.unselectable {:text-anchor "middle"
                           :y 18
@@ -85,37 +84,38 @@
 (defn ror [o a]
   (/ (* 180 (js/Math.atan2 o a)) Math.PI))
 
-(defn draw-link [path mutable-graph force-layout nodes]
-  (let [idx (second path)]
+(defn draw-link [[from mid to :as path] mutable-graph force-layout nodes]
+  (let [{x1 :x y1 :y} (get nodes from)
+        {x2 :x y2 :y id :id} (get nodes mid)
+        {x3 :x y3 :y} (get nodes to)
+        mx (average x1 x2 x2 x3)
+        my (average y1 y2 y2 y3)
+        selected? (= id (js->clj @selected-id))]
     [:g {:on-double-click (fn link-double-click [e]
                             (reset! selected-id nil)
-                            (aset mutable-graph "nodes" idx "fixed" 0)
+                            (aset mutable-graph "nodes" mid "fixed" 0)
                             (.resume force-layout))
          :on-mouse-down (fn link-mouse-down [e]
                           (.stopPropagation e)
                           (reset! mouse-down true)
-                          (reset! selected-id (aget mutable-graph "nodes" idx "id"))
-                          (aset mutable-graph "nodes" idx "fixed" 1))}
+                          (reset! selected-id (aget mutable-graph "nodes" mid "id"))
+                          (aset mutable-graph "nodes" mid "fixed" 1))
+         :stroke (if selected?
+                   "#6699aa"
+                   "#9ecae1")}
      [:path {:fill "none"
-             :stroke "#9ecae1"
-             :stroke-width "1.5px"
              :d (apply str (interleave
                             ["M" "," "Q" "," " " ","]
                             (for [idx path
                                   dim [:x :y]]
                               (get-in nodes [idx dim]))))}]
-     (let [{x1 :x y1 :y} (get-in nodes [(first path)])
-           {:keys [x y id]} (get-in nodes [(second path)])
-           {x3 :x y3 :y} (get-in nodes [(nth path 2)])
-           mx (average (average x1 x) (average x x3))
-           my (average (average y1 y) (average y y3))]
-       [:g
-        [:polygon {:points "-5,-5 -5,5 7,0"
-                   :fill "#9ecae1"
-                   :transform (str "translate(" mx "," my
-                                   ") rotate(" (ror (- y3 y1) (- x3 x1)) ")"
-                                   (when (= id @selected-id)
-                                     " scale(1.25,1.25)"))}]])]))
+     [:polygon {:points "-5,-5 -5,5 7,0"
+                :fill "#9ecae1"
+                :transform (str "translate(" mx "," my
+                                ") rotate(" (ror (- y3 y1) (- x3 x1)) ")"
+                                (when selected?
+                                  " scale(1.25,1.25)"))
+                :style {:cursor "pointer"}}]]))
 
 (defn draw-svg [drawable mutable-graph force-layout]
   (let [{:keys [nodes paths]} @drawable]
@@ -155,16 +155,19 @@
                         (reset! mouse-down nil))
          :on-mouse-move (fn graph-mouse-move [e]
                           (when (and @selected-id @mouse-down)
-                            (when-let [idx (aget mutable-graph "idx" @selected-id)]
-                              (when-let [node (aget mutable-graph "nodes" idx)]
-                                (let [{:keys [width height left top]} @size
-                                      divx (- (.-clientX e) left)
-                                      divy (- (.-clientY e) top)
-                                      x (/ (* 1000 divx) width)
-                                      y (/ (* 500 divy) height)]
-                                  (set! (.-px node) x)
-                                  (set! (.-py node) y)
-                                  (.resume force-layout))))))}
+                            (let [k (if (string? @selected-id)
+                                      @selected-id
+                                      (pr-str (js->clj @selected-id)))]
+                              (when-let [idx (aget mutable-graph "idx" k)]
+                                (when-let [node (aget mutable-graph "nodes" idx)]
+                                  (let [{:keys [width height left top]} @size
+                                        divx (- (.-clientX e) left)
+                                        divy (- (.-clientY e) top)
+                                        x (/ (* 1000 divx) width)
+                                        y (/ (* 500 divy) height)]
+                                    (set! (.-px node) x)
+                                    (set! (.-py node) y)
+                                    (.resume force-layout)))))))}
    [draw-svg drawable mutable-graph force-layout]
    [:button.btn.btn-default.pull-right
     {:on-click (fn save-svg-click [e]
