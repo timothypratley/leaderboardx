@@ -5,10 +5,15 @@
   (string/join
    \newline
    (cons
-    "Person,Commends"
+    "Person, Commends, Commended by"
     (for [[from tos] (:edges g)]
-      (string/join "," (cons from (keys tos)))))))
+      (str from ", "
+           (string/join "; " (keys tos))
+           (string/join "; " ()))))))
 
 (defn read-graph [csv]
   (println "CSV" csv)
   {})
+
+;; TODO: use semicolons in column
+;; alow UI to use either

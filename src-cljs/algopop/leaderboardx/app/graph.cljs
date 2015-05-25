@@ -1,6 +1,8 @@
 (ns algopop.leaderboardx.app.graph
-  (:require [algopop.leaderboardx.app.pagerank :as pagerank]))
+  (:require [algopop.leaderboardx.app.pagerank :as pagerank]
+            [clojure.set :as set]))
 
+;; TODO: store ins as part of graph instead of recalculating
 (defn in-edges [g k]
   (distinct
    (for [[from es] (:edges g)
@@ -19,22 +21,31 @@
 (defn without-edge [g [from to]]
   (update-in g [:edges from] dissoc to))
 
+(defn without-edges [g from & tos]
+  (apply update-in g [:edges from] dissoc tos))
+
 (defn merge-left [& maps]
   (apply merge (reverse maps)))
 
-(defn add-edges [g source targets]
-  (-> g
-      (update-in [:nodes] merge-left {source {}} (zipmap targets (repeat {})))
-      (update-in [:edges source] merge-left (zipmap targets (repeat {})))))
+(defn replace-in-edges [g ins k]
+  (let [old-ins (in-edges g k)
+        removals (set/difference (set old-ins) (set ins))]
+    (reduce (fn collect-ins [acc in]
+              (update-in acc [:edges in k] merge-left {}))
+            (without-edges g k removals)
+            ins)))
 
-(defn rebuild-in-edge [g from k new-k]
+(defn replace-edges [g k outs ins]
   (-> g
-      (update-in [:edges from] dissoc k)
-      (update-in [:edges from] merge-left {new-k {}})))
+      (update-in [:nodes] merge-left {k {}} (zipmap outs (repeat {})) (zipmap ins (repeat {})))
+      (update-in [:edges k] merge-left (zipmap outs (repeat {})))
+      (replace-in-edges ins k)))
 
-(defn update-in-edges [g k new-k ins]
-  (reduce (fn collect [acc from]
-            (rebuild-in-edge acc from k new-k))
+(defn rename-in-edges [g k new-k ins]
+  (reduce (fn rebuild-edges [acc from]
+            (-> acc
+                (update-in [:edges from] dissoc k)
+                (update-in [:edges from] merge-left {new-k {}})))
           g
           ins))
 
@@ -49,7 +60,7 @@
           (update-in [:edges] dissoc k)
           (assoc-in [:nodes new-k] node)
           (assoc-in [:edges new-k] outs)
-          (update-in-edges k new-k ins)))))
+          (rename-in-edges k new-k ins)))))
 
 (defn matrix-with-link [acc [to from]]
   (assoc-in acc [to from] 1))

@@ -21,10 +21,11 @@
                          v)])))
 
 (defn submit-add-node-and-edges [e]
-  (let [{:keys [source targets]} (form-data e)
+  (let [{:keys [source outs ins]} (form-data e)
         source (string/trim source)
-        targets (map string/trim (string/split targets #","))]
-    (swap! g graph/add-edges source targets)))
+        outs (map string/trim (string/split outs #","))
+        ins (map string/trim (string/split ins #","))]
+    (swap! g graph/replace-edges source outs ins)))
 
 (defn unselect [selected-id]
   (reset! selected-id nil))
@@ -46,27 +47,44 @@
                (delete-selected selected-id))
     nil))
 
-(defn input-row [gr search-term commends selected-id]
-  [:tr
-   [:td [:label "Add"]]
-   [:td [:input {:type "text"
-                 :name "source"
-                 :style {:width "100%"}
-                 ;; TODO: reset search-term and commends when selection made
-                 :value @search-term
-                 :on-change (fn source-on-change [e]
-                              (let [k (.. e -target -value)]
-                                (reset! search-term k)
-                                (when (get-in gr [:nodes k])
-                                  (reset! selected-id k)
-                                  ;; TODO: react instead!
-                                  (reset! commends (keys (get-in gr [:edges k]))))))}]]
-   [:td [:input {:type "text"
-                 :name "targets"
-                 :style {:width "100%"}
-                 :value @commends
-                 :on-change (fn targets-on-change [e]
-                              (reset! commends (.. e -target -value)))}]]])
+(defn humanize-edges [edges]
+  (string/join ", " (sort edges)))
+
+(defn input-row [gr search-term selected-id]
+  (let [outs (reagent/atom "")
+        ins (reagent/atom "")]
+    (add-watch selected-id :selection
+               (fn selection-watcher [k r a b]
+                 (reset! search-term b)
+                 (reset! outs (humanize-edges (keys (get-in gr [:edges b]))))
+                 (reset! ins (humanize-edges (graph/in-edges gr b)))))
+    (fn an-input-row [gr search-term selected-id]
+      [:tr
+       [:td [:label "Add"]]
+       [:td [:input {:type "text"
+                     :name "source"
+                     :style {:width "100%"}
+                     :value @search-term
+                     :on-change (fn source-on-change [e]
+                                  (let [k (.. e -target -value)]
+                                    (reset! search-term k)
+                                    (when (get-in gr [:nodes k])
+                                      (reset! selected-id k))))}]]
+       [:td [:input {:type "text"
+                     :name "outs"
+                     :style {:width "100%"}
+                     :value @outs
+                     :on-change (fn targets-on-change [e]
+                                  (reset! outs (.. e -target -value)))}]]
+       [:td [:input {:type "text"
+                     :name "ins"
+                     :style {:width "100%"}
+                     :value @ins
+                     :on-change (fn targets-on-change [e]
+                                  (reset! ins (.. e -target -value)))}]]
+       [:input {:type "submit"
+                :value "Add"
+                :hidden true}]])))
 
 (defn focus-append [this]
   (doto (.getDOMNode this)
@@ -84,6 +102,7 @@
     (fn node-input-render [k editing]
       [:input {:type "text"
                :name "new-name"
+               :style {:width "100%"}
                :default-value k
                :on-blur (fn node-input-blur [e]
                           (reset! editing nil))}])}))
@@ -102,23 +121,36 @@
     :reagent-render
     (fn edge-input-render [edges editing]
       [:input {:type "text"
-               :name "targets"
+               :name (if (#{:ins} @editing)
+                       "ins"
+                       "outs")
+               :style {:width "100%"}
                :default-value edges
                :on-blur (fn edge-input-blur [e]
                           (reset! editing nil))}])}))
 
-(defn edit-edges [k edges editing]
+(defn edit-edges [k outs ins editing]
   [:form {:on-submit (fn edit-edges-submit [e]
                        (submit-add-node-and-edges e)
                        (reset! editing nil))}
    [:input {:type "hidden"
             :name "source"
             :value k}]
-   [edge-input edges editing]])
+   (if (#{:ins} @editing)
+     [:input {:type "hidden"
+              :name "outs"
+              :value outs}]
+     [:input {:type "hidden"
+              :name "ins"
+              :value ins}])
+   [edge-input
+    (if (#{:ins} @editing)
+      ins
+      outs)
+    editing]])
 
 (defn table [gr selected-id]
   (let [search-term (reagent/atom "")
-        commends (reagent/atom "")
         editing (reagent/atom nil)]
     (fn a-table [gr]
       [:form {:on-submit submit-add-node-and-edges}
@@ -126,20 +158,20 @@
         [:thead
          [:th "Rank"]
          [:th "Person"]
-         [:th "Commends"]
-         [:th "Commended by"]]
+         [:th "Endorses"]
+         [:th "Endorsed by"]]
         (into
          [:tbody
-          [input-row gr search-term commends selected-id]]
+          [input-row gr search-term selected-id]]
          (for [[k v] (sort-by (comp :rank val) (:nodes gr))
                :let [selected? (= k @selected-id)
                      match? (and (seq @search-term) (.startsWith k @search-term))
-                     edges (string/join ", " (keys (get-in gr [:edges k])))]]
+                     outs (humanize-edges (keys (get-in gr [:edges k])))
+                     ins (humanize-edges (graph/in-edges gr k))]]
            [:tr {:class (cond
                           selected? "info"
                           match? "warning")
                  :on-mouse-down (fn table-mouse-down [e]
-                                  (reset! search-term k)
                                   (reset! selected-id k))}
             [:td (:rank v)]
             [:td {:on-mouse-down (fn node-name-mouse-down [e]
@@ -148,13 +180,18 @@
              (if (and selected? (#{:node} @editing))
                [rename-node k editing]
                k)]
-            [:td {:on-mouse-down (fn edges-mouse-down [e]
+            [:td {:on-mouse-down (fn outs-mouse-down [e]
                                    (when (= k @selected-id)
-                                     (reset! editing :edges)))}
-             (if (and selected? (#{:edges} @editing))
-               [edit-edges k edges editing]
-               edges)]
-            [:td (string/join ", " (graph/in-edges gr k))]]))]])))
+                                     (reset! editing :outs)))}
+             (if (and selected? (#{:outs} @editing))
+               [edit-edges k outs ins editing]
+               outs)]
+            [:td {:on-mouse-down (fn ins-mouse-down [e]
+                                   (when (= k @selected-id)
+                                     (reset! editing :ins)))}
+             (if (and selected? (#{:ins} @editing))
+               [edit-edges k outs ins editing]
+               ins)]]))]])))
 
 (defn graph-editor-page []
   ;; TODO: pass in session instead, and rank g earlier

@@ -37,7 +37,7 @@
 
 (defn reconcile [g mutable-graph]
   (let [existing (into {} (for [node (.-nodes mutable-graph)]
-                            [(:id node) node]))
+                            [(.-id node) (js->clj node)]))
         replacement (d3g g existing)]
     (overwrite (.-nodes mutable-graph) (.-nodes replacement))
     (set! (.-idx mutable-graph) (.-idx replacement))

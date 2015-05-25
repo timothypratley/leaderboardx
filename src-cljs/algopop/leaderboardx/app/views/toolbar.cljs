@@ -9,7 +9,7 @@
   (let [show-help (reagent/atom false)]
     (fn a-help []
       [:div.pull-right
-       [:span.btn.btn-default.pull-right
+       [:button.btn.btn-default.pull-right
         {:on-click (fn help-click [e]
                      (swap! show-help not))}
         [:span.glyphicon.glyphicon-question-sign {:aria-hidden "true"}]]
@@ -32,11 +32,12 @@
     (.click link)))
 
 (defn import-button [label accept read-graph g]
-  [:span.btn.btn-default.btn-file
+  [:button.btn.btn-default.btn-file
    label
    [:input
     {:type "file"
      :name "import"
+     :tab-index "-1"
      :accept accept
      :on-change (fn import-csv-change [e]
                   (when-let [file (aget e "target" "files" 0)]
@@ -46,41 +47,46 @@
                               (reset! g (read-graph (.. e -target -result)))))
                       (.readAsText reader file))))}]])
 
+(defn action-button [label f]
+  [:button.btn.btn-default {:on-click f} label])
+
 (defn toolbar [g get-svg]
   [:div
-   [:span.btn.btn-default
-    {:on-click (fn clear-click [e]
-                 (reset! g {:nodes {"root" {}}
-                            :edges {"root" {}}}))}
-    "Clear"]
+   [action-button "Clear"
+    (fn clear-click [e]
+      (reset! g {:nodes {"root" {}}
+                 :edges {"root" {}}}))]
 
-   [:span.btn.btn-default
-    {:on-click (fn random-click [e]
-                 (reset! g (seed/rand-graph)))}
-    "Random"]
+   [action-button "Random"
+    (fn random-click [e]
+      (reset! g (seed/rand-graph)))]
 
    [import-button "Import CSV" "text/csv" csv/read-graph g]
 
    [import-button "Import Graphviz" "text/dot" dot/read-graph g]
 
-   [:button.btn.btn-default
-    {:on-click (fn export-csv-click [e]
-                 (save-file "graph.csv"
-                            (str "data:text/csv;charset=utf-8," (csv/write-graph @g))))}
-    "Export CSV"]
+   [action-button "Export CSV"
+    (fn export-csv-click [e]
+      (save-file "graph.csv" (str "data:text/csv;charset=utf-8," (csv/write-graph @g))))]
 
-   [:button.btn.btn-default
-    {:on-click (fn export-graphviz [e]
-                 (save-file "graph.dot"
-                            (str "data:text/dot;charset=utf-8," (dot/write-graph @g))))}
-    "Export Graphviz"]
+   [action-button "Export Graphviz"
+    (fn export-graphviz [e]
+      (save-file "graph.dot" (str "data:text/dot;charset=utf-8," (dot/write-graph @g))))]
 
-   [:button.btn.btn-default
-    {:on-click (fn export-svg [e]
-                 (save-file "graph.svg"
-                            (str "data:image/svg+xml;utf8,"
-                                 "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
-                                 (string/replace (get-svg) #" data-reactid=\"[^\"]*\"" "")
-                                 "</svg>")))}
-    "Export SVG"]
+   [action-button "Export SVG"
+    (fn export-svg [e]
+      (save-file "graph.svg"
+                 (str "data:image/svg+xml;utf8,"
+                      "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
+                      (string/replace (get-svg) #" data-reactid=\"[^\"]*\"" "")
+                      "</svg>")))]
+
+   [action-button "Export SVG"
+    (fn export-svg [e]
+      (save-file "graph.svg"
+                 (str "data:image/svg+xml;utf8,"
+                      "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
+                      (string/replace (get-svg) #" data-reactid=\"[^\"]*\"" "")
+                      "</svg>")))]
+
    [help]])
