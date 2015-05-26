@@ -23,8 +23,8 @@
 (defn submit-add-node-and-edges [e]
   (let [{:keys [source outs ins]} (form-data e)
         source (string/trim source)
-        outs (map string/trim (string/split outs #","))
-        ins (map string/trim (string/split ins #","))]
+        outs (map string/trim (string/split outs #"[,;]"))
+        ins (map string/trim (string/split ins #"[,;]"))]
     (swap! g graph/replace-edges source outs ins)))
 
 (defn unselect [selected-id]
@@ -55,9 +55,10 @@
         ins (reagent/atom "")]
     (add-watch selected-id :selection
                (fn selection-watcher [k r a b]
+                 ;; TODO: does not pick up new edges?? or starting
                  (reset! search-term b)
                  (reset! outs (humanize-edges (keys (get-in gr [:edges b]))))
-                 (reset! ins (humanize-edges (graph/in-edges gr b)))))
+                 (reset! ins (humanize-edges (keys (graph/in-edges gr b))))))
     (fn an-input-row [gr search-term selected-id]
       [:tr
        [:td [:label "Add"]]
@@ -167,7 +168,7 @@
                :let [selected? (= k @selected-id)
                      match? (and (seq @search-term) (.startsWith k @search-term))
                      outs (humanize-edges (keys (get-in gr [:edges k])))
-                     ins (humanize-edges (graph/in-edges gr k))]]
+                     ins (humanize-edges (keys (graph/in-edges gr k)))]]
            [:tr {:class (cond
                           selected? "info"
                           match? "warning")

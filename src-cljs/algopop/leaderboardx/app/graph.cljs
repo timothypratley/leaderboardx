@@ -4,11 +4,11 @@
 
 ;; TODO: store ins as part of graph instead of recalculating
 (defn in-edges [g k]
-  (distinct
+  (into {}
    (for [[from es] (:edges g)
-         [to v] es
+         [to v :as edge] es
          :when (= k to)]
-     from)))
+     edge)))
 
 (defn without-node [g id]
   (-> g
@@ -47,7 +47,7 @@
                 (update-in [:edges from] dissoc k)
                 (update-in [:edges from] merge-left {new-k {}})))
           g
-          ins))
+          (keys ins)))
 
 (defn rename-node [g k new-k]
   (if (= k new-k)

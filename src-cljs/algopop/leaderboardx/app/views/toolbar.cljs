@@ -39,12 +39,14 @@
      :name "import"
      :tab-index "-1"
      :accept accept
+     :value ""
      :on-change (fn import-csv-change [e]
                   (when-let [file (aget e "target" "files" 0)]
                     (let [reader (js/FileReader.)]
                       (set! (.-onload reader)
                             (fn csv-loaded [e]
-                              (reset! g (read-graph (.. e -target -result)))))
+                              (when-let [new-graph (read-graph (.. e -target -result))]
+                                (reset! g new-graph))))
                       (.readAsText reader file))))}]])
 
 (defn action-button [label f]
