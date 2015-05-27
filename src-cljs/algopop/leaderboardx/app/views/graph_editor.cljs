@@ -53,13 +53,13 @@
 (defn input-row [gr search-term selected-id]
   (let [outs (reagent/atom "")
         ins (reagent/atom "")]
-    (add-watch selected-id :selection
-               (fn selection-watcher [k r a b]
-                 ;; TODO: does not pick up new edges?? or starting
-                 (reset! search-term b)
-                 (reset! outs (humanize-edges (keys (get-in gr [:edges b]))))
-                 (reset! ins (humanize-edges (keys (graph/in-edges gr b))))))
     (fn an-input-row [gr search-term selected-id]
+      (remove-watch selected-id :selection)
+      (add-watch selected-id :selection
+                 (fn selection-watcher [k r a b]
+                   (reset! search-term b)
+                   (reset! outs (humanize-edges (keys (get-in gr [:edges b]))))
+                   (reset! ins (humanize-edges (keys (graph/in-edges gr b))))))
       [:tr
        [:td [:label "Add"]]
        [:td [:input {:type "text"

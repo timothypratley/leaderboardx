@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.io.dot
   (:require [algopop.leaderboardx.app.io.common :as common]
+            [algopop.leaderboardx.app.logging :as log]
             [clojure.string :as string]
             [instaparse.core :as insta]))
 
@@ -47,7 +48,7 @@ ws : #'\\s*'
 (defn read-graph [s]
   (let [ast (parse-dot s)]
     (if (insta/failure? ast)
-      (prn "FAILURE" ast)
+      (log/error ast "Failed to parse dot file")
       (let [[_ _ & statements] ast
             [title] statements
             statements (if (string? title)

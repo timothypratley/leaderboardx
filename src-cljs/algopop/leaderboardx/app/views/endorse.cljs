@@ -1,4 +1,4 @@
-(ns algopop.leaderboardx.app.views.commend
+(ns algopop.leaderboardx.app.views.endorse
   (:require [reagent.session :as session]
             [reagent.core :as reagent]))
 
@@ -9,15 +9,15 @@
    [:button.btn.btn-default [:span.glyphicon.glyphicon-chevron-down]]
    k])
 
-(defonce commendations
+(defonce endorsements
   (reagent/atom {"jordan" {:rank 1}
                  "usain" {:rank 1}
                  "ronaldo" {:rank 2}
                  "leroy jenkins" {:rank 3}}))
 
 ;; TODO: pass in session instead
-(defn commend-page []
+(defn endorse-page []
   [:div
    (into [:ul.list-unstyled]
-         (for [[k v] (sort-by :rank @commendations)]
+         (for [[k v] (sort-by :rank @endorsements)]
            [:li [item k v]]))])

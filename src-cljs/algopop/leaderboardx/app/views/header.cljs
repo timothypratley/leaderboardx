@@ -4,11 +4,12 @@
 
 ;; TODO: what if empty?
 (defn notifications []
-  (when-not (session/get :open?)
-            [:li
-             [:p.navbar-text
-              [:span.glyphicon.glyphicon-exclamation-sign]
-              " Disconnected from server."]]))
+  (when-let [e (session/get :errors)]
+    [:li {:on-click (fn error-click [e]
+                      (session/update-in! [:errors] next))}
+     [:p.navbar-text
+      [:span.glyphicon.glyphicon-exclamation-sign]
+      (str " " (first e))]]))
 
 (defn user-menu []
   (let [username "tim"]
@@ -39,7 +40,7 @@
       [:a.navbar-brand {:href "#/"}
        [:panel
         [:img {:src "img/brand.png"
-                      :height "40px"}]
+               :height "40px"}]
         "  Leaderboard"
         [:span {:style {:font-family "cursive"}} "X"]]]]
      [:div.collapse.navbar-collapse {:id "navbar-collapse"}

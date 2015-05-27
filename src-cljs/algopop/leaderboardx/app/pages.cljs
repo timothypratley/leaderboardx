@@ -1,6 +1,6 @@
 (ns algopop.leaderboardx.app.pages
   (:require [algopop.leaderboardx.app.views.about :as about]
-            [algopop.leaderboardx.app.views.commend :as commend]
+            [algopop.leaderboardx.app.views.endorse :as endorse]
             [algopop.leaderboardx.app.views.graph-editor :as graph-editor]
             [algopop.leaderboardx.app.views.home :as home]
             [reagent.session :as session]
@@ -10,7 +10,7 @@
   {:home home/home-page
    :about about/about-page
    :graph-editor graph-editor/graph-editor-page
-   :commend commend/commend-page})
+   :endorse endorse/endorse-page})
 
 (secretary/set-config! :prefix "#")
 
