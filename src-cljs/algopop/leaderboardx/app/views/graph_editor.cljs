@@ -20,12 +20,13 @@
                          (first v)
                          v)])))
 
-(defn submit-add-node-and-edges [e]
+(defn submit-add-node-and-edges [e selected-id]
   (let [{:keys [source outs ins]} (form-data e)
         source (string/trim source)
         outs (map string/trim (string/split outs #"[,;]"))
         ins (map string/trim (string/split ins #"[,;]"))]
-    (swap! g graph/replace-edges source outs ins)))
+    (swap! g graph/replace-edges source outs ins)
+    (reset! selected-id source)))
 
 (defn unselect [selected-id]
   (reset! selected-id nil))
@@ -108,10 +109,11 @@
                :on-blur (fn node-input-blur [e]
                           (reset! editing nil))}])}))
 
-(defn rename-node [k editing]
+(defn rename-node [k selected-id editing]
   [:form {:on-submit (fn rename-node-submit [e]
                        (let [{:keys [new-name]} (form-data e)]
-                         (swap! g graph/rename-node k new-name))
+                         (swap! g graph/rename-node k new-name)
+                         (reset! selected-id new-name))
                        (reset! editing nil))}
    [node-input k editing]])
 
@@ -130,9 +132,9 @@
                :on-blur (fn edge-input-blur [e]
                           (reset! editing nil))}])}))
 
-(defn edit-edges [k outs ins editing]
+(defn edit-edges [k outs ins selected-id editing]
   [:form {:on-submit (fn edit-edges-submit [e]
-                       (submit-add-node-and-edges e)
+                       (submit-add-node-and-edges e selected-id)
                        (reset! editing nil))}
    [:input {:type "hidden"
             :name "source"
@@ -154,7 +156,11 @@
   (let [search-term (reagent/atom "")
         editing (reagent/atom nil)]
     (fn a-table [gr]
-      [:form {:on-submit submit-add-node-and-edges}
+      (conj
+       (if @editing
+         [:div]
+         [:form {:on-submit (fn add-node-submit [e]
+                              (submit-add-node-and-edges e selected-id))}])
        [:table.table.table-responsive
         [:thead
          [:th "Rank"]
@@ -179,20 +185,20 @@
                                    (when (= k @selected-id)
                                      (reset! editing :node)))}
              (if (and selected? (#{:node} @editing))
-               [rename-node k editing]
+               [rename-node k selected-id editing]
                k)]
             [:td {:on-mouse-down (fn outs-mouse-down [e]
                                    (when (= k @selected-id)
                                      (reset! editing :outs)))}
              (if (and selected? (#{:outs} @editing))
-               [edit-edges k outs ins editing]
+               [edit-edges k outs ins selected-id editing]
                outs)]
             [:td {:on-mouse-down (fn ins-mouse-down [e]
                                    (when (= k @selected-id)
                                      (reset! editing :ins)))}
              (if (and selected? (#{:ins} @editing))
-               [edit-edges k outs ins editing]
-               ins)]]))]])))
+               [edit-edges k outs ins selected-id editing]
+               ins)]]))]))))
 
 (defn graph-editor-page []
   ;; TODO: pass in session instead, and rank g earlier

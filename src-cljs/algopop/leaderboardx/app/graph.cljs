@@ -6,9 +6,9 @@
 (defn in-edges [g k]
   (into {}
    (for [[from es] (:edges g)
-         [to v :as edge] es
+         [to v] es
          :when (= k to)]
-     edge)))
+     [from to])))
 
 (defn without-node [g id]
   (-> g
