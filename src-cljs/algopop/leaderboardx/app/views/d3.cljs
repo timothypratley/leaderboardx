@@ -23,14 +23,15 @@
                         [(k->idx source)
                          (k->idx [source target])
                          (k->idx target)])
-               :links (apply concat (for [[source targets] edges
-                                          [target] targets]
-                                      [{:id [source target]
-                                        :source (k->idx source)
-                                        :target (k->idx [source target])}
-                                       {:id [source target]
-                                        :source (k->idx [source target])
-                                        :target (k->idx target)}]))}))))
+               :links (apply concat
+                             (for [[source targets] edges
+                                   [target] targets]
+                               [{:id [source target]
+                                 :source (k->idx source)
+                                 :target (k->idx [source target])}
+                                {:id [source target]
+                                 :source (k->idx [source target])
+                                 :target (k->idx target)}]))}))))
 
 (defn overwrite [a b]
   (set! (.-length a) 0)

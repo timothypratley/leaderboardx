@@ -75,8 +75,8 @@
     [:ul.dropdown-menu {:role "menu"}
      [action-button "Empty"
       (fn clear-click [e]
-        (reset! g {:nodes {"root" {}}
-                   :edges {"root" {}}}))]
+        (reset! g {:nodes {"Root" {}}
+                   :edges {"Root" {}}}))]
      [action-button "Random"
       (fn random-click [e]
         (reset! g (seed/rand-graph)))]

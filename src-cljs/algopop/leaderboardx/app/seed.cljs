@@ -1,4 +1,5 @@
-(ns algopop.leaderboardx.app.seed)
+(ns algopop.leaderboardx.app.seed
+  (:require [clojure.string :as str]))
 
 (defn rand-char []
   (char (+ 97 (rand-int 26))))
@@ -12,15 +13,15 @@
       (recur c))))
 
 (defn rand-name []
-  (apply str (take (+ 3 (rand-int 3))
-                   (iterate next-char (rand-char)))))
+  (str/capitalize
+   (apply str (take (+ 3 (rand-int 3))
+                    (iterate next-char (rand-char))))))
 
 (defn rand-graph []
   (let [ks (distinct (repeatedly 10 rand-name))
         nodes (into {} (for [k ks]
                          [k {:hair (rand-nth ["red" "brown" "black" "blonde"])}]))]
-    {:title "Random"
-     :nodes nodes
+    {:nodes nodes
      :edges (into {} (for [k ks]
                        [k (into {} (for [x (remove #{k} (take (+ 1 (rand-int 2)) (shuffle ks)))]
                                      [x {:value 1}]))]))}))

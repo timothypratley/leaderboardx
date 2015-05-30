@@ -208,7 +208,7 @@
     (fn title-input-render [title editing]
       [:input {:type "text"
                :name "new-title"
-               :style {:width "100%"}
+               :style {:width "550px"}
                :default-value title
                :on-blur (fn title-input-blur [e]
                           (reset! editing nil))}])}))
@@ -218,16 +218,17 @@
     (fn a-rename-button [g]
       (let [title (:title @g)]
         [:div.btn-group
-         (if @editing
-           [:form.form-inline
-            {:on-submit (fn title-submit [e]
-                          (let [{:keys [new-title]} (form-data e)]
-                            (swap! g assoc :title new-title)
-                            (reset! editing nil)))}
-            [title-input title editing]]
-           [:h4 {:on-click (fn rename-click [e]
-                             (reset! editing true))}
-            title])]))))
+         [:h4
+          (if @editing
+            [:form.form-inline
+             {:on-submit (fn title-submit [e]
+                           (let [{:keys [new-title]} (form-data e)]
+                             (swap! g assoc :title new-title)
+                             (reset! editing nil)))}
+             [title-input title editing]]
+            [:span {:on-click (fn rename-click [e]
+                              (reset! editing :title))}
+             (or title "Untitled")])]]))))
 
 (defn graph-editor-page []
   ;; TODO: pass in session instead, and rank g earlier
@@ -243,8 +244,8 @@
               get-svg (fn a-get-svg []
                         (-> this
                             (.getDOMNode)
-                            (.-firstChild)
-                            (.-firstChild)
+                            (aget "children" 2)
+                            (aget "children" 0)
                             (.-innerHTML)))]
           [:div
            [toolbar/toolbar g get-svg]
