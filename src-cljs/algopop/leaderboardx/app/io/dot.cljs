@@ -64,7 +64,7 @@ ws : #'\\s*'
     (str " ["
          (string/join "," (for [[k v] attrs]
                             (str (common/quote-escape (name k))
-                                 " = " (common/quote-escape v))))
+                                 " = " (common/quote-escape (pr-str v)))))
          "]")))
 
 (defn edges [g]
@@ -82,9 +82,9 @@ ws : #'\\s*'
 
 ;; TODO: why do sometimes ranks exist, sometimes not? not merging?
 (defn write-graph [g]
-  (str "digraph " (:title g) " {" \newline
+  (str "digraph " (common/quote-escape (:title g)) " {" \newline
        (string/join \newline
                     (concat
-                     (sort-by (comp :rank val) (nodes g))
+                     (nodes g)
                      (edges g)))
        \newline "}"))

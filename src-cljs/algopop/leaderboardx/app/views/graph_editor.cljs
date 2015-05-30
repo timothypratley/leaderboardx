@@ -200,6 +200,35 @@
                [edit-edges k outs ins selected-id editing]
                ins)]]))]))))
 
+(defn title-input [title editing]
+  (reagent/create-class
+   {:display-name "title-input"
+    :component-did-mount focus-append
+    :reagent-render
+    (fn title-input-render [title editing]
+      [:input {:type "text"
+               :name "new-title"
+               :style {:width "100%"}
+               :default-value title
+               :on-blur (fn title-input-blur [e]
+                          (reset! editing nil))}])}))
+
+(defn title-editor [g]
+  (let [editing (reagent/atom nil)]
+    (fn a-rename-button [g]
+      (let [title (:title @g)]
+        [:div.btn-group
+         (if @editing
+           [:form.form-inline
+            {:on-submit (fn title-submit [e]
+                          (let [{:keys [new-title]} (form-data e)]
+                            (swap! g assoc :title new-title)
+                            (reset! editing nil)))}
+            [title-input title editing]]
+           [:h4 {:on-click (fn rename-click [e]
+                             (reset! editing true))}
+            title])]))))
+
 (defn graph-editor-page []
   ;; TODO: pass in session instead, and rank g earlier
   (let [selected-id (reagent/atom nil)
@@ -218,8 +247,9 @@
                             (.-firstChild)
                             (.-innerHTML)))]
           [:div
-           [d3/graph gr selected-id]
            [toolbar/toolbar g get-svg]
+           [title-editor g]
+           [d3/graph gr selected-id]
            [table gr selected-id]]))
       :component-did-mount
       (fn graph-editor-did-mount [this]

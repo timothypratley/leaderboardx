@@ -19,7 +19,8 @@
   (let [ks (distinct (repeatedly 10 rand-name))
         nodes (into {} (for [k ks]
                          [k {:hair (rand-nth ["red" "brown" "black" "blonde"])}]))]
-    {:nodes nodes
+    {:title "Random"
+     :nodes nodes
      :edges (into {} (for [k ks]
                        [k (into {} (for [x (remove #{k} (take (+ 1 (rand-int 2)) (shuffle ks)))]
                                      [x {:value 1}]))]))}))

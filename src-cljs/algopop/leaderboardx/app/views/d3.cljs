@@ -5,7 +5,7 @@
 
 (defn d3g
   ([g] (d3g g {}))
-  ([{:keys [nodes edges]} existing-nodes]
+  ([{:keys [nodes edges title]} existing-nodes]
    (let [ks (keys nodes)
          mids (for [[source targets] edges
                     [target] targets]
@@ -15,7 +15,8 @@
          nodes (for [k ks]
                  (merge (get existing-nodes k {:id k})
                         (nodes k)))]
-     (clj->js {:nodes nodes
+     (clj->js {:title title
+               :nodes nodes
                :idx k->idx
                :paths (for [[source targets] edges
                             [target] targets]
@@ -39,6 +40,7 @@
   (let [existing (into {} (for [node (.-nodes mutable-graph)]
                             [(.-id node) (js->clj node)]))
         replacement (d3g g existing)]
+    (set! (.-title mutable-graph) (.-title replacement))
     (overwrite (.-nodes mutable-graph) (.-nodes replacement))
     (set! (.-idx mutable-graph) (.-idx replacement))
     (overwrite (.-paths mutable-graph) (.-paths replacement))
@@ -113,7 +115,7 @@
                 :style {:cursor "pointer"}}]]))
 
 (defn draw-svg [drawable mutable-graph force-layout mouse-down? selected-id]
-  (let [{:keys [nodes paths]} @drawable]
+  (let [{:keys [nodes paths title]} @drawable]
     (into
      [:svg
       {:view-box (str "0 0 " 1000 " " 500)}]

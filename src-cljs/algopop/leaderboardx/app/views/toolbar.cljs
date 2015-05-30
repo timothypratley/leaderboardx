@@ -2,28 +2,26 @@
   (:require [algopop.leaderboardx.app.io.dot :as dot]
             [algopop.leaderboardx.app.io.csv :as csv]
             [algopop.leaderboardx.app.seed :as seed]
+            [algopop.leaderboardx.app.logging :as log]
             [clojure.string :as string]
             [reagent.core :as reagent]))
 
 (defn help []
-  (let [show-help (reagent/atom false)]
-    (fn a-help []
-      [:div.pull-right
-       [:button.btn.btn-default.pull-right
-        {:on-click (fn help-click [e]
-                     (swap! show-help not))}
-        [:span.glyphicon.glyphicon-question-sign {:aria-hidden "true"}]]
-       (when @show-help
-         [:div.panel.panel-default
-          {:on-click (fn help-panel-click [e]
-                       (swap! show-help not))}
-          [:div.panel-body
-           [:ul.list-unstyled
-            [:li "Enter a node name and press ENTER to add it."]
-            [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
-            [:li "Select a node or edge by mouse clicking it and press DEL to delete it."]
-            [:li "Drag nodes or edges around by click hold and move."]
-            [:li "Double click to unpin nodes and edges."]]]])])))
+  [:div.btn-group
+   [:button.btn.btn-default.dropdown-toggle
+    {:data-toggle "dropdown"
+     :aria-expanded "false"}
+    [:span.glyphicon.glyphicon-question-sign {:aria-hidden "true"}]]
+   [:div.panel.panel-default.dropdown-menu.dropdown-menu-right
+    {:style {:width "550px"}}
+    [:div.panel-body
+     [:ul.list-unstyled
+      [:li "Enter a node name and press ENTER to add it."]
+      [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
+      [:li "To delete nodes and links, click on the graph or table and press the DELETE key."]
+      [:li "Drag nodes or edges around with the mouse."]
+      [:li "Double click to unpin nodes and edges."]
+      [:li "Click on the table row then click again to edit."]]]]])
 
 (defn save-file [filename str]
   (let [link (.createElement js/document "a")]
@@ -31,64 +29,76 @@
     (set! (.-href link) (js/encodeURI str))
     (.click link)))
 
+(defn ends-with [s suffix]
+  (not (neg? (.indexOf s suffix (- (.-length s) (.-length suffix))))))
+
+(defn read-file [g file read-graph]
+  (let [reader (js/FileReader.)]
+    (set! (.-onload reader)
+          (fn csv-loaded [e]
+            (when-let [new-graph (read-graph (.. e -target -result))]
+              (reset! g new-graph))))
+    (.readAsText reader file)))
+
 (defn import-button [label accept read-graph g]
-  [:button.btn.btn-default.btn-file
-   label
-   [:input
-    {:type "file"
-     :name "import"
-     :tab-index "-1"
-     :accept accept
-     :value ""
-     :on-change (fn import-csv-change [e]
-                  (when-let [file (aget e "target" "files" 0)]
-                    (let [reader (js/FileReader.)]
-                      (set! (.-onload reader)
-                            (fn csv-loaded [e]
-                              (when-let [new-graph (read-graph (.. e -target -result))]
-                                (reset! g new-graph))))
-                      (.readAsText reader file))))}]])
+  [:li
+   [:a.btn-file
+    label
+    [:input
+     {:type "file"
+      :name "import"
+      :tab-index "-1"
+      :accept accept
+      :value ""
+      :on-change
+      (fn import-csv-change [e]
+        (when-let [file (aget e "target" "files" 0)]
+          (if-let [r (cond (ends-with (.-name file) ".csv") csv/read-graph
+                          (ends-with (.-name file) ".dot") dot/read-graph)]
+            (read-file g file r)
+            (log/error "Must supply a .dot or .csv file"))))}]]])
 
 (defn action-button [label f]
-  [:button.btn.btn-default {:on-click f} label])
+  [:li [:a {:on-click f} label]])
+
+(defn filename [{:keys [title]} ext]
+  (str (or title "graph") "." ext))
 
 (defn toolbar [g get-svg]
-  [:div
-   [action-button "Clear"
-    (fn clear-click [e]
-      (reset! g {:nodes {"root" {}}
-                 :edges {"root" {}}}))]
-
-   [action-button "Random"
-    (fn random-click [e]
-      (reset! g (seed/rand-graph)))]
-
-   [import-button "Import CSV" "text/csv" csv/read-graph g]
-
-   [import-button "Import Graphviz" "text/dot" dot/read-graph g]
-
-   [action-button "Export CSV"
-    (fn export-csv-click [e]
-      (save-file "graph.csv" (str "data:text/csv;charset=utf-8," (csv/write-graph @g))))]
-
-   [action-button "Export Graphviz"
-    (fn export-graphviz [e]
-      (save-file "graph.dot" (str "data:text/dot;charset=utf-8," (dot/write-graph @g))))]
-
-   [action-button "Export SVG"
-    (fn export-svg [e]
-      (save-file "graph.svg"
-                 (str "data:image/svg+xml;utf8,"
-                      "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
-                      (string/replace (get-svg) #" data-reactid=\"[^\"]*\"" "")
-                      "</svg>")))]
-
-   [action-button "Export SVG"
-    (fn export-svg [e]
-      (save-file "graph.svg"
-                 (str "data:image/svg+xml;utf8,"
-                      "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
-                      (string/replace (get-svg) #" data-reactid=\"[^\"]*\"" "")
-                      "</svg>")))]
-
+  [:div.btn-toolbar.pull-right {:role "toolbar"}
+   [:div.btn-group
+    [:button.btn.btn-default.dropdown-toggle
+     {:data-toggle "dropdown"
+      :aria-expanded "false"}
+     "Load "
+     [:span.caret]]
+    [:ul.dropdown-menu {:role "menu"}
+     [action-button "Empty"
+      (fn clear-click [e]
+        (reset! g {:nodes {"root" {}}
+                   :edges {"root" {}}}))]
+     [action-button "Random"
+      (fn random-click [e]
+        (reset! g (seed/rand-graph)))]
+     [import-button "File (dot or csv)" ".dot,.csv" dot/read-graph g]]]
+   [:div.btn-group
+    [:button.btn.btn-default.dropdown-toggle
+     {:data-toggle "dropdown"
+      :aria-expanded "false"}
+     "Save "
+     [:span.caret]]
+    [:ul.dropdown-menu {:role "menu"}
+     [action-button "Graph (dot)"
+      (fn export-graphviz [e]
+        (save-file (filename @g "dot") (str "data:text/dot;charset=utf-8," (dot/write-graph @g))))]
+     [action-button "Summary table (csv)"
+      (fn export-csv-click [e]
+        (save-file (filename @g "csv") (str "data:text/csv;charset=utf-8," (csv/write-graph @g))))]
+     [action-button "Image (svg)"
+      (fn export-svg [e]
+        (save-file (filename @g "svg")
+                   (str "data:image/svg+xml;utf8,"
+                        "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
+                        (string/replace (get-svg) #" data-reactid=\"[^\"]*\"" "")
+                        "</svg>")))]]]
    [help]])
