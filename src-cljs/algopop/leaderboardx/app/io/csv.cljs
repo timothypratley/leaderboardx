@@ -6,13 +6,13 @@
             [clojure.string :as string]))
 
 (def csv-gramma
-  "csv : { row }
-row : field_list <eol>
-<field_list> : field [ <','> field_list ]
-<field> : [ <ws> ] id [ <ws> ]
+  "csv : [row] {<eol> row}
+row : field {<','> field}
+<field> : [<ws>] id [<ws>]
 ws : #'\\s*'
 eol : '\n' | '\r\n' | '\n\r'
-<id> : #'[a-zA-Z\\200-\\377][a-zA-Z\\200-\\377\\_0-9]*' | numeral | quoted | html
+<id> : literal | numeral | quoted | html
+<literal> : #'[a-zA-Z\\200-\\377][a-zA-Z\\200-\\377\\_0-9 ]*'
 <numeral> : #'[-]?(.[0-9]+|[0-9]+(.[0-9]*)?)'
 <quoted> : <'\"'> #'(?:[^\"\\\\]|\\\\.)*' <'\"'>
 <html> : #'<[^>]*>'")
@@ -22,11 +22,13 @@ eol : '\n' | '\r\n' | '\n\r'
 
 (defn collect-row [g [_ from & tos]]
   (-> g
+      (update-in [:nodes] graph/merge-left (zipmap tos (repeat {})))
       (assoc-in [:nodes from] {})
       (assoc-in [:edges from] (zipmap tos (repeat {})))))
 
 (defn read-graph [csv]
   (let [ast (parse-csv csv)]
+    (println "AST" ast)
     (if (insta/failure? ast)
       (log/error ast "Failed to parse CSV")
       (reduce collect-row {} (nnext ast)))))

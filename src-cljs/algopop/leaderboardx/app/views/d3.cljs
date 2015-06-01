@@ -1,7 +1,8 @@
 (ns algopop.leaderboardx.app.views.d3
-  (:require [clojure.string :as string]
-            [reagent.core :as reagent]
-            [cljsjs.d3]))
+  (:require [cljsjs.d3]
+            [clojure.string :as string]
+            [clojure.walk :as walk]
+            [reagent.core :as reagent]))
 
 (defn d3g
   ([g] (d3g g {}))
@@ -12,11 +13,12 @@
                 [source target])
          ks (concat mids ks)
          k->idx (into {} (map vector ks (range)))
-         nodes (for [k ks]
-                 (merge (get existing-nodes k {:id k})
-                        (nodes k)))]
+         new-nodes (for [k ks]
+                     (merge {:id k}
+                            (get existing-nodes k)
+                            (walk/stringify-keys (nodes k))))]
      (clj->js {:title title
-               :nodes nodes
+               :nodes new-nodes
                :idx k->idx
                :paths (for [[source targets] edges
                             [target] targets]
@@ -89,15 +91,17 @@
         mx (average x1 x2 x2 x3)
         my (average y1 y2 y2 y3)
         selected? (= id (js->clj @selected-id))]
-    [:g {:on-double-click (fn link-double-click [e]
-                            (reset! selected-id nil)
-                            (aset mutable-graph "nodes" mid "fixed" 0)
-                            (.resume force-layout))
-         :on-mouse-down (fn link-mouse-down [e]
-                          (.stopPropagation e)
-                          (reset! mouse-down? true)
-                          (reset! selected-id (aget mutable-graph "nodes" mid "id"))
-                          (aset mutable-graph "nodes" mid "fixed" 1))
+    [:g {:on-double-click
+         (fn link-double-click [e]
+           (reset! selected-id nil)
+           (aset mutable-graph "nodes" mid "fixed" 0)
+           (.resume force-layout))
+         :on-mouse-down
+         (fn link-mouse-down [e]
+           (.stopPropagation e)
+           (reset! mouse-down? true)
+           (reset! selected-id (aget mutable-graph "nodes" mid "id"))
+           (aset mutable-graph "nodes" mid "fixed" 1))
          :stroke (if selected?
                    "#6699aa"
                    "#9ecae1")}
@@ -115,21 +119,39 @@
                                   " scale(1.25,1.25)"))
                 :style {:cursor "pointer"}}]]))
 
+(defn bounds [[minx miny maxx maxy] {:keys [x y]}]
+  [(min minx x) (min miny y) (max maxx x) (max maxy y)])
+
+(defn normalize-bounds [[minx miny maxx maxy]]
+  (let [width (+ 50 (- maxx minx))
+        height (+ 50 (- maxy miny))
+        width (max width height)
+        height (max height width)
+        midx (average maxx minx)
+        midy (average maxy miny)]
+    [(- midx (/ width 2)) (- midy (/ height 2)) width height]))
+
+(defn update-bounds [g]
+  (assoc g :bounds (normalize-bounds (reduce bounds [1000 1000 0 0] (:nodes g)))))
+
 (defn draw-svg [drawable mutable-graph force-layout mouse-down? selected-id]
-  (let [{:keys [nodes paths title]} @drawable]
+  (let [{:keys [nodes paths title bounds]} @drawable]
     (into
      [:svg
-      {:view-box (str "0 0 " 1000 " " 500)}]
+      {:view-box (string/join " " bounds)}]
      (concat
       (for [path paths]
         [draw-link path nodes mutable-graph force-layout mouse-down? selected-id])
       (for [[node idx] (map vector nodes (range))
             :when (not (vector? (:id node)))]
         [draw-node node idx mutable-graph force-layout mouse-down? selected-id])
-      [[:rect {:width  1000
-               :height 500
-               :fill   :none
-               :stroke :black}]]))))
+      [[:rect (let [[x y width height] bounds]
+                {:x x
+                 :y y
+                 :width width
+                 :height height
+                 :fill :none
+                 :stroke :black})]]))))
 
 (defn draw-graph [size drawable mutable-graph force-layout mouse-down? selected-id]
   [:div {:on-mouse-down (fn graph-mouse-down [e]
@@ -138,17 +160,18 @@
          :on-mouse-up (fn graph-mouse-up [e]
                         (reset! mouse-down? nil))
          :on-mouse-move (fn graph-mouse-move [e]
-                          (when (and @selected-id @mouse-down?)
-                            (let [k (if (string? @selected-id)
-                                      @selected-id
-                                      (pr-str (js->clj @selected-id)))]
-                              (when-let [idx (aget mutable-graph "idx" k)]
-                                (when-let [node (aget mutable-graph "nodes" idx)]
-                                  (let [{:keys [width height left top]} @size
-                                        divx (- (.-clientX e) left)
-                                        divy (- (.-clientY e) top)
-                                        x (/ (* 1000 divx) width)
-                                        y (/ (* 500 divy) height)]
+                          (let [{:keys [width height left top]} @size
+                                [dx dy dw dh] (:bounds @drawable)
+                                divx (- (.-clientX e) left)
+                                divy (- (.-clientY e) top)
+                                x (+ (* divx (/ dw width)) dx)
+                                y (+ (* divy (/ dh height)) dy)]
+                            (when (and @selected-id @mouse-down?)
+                              (let [k (if (string? @selected-id)
+                                        @selected-id
+                                        (pr-str (js->clj @selected-id)))]
+                                (when-let [idx (aget mutable-graph "idx" k)]
+                                  (when-let [node (aget mutable-graph "nodes" idx)]
                                     (set! (.-px node) x)
                                     (set! (.-py node) y)
                                     (.resume force-layout)))))))}
@@ -161,7 +184,7 @@
       (.links (.-links g))
       (.linkDistance 50)
       (.charge -200)
-      (.size #js [1000, 500])
+      (.size #js [1000, 1000])
       (.on "tick" tick)))
 
 (defn resize [size]
@@ -176,13 +199,16 @@
 (defn graph [g selected-id]
   (let [mutable-graph (d3g nil)
         drawable (reagent/atom {})
+        size (reagent/atom {})
         force-layout (create-force-layout
                       mutable-graph
                       (fn layout-tick []
                         (reset! drawable (js->clj mutable-graph
-                                                  :keywordize-keys true))))
+                                                  :keywordize-keys true))
+                        (swap! size resize)
+                        (swap! drawable update-bounds)
+                        ))
         mouse-down? (reagent/atom nil)
-        size (reagent/atom {})
         resize-handler (fn a-resize-handler [e]
                          (swap! size resize))]
     (reagent/create-class

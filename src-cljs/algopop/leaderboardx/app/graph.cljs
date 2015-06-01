@@ -24,6 +24,7 @@
 (defn without-edges [g from & tos]
   (apply update-in g [:edges from] dissoc tos))
 
+;; TODO: make deep
 (defn merge-left [& maps]
   (apply merge (reverse maps)))
 
@@ -58,8 +59,8 @@
       (-> g
           (update-in [:nodes] dissoc k)
           (update-in [:edges] dissoc k)
-          (assoc-in [:nodes new-k] node)
-          (assoc-in [:edges new-k] outs)
+          (update-in [:nodes new-k] merge-left node)
+          (update-in [:edges new-k] merge-left outs)
           (rename-in-edges k new-k ins)))))
 
 (defn matrix-with-link [acc [to from]]

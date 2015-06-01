@@ -30,9 +30,10 @@
    [:nav.navbar.navbar-inverse {:role "navigation"}
     [:div.container-fluid
      [:div.navbar-header
-      [:button.navbar-toggle {:type "button"
-                              :data-toggle "collapse"
-                              :data-target "navbar-collapse"}
+      [:button.navbar-toggle.collapsed
+       {:type "button"
+        :data-toggle "collapse"
+        :data-target "#navbar-collapse"}
        [:span.sr-only "Toggle navigation"]
        [:span.icon-bar]
        [:span.icon-bar]

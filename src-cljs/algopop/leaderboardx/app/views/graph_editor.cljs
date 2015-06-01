@@ -230,6 +230,11 @@
                               (reset! editing :title))}
              (or title "Untitled")])]]))))
 
+(defn get-svg []
+  (-> (.getElementById js/document "d3g")
+      (.-firstChild)
+      (.-innerHTML)))
+
 (defn graph-editor-page []
   ;; TODO: pass in session instead, and rank g earlier
   (let [selected-id (reagent/atom nil)
@@ -239,19 +244,13 @@
      {:display-name "graph-editor"
       :reagent-render
       (fn graph-editor []
-        (let [gr (graph/with-ranks @g)
-              this (reagent/current-component)
-              get-svg (fn a-get-svg []
-                        (-> this
-                            (.getDOMNode)
-                            (aget "children" 2)
-                            (aget "children" 0)
-                            (.-innerHTML)))]
-          [:div
-           [toolbar/toolbar g get-svg]
-           [title-editor g]
-           [d3/graph gr selected-id]
-           [table gr selected-id]]))
+        [:div
+         [toolbar/toolbar g get-svg]
+         [title-editor g]
+         (let [gr (graph/with-ranks @g)]
+           [:div.row
+            [:div#d3g.col-lg-6 [d3/graph gr selected-id]]
+            [:div.col-lg-6 [table gr selected-id]]])])
       :component-did-mount
       (fn graph-editor-did-mount [this]
         (.addEventListener js/document "keydown" keydown-handler))

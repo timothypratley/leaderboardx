@@ -42,7 +42,7 @@
 
 (defn import-button [label accept read-graph g]
   [:li
-   [:a.btn-file
+   [:a.btn.btn-file
     label
     [:input
      {:type "file"
@@ -53,13 +53,13 @@
       :on-change
       (fn import-csv-change [e]
         (when-let [file (aget e "target" "files" 0)]
-          (if-let [r (cond (ends-with (.-name file) ".csv") csv/read-graph
+          (if-let [r (cond (ends-with (.-name file) ".txt") csv/read-graph
                           (ends-with (.-name file) ".dot") dot/read-graph)]
             (read-file g file r)
-            (log/error "Must supply a .dot or .csv file"))))}]]])
+            (log/error "Must supply a .dot or .txt file"))))}]]])
 
 (defn action-button [label f]
-  [:li [:a {:on-click f} label]])
+  [:li [:a.btn {:on-click f} label]])
 
 (defn filename [{:keys [title]} ext]
   (str (or title "graph") "." ext))
@@ -80,7 +80,7 @@
      [action-button "Random"
       (fn random-click [e]
         (reset! g (seed/rand-graph)))]
-     [import-button "File (dot or csv)" ".dot,.csv" dot/read-graph g]]]
+     [import-button "File (dot or txt)" ".dot,.txt" dot/read-graph g]]]
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle
      {:data-toggle "dropdown"
@@ -91,9 +91,9 @@
      [action-button "Graph (dot)"
       (fn export-graphviz [e]
         (save-file (filename @g "dot") (str "data:text/dot;charset=utf-8," (dot/write-graph @g))))]
-     [action-button "Summary table (csv)"
+     [action-button "Summary table (txt)"
       (fn export-csv-click [e]
-        (save-file (filename @g "csv") (str "data:text/csv;charset=utf-8," (csv/write-graph @g))))]
+        (save-file (filename @g "txt") (str "data:text/csv;charset=utf-8," (csv/write-graph @g))))]
      [action-button "Image (svg)"
       (fn export-svg [e]
         (save-file (filename @g "svg")
