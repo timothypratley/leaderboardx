@@ -123,8 +123,8 @@
   [(min minx x) (min miny y) (max maxx x) (max maxy y)])
 
 (defn normalize-bounds [[minx miny maxx maxy]]
-  (let [width (+ 50 (- maxx minx))
-        height (+ 50 (- maxy miny))
+  (let [width (+ 100 (- maxx minx))
+        height (+ 100 (- maxy miny))
         width (max width height)
         height (max height width)
         midx (average maxx minx)
@@ -160,12 +160,12 @@
          :on-mouse-up (fn graph-mouse-up [e]
                         (reset! mouse-down? nil))
          :on-mouse-move (fn graph-mouse-move [e]
-                          (let [{:keys [width height left top]} @size
+                          (let [{:keys [width left top]} @size
                                 [dx dy dw dh] (:bounds @drawable)
                                 divx (- (.-clientX e) left)
                                 divy (- (.-clientY e) top)
                                 x (+ (* divx (/ dw width)) dx)
-                                y (+ (* divy (/ dh height)) dy)]
+                                y (+ (* divy (/ dh width)) dy)]
                             (when (and @selected-id @mouse-down?)
                               (let [k (if (string? @selected-id)
                                         @selected-id
@@ -205,9 +205,7 @@
                       (fn layout-tick []
                         (reset! drawable (js->clj mutable-graph
                                                   :keywordize-keys true))
-                        (swap! size resize)
-                        (swap! drawable update-bounds)
-                        ))
+                        (swap! drawable update-bounds)))
         mouse-down? (reagent/atom nil)
         resize-handler (fn a-resize-handler [e]
                          (swap! size resize))]

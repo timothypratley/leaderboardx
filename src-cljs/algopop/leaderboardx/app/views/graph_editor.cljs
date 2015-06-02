@@ -244,13 +244,12 @@
      {:display-name "graph-editor"
       :reagent-render
       (fn graph-editor []
-        [:div
-         [toolbar/toolbar g get-svg]
-         [title-editor g]
-         (let [gr (graph/with-ranks @g)]
-           [:div.row
-            [:div#d3g.col-lg-6 [d3/graph gr selected-id]]
-            [:div.col-lg-6 [table gr selected-id]]])])
+        (let [gr (graph/with-ranks @g)]
+          [:div
+           [toolbar/toolbar g get-svg]
+           [title-editor g]
+           [:div#d3g [d3/graph gr selected-id]]
+           [:div [table gr selected-id]]]))
       :component-did-mount
       (fn graph-editor-did-mount [this]
         (.addEventListener js/document "keydown" keydown-handler))

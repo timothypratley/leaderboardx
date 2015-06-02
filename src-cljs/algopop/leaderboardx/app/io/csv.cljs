@@ -28,7 +28,6 @@ eol : '\n' | '\r\n' | '\n\r'
 
 (defn read-graph [csv]
   (let [ast (parse-csv csv)]
-    (println "AST" ast)
     (if (insta/failure? ast)
       (log/error ast "Failed to parse CSV")
       (reduce collect-row {} (nnext ast)))))
