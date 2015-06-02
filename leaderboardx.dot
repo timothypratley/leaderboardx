@@ -1,0 +1,47 @@
+digraph simple_hierarchy {
+ graph [rankdir = "LR"];
+ algopop_leaderboardx_routes->ring_middleware_defaults;
+algopop_leaderboardx_pages->hiccup_page;
+algopop_leaderboardx_routes->environ_core;
+algopop_leaderboardx_routes->algopop_leaderboardx_communication;
+algopop_leaderboardx_routes->compojure_route;
+algopop_leaderboardx_communication->clojure_tools_logging;
+algopop_leaderboardx_routes->algopop_leaderboardx_services;
+algopop_leaderboardx_communication->taoensso_sente_server_adapters_http_kit;
+algopop_leaderboardx_main->algopop_leaderboardx_routes;
+algopop_leaderboardx_main->algopop_leaderboardx_communication;
+algopop_leaderboardx_routes->ring_middleware_reload;
+algopop_leaderboardx_routes->prone_middleware;
+algopop_leaderboardx_communication->timothypratley_patchin;
+algopop_leaderboardx_communication->taoensso_sente;
+algopop_leaderboardx_services->algopop_leaderboardx_store;
+algopop_leaderboardx_routes->algopop_leaderboardx_pages;
+algopop_leaderboardx_main->org_httpkit_server;
+algopop_leaderboardx_main->clojure_tools_logging;
+algopop_leaderboardx_routes->clojure_tools_logging;
+algopop_leaderboardx_routes->compojure_core;
+ subgraph cluster_clojure {
+label="clojure";
+color=blue;
+algopop_leaderboardx_store[label="algopop.leaderboardx.store"];
+algopop_leaderboardx_main[label="algopop.leaderboardx.main"];
+taoensso_sente_server_adapters_http_kit[label="taoensso.sente.server-adapters.http-kit"];
+ring_middleware_reload[label="ring.middleware.reload"];
+algopop_leaderboardx_routes[label="algopop.leaderboardx.routes"];
+ring_middleware_defaults[label="ring.middleware.defaults"];
+hiccup_page[label="hiccup.page"];
+algopop_leaderboardx_communication[label="algopop.leaderboardx.communication"];
+clojure_tools_logging[label="clojure.tools.logging"];
+org_httpkit_server[label="org.httpkit.server"];
+algopop_leaderboardx_pages[label="algopop.leaderboardx.pages"];
+compojure_route[label="compojure.route"];
+taoensso_sente[label="taoensso.sente"];
+compojure_core[label="compojure.core"];
+timothypratley_patchin[label="timothypratley.patchin"];
+prone_middleware[label="prone.middleware"];
+algopop_leaderboardx_services[label="algopop.leaderboardx.services"];
+environ_core[label="environ.core"];
+} subgraph cluster_java {
+label="java";
+color=red;
+}}
