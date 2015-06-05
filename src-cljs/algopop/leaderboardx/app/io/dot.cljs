@@ -8,7 +8,7 @@
 (def dot-gramma
   "graph : <ws> [<'strict'> <ws>] ('graph' | 'digraph') <ws> [id <ws>] <'{'> stmt_list <'}'> <ws>
 <stmt_list> : <ws> {stmt <ws> [<';'> <ws>]}
-<stmt>  : node | edge | attr | eq | subgraph
+<stmt> : node | edge | attr | eq | subgraph
 eq : id <ws> <'='> <ws> id
 attr : ('graph' | 'node' | 'edge') <ws> attr_list
 <attr_list> : (<'['> <ws> [a_list <ws>] <']'> <ws>)+
