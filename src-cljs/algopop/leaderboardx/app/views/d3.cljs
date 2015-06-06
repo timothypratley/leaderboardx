@@ -162,8 +162,8 @@
          :on-mouse-move (fn graph-mouse-move [e]
                           (let [{:keys [width left top]} @size
                                 [dx dy dw dh] (:bounds @drawable)
-                                divx (- (.-clientX e) left)
-                                divy (- (.-clientY e) top)
+                                divx (- (.-pageX e) left)
+                                divy (- (.-pageY e) top)
                                 x (+ (* divx (/ dw width)) dx)
                                 y (+ (* divy (/ dh width)) dy)]
                             (when (and @selected-id @mouse-down?)
