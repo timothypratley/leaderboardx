@@ -35,19 +35,24 @@
                                  :source (k->idx [source target])
                                  :target (k->idx target)}]))}))))
 
-(defn overwrite [a b]
-  (set! (.-length a) 0)
-  (.apply (.-push a) a b))
+(defn overwrite [k x y]
+  (let [a (aget x k)
+        b (aget y k)]
+    (set! (.-length a) 0)
+    (.apply (.-push a) a b)))
+
+(defn assign [k a b]
+  (aset a k (aget b k)))
 
 (defn reconcile [g mutable-graph]
   (let [existing (into {} (for [node (.-nodes mutable-graph)]
                             [(.-id node) (js->clj node)]))
         replacement (d3g g existing)]
-    (set! (.-title mutable-graph) (.-title replacement))
-    (overwrite (.-nodes mutable-graph) (.-nodes replacement))
-    (set! (.-idx mutable-graph) (.-idx replacement))
-    (overwrite (.-paths mutable-graph) (.-paths replacement))
-    (overwrite (.-links mutable-graph) (.-links replacement))))
+    (assign "title" mutable-graph replacement)
+    (overwrite "nodes" mutable-graph replacement)
+    (assign "idx" mutable-graph replacement)
+    (overwrite "paths" mutable-graph replacement)
+    (overwrite "links" mutable-graph replacement)))
 
 (defn draw-node [node idx mutable-graph force-layout mouse-down? selected-id]
   (let [selected? (= (:id node) @selected-id)]
@@ -172,8 +177,8 @@
                                         (pr-str (js->clj @selected-id)))]
                                 (when-let [idx (aget mutable-graph "idx" k)]
                                   (when-let [node (aget mutable-graph "nodes" idx)]
-                                    (set! (.-px node) x)
-                                    (set! (.-py node) y)
+                                    (aset node "px" x)
+                                    (aset node "py" y)
                                     (.resume force-layout)))))))}
    [draw-svg drawable mutable-graph force-layout mouse-down? selected-id]])
 

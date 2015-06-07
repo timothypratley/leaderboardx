@@ -1,4 +1,4 @@
-(ns algopop.leaderboardx.prod
+(ns prod
   (:require [algopop.leaderboardx.app.main :as main]))
 
 ;;ignore println statements in prod

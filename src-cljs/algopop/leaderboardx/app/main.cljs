@@ -10,6 +10,9 @@
             [secretary.core :as secretary :include-macros true])
   (:import goog.History))
 
+(js/ga "create" "UA-40336415-3" "auto")
+(js/ga "send" "pageview")
+
 ;; -------------------------
 ;; Routes
 

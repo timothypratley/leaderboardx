@@ -2,23 +2,23 @@
   :description "LeaderboardX is a ranking product"
   :url "http://timothypratley.blogspot.com"
 
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-3196" :scope "provided"]
+  :dependencies [[org.clojure/clojure "1.7.0-RC1"]
+                 [org.clojure/clojurescript "0.0-3308" :scope "provided"]
                  [org.clojure/tools.logging "0.3.1"]
                  [com.lucasbradstreet/instaparse-cljs "1.3.5"]
                  [com.taoensso/sente "1.4.1"]
-                 [compojure "1.3.3"]
+                 [compojure "1.3.4"]
                  [cljsjs/d3 "3.5.5-3"]
-                 [cljsjs/react "0.13.1-0"]
+                 [cljsjs/react "0.13.3-0"]
                  [environ "1.0.0"]
                  [http-kit "2.1.19"]
                  [hiccup "1.0.5"]
                  [reagent "0.5.0"]
-                 [reagent-forms "0.5.0"]
+                 [reagent-forms "0.5.1"]
                  [reagent-utils "0.1.4"]
                  [ring "1.3.2"]
-                 [ring/ring-defaults "0.1.4"]
-                 [prone "0.8.1"]
+                 [ring/ring-defaults "0.1.5"]
+                 [prone "0.8.2"]
                  [secretary "1.2.3"]
                  [timothypratley/patchin "0.3.5"]]
 
@@ -47,19 +47,7 @@
                                         :optimizations :none
                                         :pretty-print true}}}}
 
-  :profiles {:dev {:repl-options {:init-ns repl
-                                  :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
-
-                   :dependencies [[ring-mock "0.1.5"]
-                                  [ring/ring-devel "1.3.2"]
-                                  [leiningen "2.5.1"]
-                                  [figwheel "0.2.5"]
-                                  [weasel "0.6.0"]
-                                  [com.cemerick/piggieback "0.2.0"]
-                                  [org.clojure/tools.nrepl "0.2.10"]]
-
-                   :source-paths ["env/dev/clj" "src"]
-                   :plugins [[lein-figwheel "0.2.5"]]
+  :profiles {:dev {:plugins [[lein-figwheel "0.3.3"]]
 
                    :figwheel {:http-server-root "public"
                               :server-port 3449
@@ -69,7 +57,7 @@
                    :env {:dev? true}
 
                    :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs" "src-cljs"]
-                                              :compiler {:main "algopop.leaderboardx.dev"
+                                              :compiler {:main "dev"
                                                          :source-map true}}}}}
 
              :uberjar {:hooks [leiningen.cljsbuild minify-assets.plugin/hooks]
@@ -80,6 +68,6 @@
                                    :builds {:app
                                              {:source-paths ["env/prod/cljs" "src-cljs"]
                                               :compiler
-                                              ;; TODO: use advanced
-                                              {:optimizations :whitespace
+                                              {:optimizations :advanced
+                                               :source-map "resources/public/js/app.map"
                                                :pretty-print false}}}}}})

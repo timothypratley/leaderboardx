@@ -25,8 +25,8 @@
 
 (defn save-file [filename str]
   (let [link (.createElement js/document "a")]
-    (set! (.-download link) filename)
-    (set! (.-href link) (js/encodeURI str))
+    (aset link "download" filename)
+    (aset link "href" (js/encodeURI str))
     (.click link)))
 
 (defn ends-with [s suffix]

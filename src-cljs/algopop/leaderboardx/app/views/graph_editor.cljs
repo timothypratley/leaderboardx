@@ -4,6 +4,7 @@
             [algopop.leaderboardx.app.views.d3 :as d3]
             [algopop.leaderboardx.app.views.toolbar :as toolbar]
             [goog.dom.forms :as forms]
+            [goog.string :as gstring]
             [clojure.string :as string]
             [reagent.core :as reagent])
   (:import [goog.events KeyCodes]))
@@ -39,13 +40,13 @@
     (unselect selected-id)))
 
 (defn key-match [k e]
-  (= (aget KeyCodes k) (.-keyCode e)))
+  (= k (.-keyCode e)))
 
 (defn handle-keydown [e selected-id]
   (condp key-match e
-    "ESC" (unselect selected-id)
-    "DELETE" (when-not (instance? js/HTMLInputElement (.-target e))
-               (delete-selected selected-id))
+    (.-ESC KeyCodes) (unselect selected-id)
+    (.-DELETE KeyCodes) (when-not (instance? js/HTMLInputElement (.-target e))
+                          (delete-selected selected-id))
     nil))
 
 (defn humanize-edges [edges]
@@ -170,17 +171,16 @@
         (into
          [:tbody
           [input-row gr search-term selected-id]]
-         (for [[k v] (sort-by (comp :rank val) (:nodes gr))
+         (for [[k {:keys [rank]}] (sort-by (comp :rank val) (:nodes gr))
                :let [selected? (= k @selected-id)
-                     match? (and (seq @search-term) (.startsWith k @search-term))
+                     match? (and (seq @search-term) (gstring/startsWith k @search-term))
                      outs (humanize-edges (keys (get-in gr [:edges k])))
                      ins (humanize-edges (keys (graph/in-edges gr k)))]]
-           [:tr {:class (cond
-                          selected? "info"
-                          match? "warning")
+           [:tr {:class (cond selected? "info"
+                              match? "warning")
                  :on-mouse-down (fn table-mouse-down [e]
                                   (reset! selected-id k))}
-            [:td (:rank v)]
+            [:td rank]
             [:td {:on-mouse-down (fn node-name-mouse-down [e]
                                    (when (= k @selected-id)
                                      (reset! editing :node)))}
@@ -227,7 +227,7 @@
                              (reset! editing nil)))}
              [title-input title editing]]
             [:span {:on-click (fn rename-click [e]
-                              (reset! editing :title))}
+                                (reset! editing :title))}
              (or title "Untitled")])]]))))
 
 (defn get-svg []
