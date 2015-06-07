@@ -143,23 +143,19 @@
   (let [{:keys [nodes paths title bounds]} @drawable]
     (into
      [:svg
-      {:view-box (string/join " " bounds)}]
+      {:view-box (string/join " " bounds)
+       :style {:width "100%"
+               :height "100%"}}]
      (concat
       (for [path paths]
         [draw-link path nodes mutable-graph force-layout mouse-down? selected-id])
       (for [[node idx] (map vector nodes (range))
             :when (not (vector? (:id node)))]
-        [draw-node node idx mutable-graph force-layout mouse-down? selected-id])
-      [[:rect (let [[x y width height] bounds]
-                {:x x
-                 :y y
-                 :width width
-                 :height height
-                 :fill :none
-                 :stroke :black})]]))))
+        [draw-node node idx mutable-graph force-layout mouse-down? selected-id])))))
 
 (defn draw-graph [size drawable mutable-graph force-layout mouse-down? selected-id]
-  [:div {:on-mouse-down (fn graph-mouse-down [e]
+  [:div {:style {:height "70vh"}
+         :on-mouse-down (fn graph-mouse-down [e]
                           (reset! mouse-down? true)
                           (reset! selected-id nil))
          :on-mouse-up (fn graph-mouse-up [e]

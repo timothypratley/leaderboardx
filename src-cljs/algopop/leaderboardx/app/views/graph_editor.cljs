@@ -63,7 +63,9 @@
                    (reset! outs (humanize-edges (keys (get-in gr [:edges b]))))
                    (reset! ins (humanize-edges (keys (graph/in-edges gr b))))))
       [:tr
-       [:td [:label "Add"]]
+       [:td [:input.btn.btn-default.btn-xs
+             {:type "submit"
+              :value "Add"}]]
        [:td [:input {:type "text"
                      :name "source"
                      :style {:width "100%"}
@@ -84,10 +86,7 @@
                      :style {:width "100%"}
                      :value @ins
                      :on-change (fn targets-on-change [e]
-                                  (reset! ins (.. e -target -value)))}]]
-       [:input {:type "submit"
-                :value "Add"
-                :hidden true}]])))
+                                  (reset! ins (.. e -target -value)))}]]])))
 
 (defn focus-append [this]
   (doto (.getDOMNode this)

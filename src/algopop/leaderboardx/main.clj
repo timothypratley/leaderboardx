@@ -31,5 +31,5 @@
   (start-web-server! port))
 
 (defn -main [& args]
-  (let [port (Integer/parseInt (or (System/getenv "PORT") "3000"))]
+  (let [port (Integer/parseInt (or (first args) (System/getenv "PORT") "3000"))]
     (start! port)))
