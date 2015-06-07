@@ -1,4 +1,4 @@
-(ns ^:figwheel-no-load dev
+(ns ^:figwheel-no-load dev.main
   (:require [algopop.leaderboardx.app.main :as main]
             [figwheel.client :as figwheel :include-macros true]))
 
