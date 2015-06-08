@@ -23,22 +23,36 @@
       [:li "Double click to unpin nodes and edges."]
       [:li "Click on the table row then click again to edit."]]]]])
 
-(defn save-file [filename str]
-  (let [link (.createElement js/document "a")]
-    (aset link "download" filename)
-    (aset link "href" (js/encodeURI str))
-    (.click link)))
+(defn save-file [filename t s]
+  (if js/Blob
+    (let [b (js/Blob. #js [s] #js {:type t})]
+      (if js/window.navigator.msSaveBlob
+        (js/window.navigator.msSaveBlob b filename)
+        (let [link (js/document.createElement  "a")]
+          (aset link "download" filename)
+          (if js/window.webkitURL
+            (aset link "href" (js/window.webkitURL.createObjectURL b))
+            (do
+              (aset link "href" (js/window.URL.createObjectURL b))
+              (aset link "onclick" (fn destroy-clicked [e]
+                                     (.removeChild (.-body js/document) (.-target e))))
+              (aset link "style" "display" "none")
+              (.appendChild (.-body js/document) link)))
+          (.click link))))
+    (log/error "Browser does not support Blob")))
 
 (defn ends-with [s suffix]
   (not (neg? (.indexOf s suffix (- (.-length s) (.-length suffix))))))
 
 (defn read-file [g file read-graph]
-  (let [reader (js/FileReader.)]
-    (set! (.-onload reader)
-          (fn csv-loaded [e]
-            (when-let [new-graph (read-graph (.. e -target -result))]
-              (reset! g new-graph))))
-    (.readAsText reader file)))
+  (if js/FileReader
+    (let [reader (js/FileReader.)]
+      (set! (.-onload reader)
+            (fn csv-loaded [e]
+              (when-let [new-graph (read-graph (.. e -target -result))]
+                (reset! g new-graph))))
+      (.readAsText reader file))
+    (log/error "Browser does not support FileReader")))
 
 (defn import-button [label accept read-graph g]
   [:li
@@ -63,6 +77,12 @@
 
 (defn filename [{:keys [title]} ext]
   (str (or title "graph") "." ext))
+
+(defn format-svg [svg]
+  (str
+   "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
+   (string/replace svg #" data-reactid=\"[^\"]*\"" "")
+   "</svg>"))
 
 (defn toolbar [g get-svg]
   [:div.btn-toolbar.pull-right {:role "toolbar"}
@@ -90,15 +110,11 @@
     [:ul.dropdown-menu {:role "menu"}
      [action-button "Graph (dot)"
       (fn export-graphviz [e]
-        (save-file (filename @g "dot") (str "data:text/dot;charset=utf-8," (dot/write-graph @g))))]
+        (save-file (filename @g "dot") "text/dot" (dot/write-graph @g)))]
      [action-button "Summary table (txt)"
       (fn export-csv-click [e]
-        (save-file (filename @g "txt") (str "data:text/csv;charset=utf-8," (csv/write-graph @g))))]
+        (save-file (filename @g "txt") "text/csv" (csv/write-graph @g)))]
      [action-button "Image (svg)"
       (fn export-svg [e]
-        (save-file (filename @g "svg")
-                   (str "data:image/svg+xml;utf8,"
-                        "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
-                        (string/replace (get-svg) #" data-reactid=\"[^\"]*\"" "")
-                        "</svg>")))]]]
+        (save-file (filename @g "svg") "image/svg+xml" (format-svg (get-svg))))]]]
    [help]])
