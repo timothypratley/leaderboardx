@@ -51,4 +51,4 @@
         [[notifications]]
         (for [[k v] (sort-by key pages/page)]
           [:li [:a {:href (str "#/" (name k))} [:kbd (name k)]]])
-        [[user-menu]]))]]]])
+        #_[[user-menu]]))]]]])

@@ -20,7 +20,7 @@
   [:div.container
    [header/header]
    [:div.well
-    [(pages/page (session/get-in [:viewpoint :current-page] :home))]]])
+    [(pages/page (session/get-in [:viewpoint :current-page] :graph-editor))]]])
 
 ;; -------------------------
 ;; History

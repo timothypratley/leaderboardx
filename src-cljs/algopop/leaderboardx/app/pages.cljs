@@ -7,10 +7,11 @@
             [secretary.core :as secretary :include-macros true]))
 
 (def page
-  {:home home/home-page
+  {;:home home/home-page
    :about about/about-page
    :graph-editor graph-editor/graph-editor-page
-   :endorse endorse/endorse-page})
+   ;:endorse endorse/endorse-page
+   })
 
 (secretary/set-config! :prefix "#")
 
@@ -20,4 +21,4 @@
     (session/assoc-in! [:viewpoint :current-page] k)))
 
 (secretary/defroute "*" []
-  (session/assoc-in! [:viewpoint :current-page] :home))
+  (session/assoc-in! [:viewpoint :current-page] :graph-editor))

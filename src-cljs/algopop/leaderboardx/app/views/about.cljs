@@ -7,6 +7,6 @@
     [:p "How do you rank?"]]
    [:div
     [:p "Contact timothypratley@gmail.com"]
-    [:p [:a {:href "//algopop.herokuapp.com"
+    #_[:p [:a {:href "//algopop.herokuapp.com"
              :target "_blank"}
          "Created by Algopop"]]]])
