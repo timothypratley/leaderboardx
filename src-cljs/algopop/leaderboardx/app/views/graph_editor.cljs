@@ -177,22 +177,26 @@
                      ins (humanize-edges (keys (graph/in-edges gr k)))]]
            [:tr {:class (cond selected? "info"
                               match? "warning")
+                 :style {:cursor "pointer"}
                  :on-click (fn table-row-click [e]
                              (reset! selected-id k))}
             [:td rank]
-            [:td {:on-click (fn node-name-click [e]
+            [:td {:style {:cursor "pointer"}
+                  :on-click (fn node-name-click [e]
                               (when (= k @selected-id)
                                 (reset! editing :node)))}
              (if (and selected? (#{:node} @editing))
                [rename-node k selected-id editing]
                k)]
-            [:td {:on-click (fn outs-click [e]
+            [:td {:style {:cursor "pointer"}
+                  :on-click (fn outs-click [e]
                               (when (= k @selected-id)
                                 (reset! editing :outs)))}
              (if (and selected? (#{:outs} @editing))
                [edit-edges k outs ins selected-id editing]
                outs)]
-            [:td {:on-click (fn ins-click [e]
+            [:td {:style {:cursor "pointer"}
+                  :on-click (fn ins-click [e]
                               (when (= k @selected-id)
                                 (reset! editing :ins)))}
              (if (and selected? (#{:ins} @editing))
