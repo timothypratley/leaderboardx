@@ -32,6 +32,9 @@
    [:body
     [:div {:id "app"}
      "<div class='container'><header><nav role='navigation' class='navbar navbar-inverse'><div class='container-fluid'><div class='navbar-header'><button type='button' data-toggle='collapse' data-target='#navbar-collapse' class='navbar-toggle collapsed'><span class='sr-only'>Toggle navigation</span><span class='icon-bar'></span><span class='icon-bar'></span><span class='icon-bar'></span></button><a href='#/' class='navbar-brand'><panel><img src='img/brand.png' height='40px'><span>  Leaderboard</span><span style='font-family:cursive;'>X</span></panel></a></div><div id='navbar-collapse' class='collapse navbar-collapse'><ul class='nav navbar-nav navbar-right'><noscript><a href='http://enable-javascript.com/'><kbd>Please enable JavaScript</kbd></a></noscript></ul></div></div></nav></header><div class='well'><div><div class='jumbotron'><h2><span>Welcome to Leaderboard</span><span style='font-family:cursive;'>X</span></h2><p>How do you rank?</p></div><div><p>Contact timothypratley@gmail.com</p></div></div></div></div>"]
-    [:script {:src "//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"}]
-    [:script {:src "//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"}]
+    [:script {:src "//cdnjs.cloudflare.com/ajax/libs/es5-shim/4.1.5/es5-shim.min.js" :type "text/javascript"}]
+    [:script {:src "//cdnjs.cloudflare.com/ajax/libs/es5-shim/4.1.5/es5-sham.min.js" :type "text/javascript"}]
+    [:script {:src "//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.2/html5shiv.min.js" :type "text/javascript"}]
+    [:script {:src "//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js" :type "text/javascript"}]
+    [:script {:src "//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js" :type "text/javascript"}]
     [:script {:src "js/app.js" :type "text/javascript"}]]))

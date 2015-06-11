@@ -153,20 +153,31 @@
             :when (not (vector? (:id node)))]
         [draw-node node idx mutable-graph force-layout mouse-down? selected-id])))))
 
-(defn draw-graph [size drawable mutable-graph force-layout mouse-down? selected-id]
+(defn draw-graph [this drawable mutable-graph force-layout mouse-down? selected-id]
   [:div {:style {:height "70vh"}
          :on-mouse-down (fn graph-mouse-down [e]
+                          (.stopPropagation e)
                           (reset! mouse-down? true)
                           (reset! selected-id nil))
          :on-mouse-up (fn graph-mouse-up [e]
                         (reset! mouse-down? nil))
          :on-mouse-move (fn graph-mouse-move [e]
-                          (let [{:keys [width left top]} @size
-                                [dx dy dw dh] (:bounds @drawable)
-                                divx (- (.-pageX e) left)
-                                divy (- (.-pageY e) top)
-                                x (+ (* divx (/ dw width)) dx)
-                                y (+ (* divy (/ dh width)) dy)]
+                          (let [elem (.getDOMNode this)
+                                r (.getBoundingClientRect elem)
+                                left (.-left r)
+                                top (.-top r)
+                                width (.-width r)
+                                height (.-height r)
+                                [bx by bw bh] (:bounds @drawable)
+                                cx (+ bx (/ bw 2))
+                                cy (+ by (/ bh 2))
+                                scale (/ bw (min width height))
+                                ex (.-clientX e)
+                                ey (.-clientY e)
+                                divx (- ex left (/ width 2))
+                                divy (- ey top (/ height 2))
+                                x (+ (* divx scale) cx)
+                                y (+ (* divy scale) cy)]
                             (when (and @selected-id @mouse-down?)
                               (let [k (if (string? @selected-id)
                                         @selected-id
@@ -188,15 +199,6 @@
       (.size #js [1000, 1000])
       (.on "tick" tick)))
 
-(defn resize [size]
-  (let [elem (.getDOMNode (:component size))
-        r (.getBoundingClientRect elem)]
-    (assoc size
-           :width (.-offsetWidth elem)
-           :height (.-offsetHeight elem)
-           :left (.-left r)
-           :top (.-top r))))
-
 (defn graph [g selected-id]
   (let [mutable-graph (d3g nil)
         drawable (reagent/atom {})
@@ -207,20 +209,11 @@
                         (reset! drawable (js->clj mutable-graph
                                                   :keywordize-keys true))
                         (swap! drawable update-bounds)))
-        mouse-down? (reagent/atom nil)
-        resize-handler (fn a-resize-handler [e]
-                         (swap! size resize))]
+        mouse-down? (reagent/atom nil)]
     (reagent/create-class
      {:display-name "graph"
       :reagent-render
       (fn graph-render [g selected-id]
         (reconcile g mutable-graph)
         (.start force-layout)
-        [draw-graph size drawable mutable-graph force-layout mouse-down? selected-id])
-      :component-did-mount
-      (fn graph-did-mount [this]
-        (reset! size (resize {:component this}))
-        (.addEventListener js/window "resize" resize-handler))
-      :component-will-unmount
-      (fn graph-will-unmount [this]
-        (.removeEventListener js/window "resize" resize-handler))})))
+        [draw-graph (reagent/current-component) drawable mutable-graph force-layout mouse-down? selected-id])})))
