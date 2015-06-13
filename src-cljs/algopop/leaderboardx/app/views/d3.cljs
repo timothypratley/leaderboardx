@@ -54,9 +54,18 @@
     (overwrite "paths" mutable-graph replacement)
     (overwrite "links" mutable-graph replacement)))
 
-(defn draw-node [node idx mutable-graph force-layout mouse-down? selected-id]
-  (let [selected? (= (:id node) @selected-id)]
-    [:g {:transform (str "translate(" (:x node) "," (:y node) ")"
+(def node-color [213 210 255])
+
+(defn scale-rgb [rgb rank-scale]
+  (map int (map * rgb (repeat (+ 0.9 (* 0.5 rank-scale))))))
+
+(defn rgb [[r g b]]
+  (str "rgb(" r "," g "," b ")"))
+
+(defn draw-node [{:keys [id x y rank pagerank]} max-pagerank idx mutable-graph force-layout mouse-down? selected-id]
+  (let [selected? (= id @selected-id)
+        rank-scale (/ pagerank max-pagerank)]
+    [:g {:transform (str "translate(" x "," y ")"
                          (when selected?
                            " scale(1.25,1.25)"))
          :on-double-click (fn node-double-click [e]
@@ -68,20 +77,16 @@
                           (reset! mouse-down? true)
                           (reset! selected-id (aget mutable-graph "nodes" idx "id"))
                           (aset mutable-graph "nodes" idx "fixed" 1))}
-     [:circle {:r 20
-               :fill "#ddddff"
+     [:circle {:r (+ 5 (* 40 rank-scale))
+               :fill (rgb (scale-rgb node-color rank-scale))
                :stroke (if selected?
                          "#6699aa"
                          "#9ecae1")
                :style {:cursor "pointer"}}]
      [:text.unselectable {:text-anchor "middle"
-                          :y 18
-                          :style {:pointer-events "none"}}
-      (:rank node)]
-     [:text.unselectable {:text-anchor "middle"
-                          :y 4
-                          :style {:pointer-events "none"}}
-      (:id node)]]))
+                          :style {:pointer-events "none"
+                                  :dominant-baseline "central"}}
+      id]]))
 
 (defn average [& args]
   (/ (apply + args) (count args)))
@@ -140,7 +145,8 @@
   (assoc g :bounds (normalize-bounds (reduce bounds [1000 1000 0 0] (:nodes g)))))
 
 (defn draw-svg [drawable mutable-graph force-layout mouse-down? selected-id]
-  (let [{:keys [nodes paths title bounds]} @drawable]
+  (let [{:keys [nodes paths title bounds]} @drawable
+        max-pagerank (reduce max (map :pagerank nodes))]
     (into
      [:svg
       {:view-box (string/join " " bounds)
@@ -151,7 +157,7 @@
         [draw-link path nodes mutable-graph force-layout mouse-down? selected-id])
       (for [[node idx] (map vector nodes (range))
             :when (not (vector? (:id node)))]
-        [draw-node node idx mutable-graph force-layout mouse-down? selected-id])))))
+        [draw-node node max-pagerank idx mutable-graph force-layout mouse-down? selected-id])))))
 
 (defn draw-graph [this drawable mutable-graph force-layout mouse-down? selected-id]
   [:div {:style {:height "70vh"}

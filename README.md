@@ -1,10 +1,35 @@
 # LeaderboardX
 
 Peer ranking
+http://leaderboardx.herokuapp.com/
 
-## Usage
+
+## Why?
+
+Analysis
+
+
+## What?
+
+A graph of social relationships.
+
+
+## How?
+
+* Build networks quickly
+* Rename nodes
+* Combine nodes
+* Relink edges
+* Pagerank
+* Force layout
+* Move nodes and links
+* Save files
+
+
+## Development
 
 `lein figwheel`
+
 
 ## License
 
