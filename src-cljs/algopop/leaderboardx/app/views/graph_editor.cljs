@@ -47,7 +47,10 @@
     (delete-selected selected-id)))
 
 (def codename
-  (set/map-invert (js->clj KeyCodes)))
+  ;; TODO: advanced mode (set/map-invert (js->clj KeyCodes))
+  {27 "ESC"
+   46 "DELETE"
+   8 "BACKSPACE"})
 
 (defn handle-keydown [e selected-id]
   (case (codename (.-keyCode e))

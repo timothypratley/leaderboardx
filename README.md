@@ -28,7 +28,17 @@ A graph of social relationships.
 
 ## Development
 
+For interactive development:
+
 `lein figwheel`
+http://localhost:3449
+
+
+To test advanced compilation:
+
+`lein with-profile uberjar do clean, cljsbuild auto`
+`lein run 8080`
+http://localhost:8080
 
 
 ## License
