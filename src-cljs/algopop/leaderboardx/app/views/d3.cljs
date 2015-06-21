@@ -62,7 +62,7 @@
 (defn rgb [[r g b]]
   (str "rgb(" r "," g "," b ")"))
 
-(defn draw-node [{:keys [id x y rank pagerank]} max-pagerank idx mutable-graph force-layout mouse-down? selected-id]
+(defn draw-node [{:keys [id x y rank pagerank]} n max-pagerank idx mutable-graph force-layout mouse-down? selected-id]
   (let [selected? (= id @selected-id)
         rank-scale (/ pagerank max-pagerank)]
     [:g {:transform (str "translate(" x "," y ")"
@@ -74,16 +74,18 @@
                             (.resume force-layout))
          :on-mouse-down (fn node-mouse-down [e]
                           (.stopPropagation e)
+                          (.preventDefault e)
                           (reset! mouse-down? true)
                           (reset! selected-id (aget mutable-graph "nodes" idx "id"))
                           (aset mutable-graph "nodes" idx "fixed" 1))}
-     [:circle {:r (+ 5 (* 40 rank-scale))
+     [:circle {:r (+ 5 (* (min (max n 10) 30) rank-scale))
                :fill (rgb (scale-rgb node-color rank-scale))
                :stroke (if selected?
                          "#6699aa"
                          "#9ecae1")
                :style {:cursor "pointer"}}]
      [:text.unselectable {:text-anchor "middle"
+                          :font-size (min (max n 8) 22)
                           :style {:pointer-events "none"
                                   :dominant-baseline "central"}}
       id]]))
@@ -109,6 +111,7 @@
          :on-mouse-down
          (fn link-mouse-down [e]
            (.stopPropagation e)
+           (.preventDefault e)
            (reset! mouse-down? true)
            (reset! selected-id (aget mutable-graph "nodes" mid "id"))
            (aset mutable-graph "nodes" mid "fixed" 1))
@@ -142,7 +145,7 @@
     [(- midx (/ width 2)) (- midy (/ height 2)) width height]))
 
 (defn update-bounds [g]
-  (assoc g :bounds (normalize-bounds (reduce bounds [1000 1000 0 0] (:nodes g)))))
+  (assoc g :bounds (normalize-bounds (reduce bounds [400 400 600 600] (:nodes g)))))
 
 (defn draw-svg [drawable mutable-graph force-layout mouse-down? selected-id]
   (let [{:keys [nodes paths title bounds]} @drawable
@@ -157,12 +160,12 @@
         [draw-link path nodes mutable-graph force-layout mouse-down? selected-id])
       (for [[node idx] (map vector nodes (range))
             :when (not (vector? (:id node)))]
-        [draw-node node max-pagerank idx mutable-graph force-layout mouse-down? selected-id])))))
+        [draw-node node (count nodes) max-pagerank idx mutable-graph force-layout mouse-down? selected-id])))))
 
 (defn draw-graph [this drawable mutable-graph force-layout mouse-down? selected-id]
-  [:div {:style {:height "70vh"}
+  [:div {:style {:height "60vh"}
          :on-mouse-down (fn graph-mouse-down [e]
-                          (.stopPropagation e)
+                          (.preventDefault e)
                           (reset! mouse-down? true)
                           (reset! selected-id nil))
          :on-mouse-up (fn graph-mouse-up [e]
@@ -197,11 +200,12 @@
 
 (defn create-force-layout [g tick]
   (-> (js/d3.layout.force)
-      #_(js/cola.d3adaptor)
+      ;(js/cola.d3adaptor)
       (.nodes (.-nodes g))
       (.links (.-links g))
-      (.linkDistance 50)
-      (.charge -200)
+      ;(.linkDistance 100)
+      (.charge -250)
+      ;(.chargeDistance 300)
       (.size #js [1000, 1000])
       (.on "tick" tick)))
 

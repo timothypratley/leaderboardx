@@ -2,14 +2,16 @@
   (:require [algopop.leaderboardx.app.graph :as graph]
             [algopop.leaderboardx.app.seed :as seed]
             [algopop.leaderboardx.app.views.d3 :as d3]
+            [algopop.leaderboardx.app.views.link-editor :as link-editor]
             [algopop.leaderboardx.app.views.toolbar :as toolbar]
             [goog.dom.forms :as forms]
             [goog.string :as gstring]
+            [clojure.set :as set]
             [clojure.string :as string]
             [reagent.core :as reagent])
   (:import [goog.events KeyCodes]))
 
-(defonce g (reagent/atom (seed/rand-graph)))
+(defonce g (reagent/atom seed/example))
 
 (defn form-data
   "Returns a kewordized map of forms input name, value pairs."
@@ -39,14 +41,19 @@
       (swap! g graph/without-edge id))
     (unselect selected-id)))
 
-(defn key-match [k e]
-  (= k (.-keyCode e)))
+(defn maybe-delete [e selected-id]
+  (when-not (instance? js/HTMLInputElement (.-target e))
+    (.preventDefault e)
+    (delete-selected selected-id)))
+
+(def codename
+  (set/map-invert (js->clj KeyCodes)))
 
 (defn handle-keydown [e selected-id]
-  (condp key-match e
-    (.-ESC KeyCodes) (unselect selected-id)
-    (.-DELETE KeyCodes) (when-not (instance? js/HTMLInputElement (.-target e))
-                          (delete-selected selected-id))
+  (case (codename (.-keyCode e))
+    "ESC" (unselect selected-id)
+    "DELETE" (maybe-delete e selected-id)
+    "BACKSPACE" (maybe-delete e selected-id)
     nil))
 
 (defn humanize-edges [edges]
@@ -66,27 +73,30 @@
        [:td [:input.btn.btn-default.btn-xs
              {:type "submit"
               :value "Add"}]]
-       [:td [:input {:type "text"
-                     :name "source"
-                     :style {:width "100%"}
-                     :value @search-term
-                     :on-change (fn source-on-change [e]
-                                  (let [k (.. e -target -value)]
-                                    (reset! search-term k)
-                                    (when (get-in gr [:nodes k])
-                                      (reset! selected-id k))))}]]
-       [:td [:input {:type "text"
-                     :name "outs"
-                     :style {:width "100%"}
-                     :value @outs
-                     :on-change (fn targets-on-change [e]
-                                  (reset! outs (.. e -target -value)))}]]
-       [:td [:input {:type "text"
-                     :name "ins"
-                     :style {:width "100%"}
-                     :value @ins
-                     :on-change (fn targets-on-change [e]
-                                  (reset! ins (.. e -target -value)))}]]])))
+       [:td [:input#from
+             {:type "text"
+              :name "source"
+              :style {:width "100%"}
+              :value @search-term
+              :on-change (fn source-on-change [e]
+                           (let [k (.. e -target -value)]
+                             (reset! search-term k)
+                             (when (get-in gr [:nodes k])
+                               (reset! selected-id k))))}]]
+       [:td [:input
+             {:type "text"
+              :name "outs"
+              :style {:width "100%"}
+              :value @outs
+              :on-change (fn targets-on-change [e]
+                           (reset! outs (.. e -target -value)))}]]
+       [:td [:input
+             {:type "text"
+              :name "ins"
+              :style {:width "100%"}
+              :value @ins
+              :on-change (fn targets-on-change [e]
+                           (reset! ins (.. e -target -value)))}]]])))
 
 (defn focus-append [this]
   (doto (.getDOMNode this)
@@ -160,7 +170,10 @@
        (if @editing
          [:div]
          [:form {:on-submit (fn add-node-submit [e]
-                              (submit-add-node-and-edges e selected-id))}])
+                              (submit-add-node-and-edges e selected-id)
+                              (doto (.getElementById js/document "from")
+                                (.focus)
+                                (.setSelectionRange 0 100000)))}])
        [:table.table.table-responsive
         [:thead
          [:th "Rank"]

@@ -38,7 +38,7 @@ eol : '\n' | '\r\n' | '\n\r'
     \newline
     (cons
      (string/join "," (map common/quote-escape
-                           ["Person" "Endorses" "Endorsed by"]))
+                           ["Person" "Endorses"]))
      (for [[k attrs] (sort-by (comp :rank val) (:nodes g))]
        (string/join
         ","

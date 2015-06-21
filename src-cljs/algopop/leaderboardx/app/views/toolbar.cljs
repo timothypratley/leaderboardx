@@ -90,23 +90,24 @@
     [:button.btn.btn-default.dropdown-toggle
      {:data-toggle "dropdown"
       :aria-expanded "false"}
-     "Load "
-     [:span.caret]]
+     "Load"]
     [:ul.dropdown-menu {:role "menu"}
      [action-button "Empty"
       (fn clear-click [e]
-        (reset! g {:nodes {"Root" {}}
-                   :edges {"Root" {}}}))]
+        (reset! g {:nodes {}
+                   :edges {}}))]
      [action-button "Random"
       (fn random-click [e]
         (reset! g (seed/rand-graph)))]
+     [action-button "Example"
+      (fn random-click [e]
+        (reset! g seed/example))]
      [import-button "File (dot or txt)" ".dot,.txt" dot/read-graph g]]]
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle
      {:data-toggle "dropdown"
       :aria-expanded "false"}
-     "Save "
-     [:span.caret]]
+     "Save"]
     [:ul.dropdown-menu {:role "menu"}
      [action-button "Graph (dot)"
       (fn export-graphviz [e]

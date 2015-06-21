@@ -4,9 +4,13 @@
   [:div
    [:div.jumbotron
     [:h2 "Welcome to Leaderboard" [:span {:style {:font-family "cursive"}} "X"]]
-    [:p "How do you rank?"]]
+    [:p "How do you rank?"]
+    [:small "Contact timothypratley@gmail.com"]]
    [:div
-    [:p "Contact timothypratley@gmail.com"]
+    [:div.embed-responsive.embed-responsive-16by9
+     [:iframe.embed-responsive-item
+      {:src "//www.youtube.com/embed/RMTFP43Ce98"
+       :allowfullscreen "true"}]]
     #_[:p [:a {:href "//algopop.herokuapp.com"
              :target "_blank"}
          "Created by Algopop"]]]])

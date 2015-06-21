@@ -43,22 +43,21 @@
 
   :cljsbuild {:builds {:app {:compiler {:output-to "resources/public/js/app.js"
                                         :output-dir "resources/public/js/out"
-                                        :asset-path "js/out"
-                                        :optimizations :none
-                                        :pretty-print true}}}}
+                                        :asset-path "js/out"}}}}
 
   :profiles {:dev {:plugins [[lein-figwheel "0.3.3"]]
-
                    :figwheel {:http-server-root "public"
                               :server-port 3449
                               :css-dirs ["resources/public/css"]
                               :ring-handler algopop.leaderboardx.routes/handler}
-
                    :env {:dev? true}
-
                    :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs" "src-cljs"]
+                                              :figwheel {:websocket-host "localhost"
+                                                         :on-jsload "algopop.leaderboardx.app.main/mount-root"}
                                               :compiler {:main "dev.main"
-                                                         :source-map true}}}}}
+                                                         :optimizations :none
+                                                         :source-map true
+                                                         :pretty-print true}}}}}
 
              :uberjar {:hooks [leiningen.cljsbuild minify-assets.plugin/hooks]
                        :env {:production true}
