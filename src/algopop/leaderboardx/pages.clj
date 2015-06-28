@@ -37,4 +37,11 @@
     [:script {:src "//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.2/html5shiv.min.js" :type "text/javascript"}]
     [:script {:src "//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js" :type "text/javascript"}]
     [:script {:src "//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js" :type "text/javascript"}]
-    [:script {:src "js/app.js" :type "text/javascript"}]]))
+    [:script {:src "js/app.js" :type "text/javascript"}]
+    [:script {:type "text/javascript"}
+     "var disqus_shortname = 'leaderboardx';
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();"]]))

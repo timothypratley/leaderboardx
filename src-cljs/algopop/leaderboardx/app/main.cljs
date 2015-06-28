@@ -20,7 +20,9 @@
   [:div.container
    [header/header]
    [:div.well
-    [(pages/page (session/get-in [:viewpoint :current-page] :graph-editor))]]])
+    [(pages/page (session/get-in [:viewpoint :current-page] :graph-editor))]]
+   [:div.well
+    [:div {:id "disqus_thread"}]]])
 
 ;; -------------------------
 ;; History
