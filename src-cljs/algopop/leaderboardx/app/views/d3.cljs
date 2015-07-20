@@ -83,7 +83,11 @@
                             (reset! selected-id new-selected-id))
                           (reset! mouse-down? true)
                           (aset mutable-graph "nodes" idx "fixed" 1))}
+     (comment TODO [:filter {:id id :x "0%" :y "0%" :width "100%" :height "100%"
+                             :dangerouslySetInnerHTML
+                             {:__html "<feImage xlink:href=\"http://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50\" />"}}])
      [:circle {:r (+ 5 (* (min (max n 10) 30) rank-scale))
+               ;; TODO  :filter (str "url(#" id ")")
                :fill (rgb (scale-rgb node-color rank-scale))
                :stroke (if selected?
                          "#6699aa"
