@@ -10,8 +10,10 @@
             [secretary.core :as secretary :include-macros true])
   (:import goog.History))
 
-(js/ga "create" "UA-40336415-3" "auto")
-(js/ga "send" "pageview")
+;; TODO
+(when (not :dev)
+  (js/ga "create" "UA-40336415-3" "auto")
+  (js/ga "send" "pageview"))
 
 ;; -------------------------
 ;; Routes
@@ -40,7 +42,8 @@
 ;; Initialize app
 
 (defn mount-root []
-  (reagent/render [current-page] (.getElementById js/document "app")))
+  ;(println "Reloaded")
+  (reagent/render [#'current-page] (.getElementById js/document "app")))
 
 (defn init! []
   (hook-browser-navigation!)

@@ -1,10 +1,10 @@
 (ns algopop.leaderboardx.app.views.graph-editor
   (:require [algopop.leaderboardx.app.graph :as graph]
             [algopop.leaderboardx.app.seed :as seed]
+            [algopop.leaderboardx.app.views.common :as common]
             [algopop.leaderboardx.app.views.d3 :as d3]
             [algopop.leaderboardx.app.views.link-editor :as link-editor]
             [algopop.leaderboardx.app.views.toolbar :as toolbar]
-            [goog.dom.forms :as forms]
             [goog.string :as gstring]
             [clojure.set :as set]
             [clojure.string :as string]
@@ -13,18 +13,8 @@
 
 (defonce g (reagent/atom seed/example))
 
-(defn form-data
-  "Returns a kewordized map of forms input name, value pairs."
-  [e]
-  (.preventDefault e)
-  (into {}
-        (for [[k v] (js->clj (.toObject (forms/getFormDataMap (.-target e))))]
-          [(keyword k) (if (<= (count v) 1)
-                         (first v)
-                         v)])))
-
 (defn submit-add-node-and-edges [e selected-id]
-  (let [{:keys [source outs ins]} (form-data e)
+  (let [{:keys [source outs ins]} (common/form-data e)
         source (string/trim source)
         outs (map string/trim (string/split outs #"[,;]"))
         ins (map string/trim (string/split ins #"[,;]"))]
@@ -101,18 +91,13 @@
               :on-change (fn targets-on-change [e]
                            (reset! ins (.. e -target -value)))}]]])))
 
-(defn focus-append [this]
-  (doto (.getDOMNode this)
-    (.focus)
-    (.setSelectionRange 100000 100000)))
-
 (defn finish-edit [editing e]
   (reset! editing nil))
 
 (defn node-input [k editing]
   (reagent/create-class
    {:display-name "node-input"
-    :component-did-mount focus-append
+    :component-did-mount common/focus-append
     :reagent-render
     (fn node-input-render [k editing]
       [:input {:type "text"
@@ -124,7 +109,7 @@
 
 (defn rename-node [k selected-id editing]
   [:form {:on-submit (fn rename-node-submit [e]
-                       (let [{:keys [new-name]} (form-data e)]
+                       (let [{:keys [new-name]} (common/form-data e)]
                          (swap! g graph/rename-node k new-name)
                          (reset! selected-id new-name))
                        (reset! editing nil))}
@@ -133,7 +118,7 @@
 (defn edge-input [edges editing]
   (reagent/create-class
    {:display-name "edge-input"
-    :component-did-mount focus-append
+    :component-did-mount common/focus-append
     :reagent-render
     (fn edge-input-render [edges editing]
       [:input {:type "text"
@@ -222,7 +207,7 @@
 (defn title-input [title editing]
   (reagent/create-class
    {:display-name "title-input"
-    :component-did-mount focus-append
+    :component-did-mount common/focus-append
     :reagent-render
     (fn title-input-render [title editing]
       [:input {:type "text"
@@ -241,7 +226,7 @@
           (if @editing
             [:form.form-inline
              {:on-submit (fn title-submit [e]
-                           (let [{:keys [new-title]} (form-data e)]
+                           (let [{:keys [new-title]} (common/form-data e)]
                              (swap! g assoc :title new-title)
                              (reset! editing nil)))}
              [title-input title editing]]
@@ -267,7 +252,7 @@
           [:div
            [toolbar/toolbar g get-svg]
            [title-editor g]
-           [:div#d3g [d3/graph gr selected-id]]
+           [:div#d3g [d3/graph gr selected-id g]]
            [:div [table gr selected-id]]]))
       :component-did-mount
       (fn graph-editor-did-mount [this]

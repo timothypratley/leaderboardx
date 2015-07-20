@@ -18,6 +18,9 @@
                    (for [[k links] (dissoc (:edges g) id)]
                      [k (dissoc links id)])))))
 
+(defn with-edge [g [from to]]
+  (update-in g [:edges from] merge {to {}}))
+
 (defn without-edge [g [from to]]
   (update-in g [:edges from] dissoc to))
 
