@@ -20,6 +20,7 @@
       [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
       [:li "To delete nodes and links, click on the graph or table and press the DELETE key."]
       [:li "Select one name and shift click another to add a link."]
+      [:li "Shift click a link to make it dashed."]
       [:li "Drag nodes or edges around with the mouse."]
       [:li "Double click to unpin nodes and edges."]
       [:li "Click on the table row then click again to edit."]]]]])

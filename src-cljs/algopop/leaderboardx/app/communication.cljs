@@ -4,6 +4,7 @@
             [timothypratley.patchin :as patchin]
             [taoensso.sente :as sente]))
 
+(comment
 (let [{:keys [chsk ch-recv send-fn state]}
       (sente/make-channel-socket! "/chsk"
                                   {:type :auto})]
@@ -82,3 +83,5 @@
       (chsk-send! [:edge/viewpoint (patchin/diff va vb)]))))
 
 (add-watch session/state :k maybe-send-viewpoint)
+
+)

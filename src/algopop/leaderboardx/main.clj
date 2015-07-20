@@ -1,5 +1,5 @@
 (ns algopop.leaderboardx.main
-  (:require [algopop.leaderboardx.communication :as comm]
+  (:require ;;[algopop.leaderboardx.communication :as comm]
             [algopop.leaderboardx.routes :as routes]
             [clojure.tools.logging :as log]
             [org.httpkit.server :as http-kit])
@@ -27,7 +27,7 @@
     (reset! web-server server-map)))
 
 (defn start! [port]
-  (comm/start-router!)
+  ;;(comm/start-router!)
   (start-web-server! port))
 
 (defn -main [& args]

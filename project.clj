@@ -7,16 +7,16 @@
                  [org.clojure/tools.logging "0.3.1"]
                  [com.lucasbradstreet/instaparse-cljs "1.4.1.0"]
                  [com.taoensso/sente "1.5.0"]
-                 [compojure "1.3.4"]
+                 [compojure "1.4.0"]
                  [cljsjs/d3 "3.5.5-3"]
-                 [cljsjs/react "0.13.3-0"]
+                 [cljsjs/react "0.13.3-1"]
                  [cljs-uuid "0.0.4"]
-                 [datascript "0.11.5"]
+                 [datascript "0.11.6"]
                  [environ "1.0.0"]
                  [http-kit "2.1.19"]
                  [hiccup "1.0.5"]
                  [reagent "0.5.0"]
-                 [reagent-forms "0.5.2"]
+                 [reagent-forms "0.5.4"]
                  [reagent-utils "0.1.5"]
                  [ring "1.4.0"]
                  [ring/ring-defaults "0.1.5"]
@@ -24,9 +24,9 @@
                  [secretary "1.2.3"]
                  [timothypratley/patchin "0.3.5"]]
 
-  :plugins [[lein-cljsbuild "1.0.5"]
+  :plugins [[lein-cljsbuild "1.0.6"]
             [lein-environ "1.0.0"]
-            [lein-asset-minifier "0.2.2"]]
+            [lein-asset-minifier "0.2.3"]]
 
   :ring {:handler algopop.leaderboardx/handler
          :uberwar-name "algopop.leaderboardx.war"}
@@ -47,7 +47,7 @@
                                         :output-dir "resources/public/js/out"
                                         :asset-path "js/out"}}}}
 
-  :profiles {:dev {:plugins [[lein-figwheel "0.3.3"]]
+  :profiles {:dev {:plugins [[lein-figwheel "0.3.7"]]
                    :figwheel {:http-server-root "public"
                               :server-port 3449
                               :css-dirs ["resources/public/css"]

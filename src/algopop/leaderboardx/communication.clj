@@ -4,6 +4,7 @@
             [taoensso.sente :as sente]
             [taoensso.sente.server-adapters.http-kit :refer [sente-web-server-adapter]]))
 
+(comment
 (defonce router (atom nil))
 (defonce app-states (atom {}))
 (def model (atom {}))
@@ -74,3 +75,4 @@
   [{:keys [ring-req ?data]}]
   (when-let [uid (get-in ring-req [:session :uid])]
     (swap! app-states with-patch uid ?data)))
+ )
