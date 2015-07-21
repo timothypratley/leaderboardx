@@ -3,7 +3,9 @@
             [cljsjs.d3]
             [clojure.string :as string]
             [clojure.walk :as walk]
-            [reagent.core :as reagent]))
+            [reagent.core :as reagent]
+            [goog.crypt])
+  (:import [goog.crypt Md5]))
 
 (defn d3g
   ([g] (d3g g {}))
@@ -60,12 +62,85 @@
 (defn scale-rgb [rgb rank-scale]
   (map int (map * rgb (repeat (+ 0.9 (* 0.5 rank-scale))))))
 
+(defn scale-dist [n rank-scale]
+  (+ 5 (* (min (max n 10) 30) rank-scale)))
+
 (defn rgb [[r g b]]
   (str "rgb(" r "," g "," b ")"))
 
-(defn draw-node [{:keys [id x y rank pagerank]} n max-pagerank idx mutable-graph force-layout mouse-down? selected-id root]
+(defn md5-hash [s]
+  (let [md5 (goog.crypt.Md5.)]
+    (.update md5 s)
+    (.byteArrayToHex goog.crypt (.digest md5))))
+
+;; TODO: try rounded edge square?
+(defn gravatar-background [id r email]
+  (let [guid (md5-hash (string/trim email))]
+    ;; TODO: Replace when added to react
+    [:g {:dangerouslySetInnerHTML
+         {:__html (str "<defs>
+   <pattern id=\"" guid "\" patternUnits=\"userSpaceOnUse\" height=\"" (* r 2) "\" width=\"" (* r 2) "\" patternTransform=\"translate(" (- r) "," (- r) ")\">
+     <image height=\"" (* r 2) "\" width=\"" (* r 2) "\" xlink:href=\"http://www.gravatar.com/avatar/" guid "\"></image>
+   </pattern>
+  </defs>
+  <circle r=\"" r "\" fill=\"url(#" guid ")\"/>")}}]))
+
+(defn stringify-points [points]
+  (->> points
+       (partition-all 2)
+       (map #(string/join "," %))
+       (string/join " ")))
+
+(defn polygon-background [attrs points]
+  [:polygon
+   (merge attrs {:points (stringify-points points)})])
+
+(defn triangle-background [attrs r]
+  (let [h (Math/sqrt (- (* 4 r r) (* r r)))
+        y1 (- (/ h 3))
+        y2 (- (* 2 y1))
+        points [(- r) y1 r y1 0 y2]]
+    [polygon-background attrs points]))
+
+(defn rect-background [attrs r]
+  [:rect
+   (merge attrs
+          {:x (- r)
+           :y (- r)
+           :width (* r 2)
+           :height (* r 2)})])
+
+(defn circle-background [attrs r]
+  [:circle
+   (merge attrs {:r r})])
+
+(def shapes
+  {:circle circle-background
+   :triangle triangle-background
+   :square rect-background})
+
+(defn shape-background [shape r node-color rank-scale selected?]
+  [(shapes shape circle-background)
+   {:fill (rgb (scale-rgb node-color rank-scale))
+    :stroke (if selected?
+              "#6699aa"
+              "#9ecae1")
+    :style {:cursor "pointer"}}
+   r])
+
+(defn email? [s]
+  (->> s
+       (string/trim)
+       (string/upper-case)
+       (re-matches #"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}")))
+
+(def next-shape
+  (zipmap (keys shapes) (rest (cycle (keys shapes)))))
+
+(defn draw-node [{:keys [id x y rank pagerank shape]} n max-pagerank idx mutable-graph force-layout mouse-down? selected-id root]
   (let [selected? (= id @selected-id)
-        rank-scale (/ pagerank max-pagerank)]
+        rank-scale (/ pagerank max-pagerank)
+        r (scale-dist n rank-scale)]
     [:g {:transform (str "translate(" x "," y ")"
                          (when selected?
                            " scale(1.25,1.25)"))
@@ -79,20 +154,16 @@
                           (js/document.activeElement.blur)
                           (let [new-selected-id (aget mutable-graph "nodes" idx "id")]
                             (when (and (.-shiftKey e) @selected-id new-selected-id)
-                              (swap! root graph/with-edge [@selected-id new-selected-id]))
+                              (if (= @selected-id new-selected-id)
+                                (swap! root update-in [:nodes new-selected-id :shape] next-shape :triangle)
+                                (swap! root graph/with-edge [@selected-id new-selected-id])))
                             (reset! selected-id new-selected-id))
                           (reset! mouse-down? true)
                           (aset mutable-graph "nodes" idx "fixed" 1))}
-     (comment TODO [:filter {:id id :x "0%" :y "0%" :width "100%" :height "100%"
-                             :dangerouslySetInnerHTML
-                             {:__html "<feImage xlink:href=\"http://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50\" />"}}])
-     [:circle {:r (+ 5 (* (min (max n 10) 30) rank-scale))
-               ;; TODO  :filter (str "url(#" id ")")
-               :fill (rgb (scale-rgb node-color rank-scale))
-               :stroke (if selected?
-                         "#6699aa"
-                         "#9ecae1")
-               :style {:cursor "pointer"}}]
+     (if (email? id)
+       [gravatar-background id r id]
+       [shape-background (keyword shape) r node-color rank-scale selected?])
+
      [:text.unselectable {:text-anchor "middle"
                           :font-size (min (max n 8) 22)
                           :style {:pointer-events "none"

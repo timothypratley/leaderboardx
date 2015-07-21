@@ -105,7 +105,8 @@
                :style {:width "100%"}
                :default-value k
                :on-blur (fn node-input-blur [e]
-                          (reset! editing nil))}])}))
+                          ;; TODO: want to reset blur, but this prevents next selection
+                          #_(reset! editing nil))}])}))
 
 (defn rename-node [k selected-id editing]
   [:form {:on-submit (fn rename-node-submit [e]
@@ -128,7 +129,7 @@
                :style {:width "100%"}
                :default-value edges
                :on-blur (fn edge-input-blur [e]
-                          (reset! editing nil))}])}))
+                          #_(reset! editing nil))}])}))
 
 (defn edit-edges [k outs ins selected-id editing]
   [:form {:on-submit (fn edit-edges-submit [e]
@@ -184,22 +185,19 @@
             [:td rank]
             [:td {:style {:cursor "pointer"}
                   :on-click (fn node-name-click [e]
-                              (when (= k @selected-id)
-                                (reset! editing :node)))}
+                              (reset! editing :node))}
              (if (and selected? (#{:node} @editing))
                [rename-node k selected-id editing]
                k)]
             [:td {:style {:cursor "pointer"}
                   :on-click (fn outs-click [e]
-                              (when (= k @selected-id)
-                                (reset! editing :outs)))}
+                              (reset! editing :outs))}
              (if (and selected? (#{:outs} @editing))
                [edit-edges k outs ins selected-id editing]
                outs)]
             [:td {:style {:cursor "pointer"}
                   :on-click (fn ins-click [e]
-                              (when (= k @selected-id)
-                                (reset! editing :ins)))}
+                              (reset! editing :ins))}
              (if (and selected? (#{:ins} @editing))
                [edit-edges k outs ins selected-id editing]
                ins)]]))]))))
