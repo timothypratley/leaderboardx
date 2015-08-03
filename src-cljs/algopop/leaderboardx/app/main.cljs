@@ -1,5 +1,5 @@
 (ns algopop.leaderboardx.app.main
-  (:require ;;[algopop.leaderboardx.app.communication :as communication]
+  (:require [algopop.leaderboardx.app.communication :as communication]
             [algopop.leaderboardx.app.pages :as pages]
             [algopop.leaderboardx.app.views.header :as header]
             [cljsjs.react :as react]

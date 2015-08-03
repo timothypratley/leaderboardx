@@ -56,3 +56,17 @@ html, body {
     cursor: inherit;
     display: block;
 }
+
+.editable {
+    position: relative;
+}
+.editable .edit {
+    display: none;
+    position: absolute;
+    right: 0;
+    padding-top: 7px;
+    padding-right: 7px;
+}
+.editable:hover .edit {
+    display: block;
+}

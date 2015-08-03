@@ -3,6 +3,7 @@
             [algopop.leaderboardx.app.views.assess :as assess]
             [algopop.leaderboardx.app.views.coach :as coach]
             [algopop.leaderboardx.app.views.coach-player :as coach-player]
+            [algopop.leaderboardx.app.views.details :as details]
             [algopop.leaderboardx.app.views.endorse :as endorse]
             [algopop.leaderboardx.app.views.graph-editor :as graph-editor]
             [algopop.leaderboardx.app.views.home :as home]
@@ -13,6 +14,7 @@
   {;:home #'home/home-page
    :about #'about/about-page
    :graph-editor #'graph-editor/graph-editor-page
+   :details #'details/details-view
    ;:coach-dashboard #'coach/coach-view
    ;:coach-player #'coach-player/coach-player-view
    ;:assess #'assess/assess-view

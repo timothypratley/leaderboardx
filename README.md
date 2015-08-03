@@ -40,6 +40,9 @@ To test advanced compilation:
 `lein run 8080`
 http://localhost:8080
 
+To start datomic:
+bin/transactor config/samples/free-transactor-template.properties
+
 
 ## License
 

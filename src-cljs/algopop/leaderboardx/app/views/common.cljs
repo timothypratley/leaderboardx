@@ -11,6 +11,19 @@
     (.focus)
     (.setSelectionRange 100000 100000)))
 
+(defn focus-append-input [m]
+  (reagent/create-class
+   {:display-name "focus-append-component"
+    :component-did-mount focus-append
+    :reagent-render
+    (fn focus-append-input-render [m]
+      [:input
+       (merge
+        {:type "text"
+         :name "text"
+         :style {:width "100%"}}
+        m)])}))
+
 (defn form-data
   "Returns a kewordized map of forms input name, value pairs."
   [e]
@@ -27,13 +40,14 @@
     :component-did-mount focus-append
     :reagent-render
     (fn editable-line-input-render [default-value editing]
-      [:input {:type "text"
-               :on-key-down (fn editable-key-down [e]
-                              (println (.-keyCode e)))
-               :style {:width "100%"}
-               :default-value default-value
-               :on-blur (fn node-input-blur [e]
-                          (reset! editing nil))}])}))
+      [:input
+       {:type "text"
+        :on-key-down (fn editable-key-down [e]
+                       (println (.-keyCode e)))
+        :style {:width "100%"}
+        :default-value default-value
+        :on-blur (fn node-input-blur [e]
+                   (reset! editing nil))}])}))
 
 (defn editable-line [default-value]
   (let [editing (reagent/atom nil)]

@@ -4,7 +4,6 @@
             [timothypratley.patchin :as patchin]
             [taoensso.sente :as sente]))
 
-(comment
 (let [{:keys [chsk ch-recv send-fn state]}
       (sente/make-channel-socket! "/chsk"
                                   {:type :auto})]
@@ -72,7 +71,7 @@
              1000)
 (.setTimeout js/window
              (fn []
-               (chsk-send! [:edge/viewpoint (patchin/diff {} (session/get :viewpoint))]))
+               (chsk-send! [:patchin/patch (patchin/diff {} (session/get :viewpoint))]))
              3000)
 
 ;; TODO: what about rate limiting?
@@ -83,5 +82,3 @@
       (chsk-send! [:edge/viewpoint (patchin/diff va vb)]))))
 
 (add-watch session/state :k maybe-send-viewpoint)
-
-)

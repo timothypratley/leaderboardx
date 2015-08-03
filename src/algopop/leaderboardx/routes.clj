@@ -1,26 +1,33 @@
 (ns algopop.leaderboardx.routes
   (:require [algopop.leaderboardx.pages :as pages]
-            [algopop.leaderboardx.services :as services]
-            ;;[algopop.leaderboardx.communication :as comm]
-            [clojure.tools.logging :as log]
             [compojure.core :refer [GET POST routes]]
             [compojure.route :refer [not-found resources]]
-            [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
-            [ring.middleware.reload :refer [wrap-reload]]
+            [environ.core :refer [env]]
             [prone.middleware :refer [wrap-exceptions]]
-            [environ.core :refer [env]]))
+            [reloaded.repl :refer [system]]
+            [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
+            [ring.middleware.reload :refer [wrap-reload]]))
+
+(defn unique-uid [user-id]
+  (or
+   (first (drop-while (:any @(:connected-uids (:sente system)))
+                      (take 100 (iterate #(str % (rand-int 100))
+                                         (if (seq user-id)
+                                           user-id
+                                           "guest")))))
+   user-id))
 
 (defn login! [ring-request]
   (let [{:keys [session params]} ring-request
         {:keys [user-id]} params]
-    (log/info "Login request:" params)
-    {:status 200 :session (assoc session :uid user-id)}))
+    (println "Login request:" params)
+    {:status 200 :session (assoc session :uid (unique-uid user-id))}))
 
 (def site-routes
   (routes
     (GET "/" [] (pages/home (env :dev?)))
-    ;;(GET "/chsk" req (comm/ring-ajax-get-or-ws-handshake req))
-    ;;(POST "/chsk" req (comm/ring-ajax-post req))
+    (GET  "/chsk" req ((:ring-ajax-get-or-ws-handshake (:sente system)) req))
+    (POST "/chsk" req ((:ring-ajax-post (:sente system)) req))
     (GET "/login" req (login! req))
     (POST "/login" req (login! req))
     (resources "/")

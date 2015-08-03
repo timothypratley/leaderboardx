@@ -6,25 +6,29 @@
 (defonce conn (d/create-conn schema))
 
 (defn add-assessment [coach player attrs]
-  (d/transact! conn [{:coach coach
-                      :player player
-                      :attrs attrs}]))
+  (d/transact!
+   conn
+   [{:coach coach
+     :player player
+     :attrs attrs}]))
 
 (defonce seed
   (do
-    (d/transact! conn [{:name "William"
-                        :somedata "something about William" }])
-
+    (d/transact!
+     conn
+     [{:name "William"
+       :somedata "something about William" }])
     (add-assessment "Coach" "William" {:producivity 7})
-    (d/transact! conn [{:assessment-template :player-assessment
-                        :components [[:metrics "Metrics" ["Productivity" "Leadership" "Happiness"]]
-                                     [:ol "Achievements"]
-                                     [:ol "Weaknesses"]
-                                     [:ol "Coach goals"]
-                                     [:ol "Player goals"]
-                                     [:textarea "Coach comments"]
-                                     [:textarea "Player comments"]]}])))
-
+    (d/transact!
+     conn
+     [{:assessment-template :player-assessment
+       :components [[:metrics "Metrics" ["Productivity" "Leadership" "Happiness"]]
+                    [:ol "Achievements"]
+                    [:ol "Weaknesses"]
+                    [:ol "Coach goals"]
+                    [:ol "Player goals"]
+                    [:textarea "Coach comments"]
+                    [:textarea "Player comments"]]}])))
 
 (def q-player
   '[:find ?s ?attrs (pull ?e [*])
@@ -63,3 +67,11 @@
                   [:ol "Player goals"]
                   [:textarea "Coach comments"]
                   [:textarea "Player comments"]]}]))
+
+(defn assess [ol]
+  (for [i (range (count ol))]
+    {:order i
+     :line (ol i)}))
+
+(defn add-edge []
+  [{:db/id 1}])

@@ -237,7 +237,8 @@
     [(- midx (/ width 2)) (- midy (/ height 2)) width height]))
 
 (defn update-bounds [g]
-  (assoc g :bounds (normalize-bounds (reduce bounds [400 400 600 600] (:nodes g)))))
+  (assoc g :bounds
+         (normalize-bounds (reduce bounds [400 400 600 600] (:nodes g)))))
 
 (defn draw-svg [drawable mutable-graph force-layout mouse-down? selected-id root editing]
   (let [{:keys [nodes paths title bounds]} @drawable
