@@ -1,4 +1,5 @@
 (ns algopop.leaderboardx.app.views.graph-editor
+  (:require-macros [reagent.ratom :refer [reaction]])
   (:require
    [algopop.leaderboardx.app.graph :as graph]
    [algopop.leaderboardx.app.seed :as seed]
@@ -9,12 +10,11 @@
    [goog.string :as gstring]
    [clojure.set :as set]
    [clojure.string :as string]
-   [reagent.core :as reagent])
+   [reagent.core :as reagent]
+   [reagent.session :as session])
   (:import [goog.events KeyCodes]))
 
-(defonce g (reagent/atom seed/example))
-
-(defn submit-add-node-and-edges [e selected-id]
+(defn submit-add-node-and-edges [e selected-id g]
   (let [{:keys [source outs ins]} (common/form-data e)
         source (string/trim source)
         outs (map string/trim (string/split outs #"[,;]"))
@@ -26,17 +26,17 @@
   (reset! selected-id nil)
   (reset! editing nil))
 
-(defn delete-selected [selected-id editing]
+(defn delete-selected [selected-id editing g]
   (when-let [id @selected-id]
     (if (string? id)
       (swap! g graph/without-node id)
       (swap! g graph/without-edge id))
     (unselect selected-id editing)))
 
-(defn maybe-delete [e selected-id editing]
+(defn maybe-delete [e selected-id editing g]
   (when-not (instance? js/HTMLInputElement (.-target e))
     (.preventDefault e)
-    (delete-selected selected-id editing)))
+    (delete-selected selected-id editing g)))
 
 (def codename
   ;; TODO: advanced mode (set/map-invert (js->clj KeyCodes))
@@ -44,11 +44,11 @@
    46 "DELETE"
    8 "BACKSPACE"})
 
-(defn handle-keydown [e selected-id editing]
+(defn handle-keydown [e selected-id editing g]
   (case (codename (.-keyCode e))
     "ESC" (unselect selected-id editing)
-    "DELETE" (maybe-delete e selected-id editing)
-    "BACKSPACE" (maybe-delete e selected-id editing)
+    "DELETE" (maybe-delete e selected-id editing g)
+    "BACKSPACE" (maybe-delete e selected-id editing g)
     nil))
 
 (defn humanize-edges [edges]
@@ -113,7 +113,7 @@
           [:input {:type "text"
                    :style {:width "100%"}}]]]))))
 
-(defn rename-node [k selected-id editing]
+(defn rename-node [k selected-id editing g]
   [:form
    {:on-submit
     (fn rename-node-submit [e]
@@ -124,11 +124,11 @@
    [common/focus-append-input
     {:default-value k}]])
 
-(defn edit-edges [k outs ins selected-id editing]
+(defn edit-edges [k outs ins selected-id editing g]
   [:form
    {:on-submit
     (fn edit-edges-submit [e]
-      (submit-add-node-and-edges e selected-id)
+      (submit-add-node-and-edges e selected-id g)
       (reset! editing nil))}
    [:input {:type "hidden"
             :name "source"
@@ -177,7 +177,7 @@
             nil)}
          @current-type]))))
 
-(defn table [gr selected-id editing]
+(defn table [gr selected-id editing g]
   (let [search-term (reagent/atom "")]
     (fn a-table [gr]
       (conj
@@ -185,7 +185,7 @@
          [:form
           {:on-submit
            (fn add-node-submit [e]
-             (submit-add-node-and-edges e selected-id)
+             (submit-add-node-and-edges e selected-id g)
              (doto (.getElementById js/document "from")
                (.focus)
                (.setSelectionRange 0 100000)))}]
@@ -218,7 +218,7 @@
               (fn node-name-click [e]
                 (reset! editing :node))}
              (if (and selected? (#{:node} @editing))
-               [rename-node k selected-id editing]
+               [rename-node k selected-id editing g]
                [:span
                 k
                 [:span.glyphicon.glyphicon-pencil.pull-right.edit]])]
@@ -228,7 +228,7 @@
               (fn outs-click [e]
                 (reset! editing :outs))}
              (if (and selected? (#{:outs} @editing))
-               [edit-edges k outs ins selected-id editing]
+               [edit-edges k outs ins selected-id editing g]
                [:span
                 outs
                 [:span.glyphicon.glyphicon-pencil.pull-right.edit]])]
@@ -277,13 +277,15 @@
       (.-firstChild)
       (.-innerHTML)))
 
+
 (defn graph-editor-page []
   ;; TODO: pass in session instead, and rank g earlier
   (let [selected-id (reagent/atom nil)
         editing (reagent/atom nil)
+        g (reaction (session/get :graph))
         keydown-handler
         (fn a-keydown-handler [e]
-          (handle-keydown e selected-id editing))]
+          (handle-keydown e selected-id editing g))]
     (reagent/create-class
      {:display-name "graph-editor"
       :reagent-render
@@ -293,7 +295,7 @@
            [toolbar/toolbar g get-svg]
            [title-editor g editing]
            [:div#d3g [d3/graph gr selected-id g editing]]
-           [:div [table gr selected-id editing]]]))
+           [:div [table gr selected-id editing g]]]))
       :component-did-mount
       (fn graph-editor-did-mount [this]
         (.addEventListener js/document "keydown" keydown-handler))

@@ -24,6 +24,19 @@
          :style {:width "100%"}}
         m)])}))
 
+(defn editable-string [path model editing]
+  (if (= path @editing)
+    [focus-append-input
+     {:default-value (get-in @model path)
+      :on-key-down
+      (fn editgable-string-key-down [e]
+        (println "keydown"))}]
+    [:span
+     {:on-click
+      (fn editable-string-click [e]
+        (reset! editing path))}
+     (get-in @model path)]))
+
 (defn form-data
   "Returns a kewordized map of forms input name, value pairs."
   [e]

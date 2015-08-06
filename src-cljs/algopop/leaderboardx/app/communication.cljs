@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.communication
   (:require [algopop.leaderboardx.app.logging :as log]
+            [algopop.leaderboardx.app.graph :as graph]
             [reagent.session :as session]
             [timothypratley.patchin :as patchin]
             [taoensso.sente :as sente]))
@@ -14,17 +15,17 @@
 
 (defn login [user-id]
   (log/debug "Logging in with user-id" user-id (:csrf-token @chsk-state))
-  (sente/ajax-call "/login"
-                   {:method :post
-                    :params {:user-id (str user-id)
-                             :csrf-token (:csrf-token @chsk-state)}}
-                   (fn [ajax-resp]
-                     (if (:?error ajax-resp)
-                       (log/debug "Login failed:" ajax-resp)
-                       (do
-                         (log/debug "Login successful")
-                         (sente/chsk-reconnect! chsk))))))
-
+  (sente/ajax-call
+   "/login"
+   {:method :post
+    :params {:user-id (str user-id)
+             :csrf-token (:csrf-token @chsk-state)}}
+   (fn [ajax-resp]
+     (if (:?error ajax-resp)
+       (log/debug "Login failed:" ajax-resp)
+       (do
+         (log/debug "Login successful")
+         (sente/chsk-reconnect! chsk))))))
 
 ;;;; Routing handlers
 
@@ -46,7 +47,20 @@
 (defmethod event-msg-handler :chsk/recv
   [{:as ev-msg :keys [?data]}]
   (log/debug "Push event from server:" ?data)
-  (session/update-in! [:model] patchin/patch (second ?data)))
+  (session/update-in! [:model] patchin/patch (second ?data))
+  ;; todo don't do graph stuff here
+  (doseq [[k v] (session/get :model)]
+    (session/update-in! [:graph :nodes]
+                        assoc "root" {})
+    (session/update-in! [:graph]
+                        graph/with-edge
+                        ["root" k])
+    (session/update-in! [:graph]
+                        graph/replace-edges
+                        k
+                        [(str v)]
+                        []))
+  )
 
 (defmethod event-msg-handler :chsk/handshake
   [{:as ev-msg :keys [?data]}]
