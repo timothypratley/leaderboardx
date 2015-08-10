@@ -24,18 +24,37 @@
          :style {:width "100%"}}
         m)])}))
 
+;; TODO: advanced mode (set/map-invert (js->clj KeyCodes))
+(def key-code-name
+  {13 "ENTER"
+   27 "ESC"
+   46 "DELETE"
+   8 "BACKSPACE"})
+
+(defn save [e path model editing]
+  (.preventDefault e)
+  (swap! model assoc-in path (.-value (.-target e)))
+  (reset! editing nil))
+
 (defn editable-string [path model editing]
   (if (= path @editing)
     [focus-append-input
      {:default-value (get-in @model path)
+      :on-blur
+      (fn editable-string-blur [e]
+        (save e path model editing))
       :on-key-down
-      (fn editgable-string-key-down [e]
-        (println "keydown"))}]
-    [:span
+      (fn editable-string-key-down [e]
+        (case (key-code-name (.-keyCode e))
+          "ESC" (reset! editing nil)
+          "ENTER" (save e path model editing)
+          nil))}]
+    [:span.editable
      {:on-click
       (fn editable-string-click [e]
         (reset! editing path))}
-     (get-in @model path)]))
+     (get-in @model path)
+     [:span.glyphicon.glyphicon-pencil.edit]]))
 
 (defn form-data
   "Returns a kewordized map of forms input name, value pairs."
@@ -47,30 +66,27 @@
                          (first v)
                          v)])))
 
-(defn editable-line-input [default-value editing]
-  (reagent/create-class
-   {:display-name "editable line"
-    :component-did-mount focus-append
-    :reagent-render
-    (fn editable-line-input-render [default-value editing]
-      [:input
-       {:type "text"
-        :on-key-down (fn editable-key-down [e]
-                       (println (.-keyCode e)))
-        :style {:width "100%"}
-        :default-value default-value
-        :on-blur (fn node-input-blur [e]
-                   (reset! editing nil))}])}))
-
-(defn editable-line [default-value]
-  (let [editing (reagent/atom nil)]
-    (fn an-editable-line [default-value]
-      [:li {:on-click (fn span-click [e]
-                        (reset! editing true)
-                        e)}
-       (if @editing
-         [editable-line-input default-value editing]
-         default-value)])))
+(defn selectable [path model editing options]
+  (if (or (= @editing options)
+          (not (get-in @model path)))
+    (into
+     [:select
+      {:default-value (get-in @model path)
+       :on-change
+       (fn selection [e]
+         (when-let [idx (.-selectedIndex (.-target e))]
+           (if (seq path)
+             (swap! model assoc-in path (options idx))
+             (reset! model (options idx)))
+           (reset! editing nil)))}]
+     (for [x options]
+       [:option x]))
+    [:span
+     {:on-click
+      (fn selectable-click [e]
+        (reset! editing options)
+        nil)}
+     (get-in @model path)]))
 
 (defn bind
   ([conn q]

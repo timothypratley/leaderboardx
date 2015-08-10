@@ -7,6 +7,7 @@
             [algopop.leaderboardx.app.views.endorse :as endorse]
             [algopop.leaderboardx.app.views.graph-editor :as graph-editor]
             [algopop.leaderboardx.app.views.home :as home]
+            [algopop.leaderboardx.app.views.schema :as schema]
             [reagent.session :as session]
             [secretary.core :as secretary :include-macros true]))
 
@@ -14,10 +15,11 @@
   {;:home #'home/home-page
    :about #'about/about-page
    :graph-editor #'graph-editor/graph-editor-page
-   :details #'details/details-view
+   ;:details #'details/details-view
+   ;;:schema #'schema/schema-view
    ;:coach-dashboard #'coach/coach-view
    ;:coach-player #'coach-player/coach-player-view
-   ;:assess #'assess/assess-view
+   :assess #'assess/assess-view
    ;:endorse #'endorse/endorse-page
    })
 

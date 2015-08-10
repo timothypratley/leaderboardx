@@ -3,10 +3,10 @@
   :url "http://timothypratley.blogspot.com"
 
   :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.10" :scope "provided"]
+                 [org.clojure/clojurescript "1.7.58" :scope "provided"]
                  [com.datomic/datomic-free "0.9.5206" :exclusions [joda-time]]
                  [com.lucasbradstreet/instaparse-cljs "1.4.1.0"]
-                 [com.taoensso/sente "1.5.0"]
+                 [com.taoensso/sente "1.6.0"]
                  [compojure "1.4.0"]
                  [cljsjs/d3 "3.5.5-3"]
                  [cljsjs/react "0.13.3-1"]

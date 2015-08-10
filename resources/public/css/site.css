@@ -63,9 +63,7 @@ html, body {
 .editable .edit {
     display: none;
     position: absolute;
-    right: 0;
-    padding-top: 7px;
-    padding-right: 7px;
+    left: -15px;
 }
 .editable:hover .edit {
     display: block;

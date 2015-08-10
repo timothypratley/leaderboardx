@@ -32,12 +32,17 @@
       [:div.col-xs-4
        {:style {:text-align "right"}}
        (name k)]
-      [:div.col-xs-7
+      [:div.col-xs-6
        [render (conj path k) model editing]]
-      [:div.col-xs-1
-       [:button.btn.btn-default
-        {:on-click (fn nest-click [e]
-                     (swap! data assoc k {"foo" "bar"}))}
+      [:div.col-xs-2
+       [:button.btn.btn-default.form-control
+        {:on-click
+         (fn nest-click [e]
+           ;; TODO: putting v in the path is wierd
+           (swap! model assoc-in (conj path
+                                       (if (map? v)
+                                         (string/join "," (keys v))
+                                         v)) {}))}
         "nest"]]])))
 
 (defn render-seq [xs path model editing]
@@ -77,11 +82,14 @@
                   (let [{:keys [k v]} (common/form-data e)]
                     (swap! data assoc k v)))}
     [:div.col-xs-4
-     [:input.form-control {:type "text"
-                           :name "k"}]]
-    [:div.col-xs-7
-     [:input.form-control {:type "text"
-                           :name "v"}]]
-    [:div.col-xs-1
-     [:input {:type "submit"}]]]
+     [:input.form-control
+      {:type "text"
+       :name "k"}]]
+    [:div.col-xs-6
+     [:input.form-control
+      {:type "text"
+       :name "v"}]]
+    [:div.col-xs-2
+     [:input.form-control
+      {:type "submit"}]]]
    [details (session/get :model)]])
