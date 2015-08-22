@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.seed
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [algopop.leaderboardx.app.db :as db]))
 
 (def names
   ["Emma" "Noah" "Olivia" "Liam" "Sophia" "Mason" "Isabella" "Jacob"

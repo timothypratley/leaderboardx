@@ -1,15 +1,14 @@
 (ns algopop.leaderboardx.app.views.details
   (:require [reagent.core :as reagent]
+            [reagent.ratom :as ratom :include-macros]
             [reagent.session :as session]
             [clojure.string :as string]
             [clojure.set :as set]
+            [algopop.leaderboardx.app.db :as db]
             [algopop.leaderboardx.app.views.common :as common]))
 
 (def data
-  (reagent/atom {:hair "red"
-                 :shape "circle"
-                 :nested {:more "data"
-                          :and "stuff"}}))
+  (reagent/atom {:name "unknown"}))
 
 (declare render)
 
@@ -67,29 +66,33 @@
        (string? x) [common/editable-string path model editing]
        (keyword? x) (name x)
        (seq? x) [render-seq x path model editing]
-       :else [render (str x) path model editing])]))
+       :else (str x))]))
 
 (defn details [x]
-  (let [model data
-        editing (reagent/atom nil)]
-    (fn a-details-view []
+  (let [editing (reagent/atom nil)
+        model (ratom/reaction
+               (into {} @x))]
+    (fn a-details-view [x]
       [render [] model editing])))
 
 (defn details-view []
-  [:div
-   [:form.row
-    {:on-submit (fn details-submit [e]
-                  (let [{:keys [k v]} (common/form-data e)]
-                    (swap! data assoc k v)))}
-    [:div.col-xs-4
-     [:input.form-control
-      {:type "text"
-       :name "k"}]]
-    [:div.col-xs-6
-     [:input.form-control
-      {:type "text"
-       :name "v"}]]
-    [:div.col-xs-2
-     [:input.form-control
-      {:type "submit"}]]]
-   [details (session/get :model)]])
+  (let [w (db/watch-nodes)]
+    (fn a-details-view []
+      [:div
+       [:form.row
+        {:on-submit (fn details-submit [e]
+                      (let [{:keys [k v]} (common/form-data e)]
+                        (db/add-node v)
+                        (swap! data assoc k v)))}
+        [:div.col-xs-4
+         [:input.form-control
+          {:type "text"
+           :name "k"}]]
+        [:div.col-xs-6
+         [:input.form-control
+          {:type "text"
+           :name "v"}]]
+        [:div.col-xs-2
+         [:input.form-control
+          {:type "submit"}]]]
+       [details w]])))

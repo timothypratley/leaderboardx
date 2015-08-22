@@ -50,7 +50,8 @@
           "ENTER" (save e path model editing)
           nil))}]
     [:span.editable
-     {:on-click
+     {:style {:width "100%"}
+      :on-click
       (fn editable-string-click [e]
         (reset! editing path))}
      (get-in @model path)

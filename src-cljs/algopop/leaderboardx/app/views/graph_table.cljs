@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.views.graph-table
   (:require
+   [algopop.leaderboardx.app.db :as db]
    [algopop.leaderboardx.app.graph :as graph]
    [algopop.leaderboardx.app.views.common :as common]
    [goog.string :as gstring]
@@ -13,7 +14,7 @@
         source (string/trim source)
         outs (map string/trim (string/split outs #"[,;]"))
         ins (map string/trim (string/split ins #"[,;]"))]
-    (swap! g graph/replace-edges source outs ins)
+    (db/replace-edges source outs ins)
     (reset! selected-id source)))
 
 (defn humanize-edges [edges]
@@ -26,9 +27,11 @@
       (remove-watch selected-id :selection)
       (add-watch selected-id :selection
                  (fn selection-watcher [k r a b]
-                   (reset! search-term b)
-                   (reset! outs (humanize-edges (keys (get-in gr [:edges b]))))
-                   (reset! ins (humanize-edges (keys (graph/in-edges gr b))))))
+                   ;; TODO: set to names
+                   ;(reset! search-term b)
+                   ;(reset! outs (humanize-edges (keys (get-in gr [:edges b]))))
+                   ;(reset! ins (humanize-edges (keys (graph/in-edges gr b))))
+                   ))
       (if (= @editing :add)
         [:tr
          [:td
@@ -78,18 +81,18 @@
           [:input {:type "text"
                    :style {:width "100%"}}]]]))))
 
-(defn rename-node [k selected-id editing g]
+(defn rename-node [id name selected-id editing g]
   [:form
    {:on-submit
     (fn rename-node-submit [e]
       (let [{:keys [text]} (common/form-data e)]
-        (swap! g graph/rename-node k text)
+        (swap! g graph/rename-node id text)
         (reset! selected-id text))
       (reset! editing nil))}
    [common/focus-append-input
-    {:default-value k}]])
+    {:default-value name}]])
 
-(defn edit-edges [k outs ins selected-id editing g]
+(defn edit-edges [id outs ins selected-id editing g]
   [:form
    {:on-submit
     (fn edit-edges-submit [e]
@@ -97,7 +100,7 @@
       (reset! editing nil))}
    [:input {:type "hidden"
             :name "source"
-            :value k}]
+            :value id}]
    (if (#{:ins} @editing)
      [:input {:type "hidden"
               :name "outs"
@@ -143,7 +146,9 @@
          @current-type]))))
 
 (defn table [gr selected-id editing g]
-  (let [search-term (reagent/atom "")]
+  (let [search-term (reagent/atom "")
+        ;; TODO don't
+        f #(get-in gr [:nodes % :node/name])]
     (fn a-table [gr]
       (conj
        (if (= @editing :add)
@@ -164,18 +169,18 @@
         (into
          [:tbody
           [input-row gr search-term selected-id editing]]
-         (for [[k {:keys [rank]}] (sort-by (comp :rank val) (:nodes gr))
-               :let [selected? (= k @selected-id)
-                     match? (and (seq @search-term) (gstring/startsWith k @search-term))
-                     outs (humanize-edges (keys (get-in gr [:edges k])))
-                     ins (humanize-edges (keys (graph/in-edges gr k)))]]
+         (for [[id {:keys [rank node/name]}] (sort-by (comp :rank val) (:nodes gr))
+               :let [selected? (= id @selected-id)
+                     match? (and (seq @search-term) (gstring/startsWith name @search-term))
+                     outs (humanize-edges (map f (keys (get-in gr [:edges id]))))
+                     ins (humanize-edges (map f (keys (graph/in-edges gr id))))]]
            [:tr
             {:class (cond selected? "info"
                           match? "warning")
              :style {:cursor "pointer"}
              :on-click
              (fn table-row-click [e]
-               (reset! selected-id k))}
+               (reset! selected-id id))}
             [:td rank]
             [:td.editable
              {:style {:cursor "pointer"}
@@ -183,9 +188,9 @@
               (fn node-name-click [e]
                 (reset! editing :node))}
              (if (and selected? (#{:node} @editing))
-               [rename-node k selected-id editing g]
+               [rename-node id name selected-id editing g]
                [:span
-                k
+                name
                 [:span.glyphicon.glyphicon-pencil.edit]])]
             [:td.editable
              {:style {:cursor "pointer"}
@@ -193,7 +198,7 @@
               (fn outs-click [e]
                 (reset! editing :outs))}
              (if (and selected? (#{:outs} @editing))
-               [edit-edges k outs ins selected-id editing g]
+               [edit-edges id outs ins selected-id editing g]
                [:span
                 outs
                 [:span.glyphicon.glyphicon-pencil.pull-right.edit]])]
@@ -203,7 +208,7 @@
               (fn ins-click [e]
                 (reset! editing :ins))}
              (if (and selected? (#{:ins} @editing))
-               [edit-edges k outs ins selected-id editing]
+               [edit-edges id outs ins selected-id editing]
                [:span
                 ins
                 [:span.glyphicon.glyphicon-pencil.pull-right.edit]])]]))]))))

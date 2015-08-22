@@ -15,7 +15,7 @@
   {;:home #'home/home-page
    :about #'about/about-page
    :graph-editor #'graph-editor/graph-editor-page
-   ;:details #'details/details-view
+   :details #'details/details-view
    ;;:schema #'schema/schema-view
    ;:coach-dashboard #'coach/coach-view
    ;:coach-player #'coach-player/coach-player-view

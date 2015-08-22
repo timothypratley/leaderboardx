@@ -18,7 +18,14 @@
          [:label.control-label k]
          [:input.form-control
           {:id k
-           :type "number"}]])))])
+           :type "number"
+           :on-focus
+           (fn metric-focus [e]
+             (reset! editing (conj path k)))
+           :on-change
+           (fn metric-change [e]
+             (swap! model assoc-in (conj path k)
+                    (.. e -target -value)))}]])))])
 
 (def conjv (fnil conj []))
 
@@ -28,7 +35,7 @@
    (-> [:ul]
        (into
         (map-indexed
-         (fn [idx line]
+         (fn a-li [idx line]
            [:li
             [common/editable-string (conj path idx) model editing]])
          (get-in @model path)))

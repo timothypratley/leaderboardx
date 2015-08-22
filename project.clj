@@ -51,6 +51,7 @@
   :profiles {:dev {:plugins [[lein-figwheel "0.3.7"]]
                    :figwheel {:http-server-root "public"
                               :server-port 3449
+                              :nrepl-port 7888
                               :css-dirs ["resources/public/css"]
                               :ring-handler algopop.leaderboardx.routes/handler}
                    :env {:dev? true}

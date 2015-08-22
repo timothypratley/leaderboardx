@@ -1,6 +1,7 @@
 (ns algopop.leaderboardx.app.views.graph-editor
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require
+   [algopop.leaderboardx.app.db :as db]
    [algopop.leaderboardx.app.graph :as graph]
    [algopop.leaderboardx.app.seed :as seed]
    [algopop.leaderboardx.app.views.common :as common]
@@ -71,8 +72,7 @@
       (.-innerHTML)))
 
 (defn graph-editor-page []
-  (let [g (or (session/get :graph)
-              (:graph (session/put! :graph (reagent/atom seed/example))))
+  (let [g (db/get-graph)
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         editing (or (session/get
