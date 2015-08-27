@@ -3,7 +3,7 @@
   :url "http://timothypratley.blogspot.com"
 
   :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.58" :scope "provided"]
+                 [org.clojure/clojurescript "1.7.107" :scope "provided"]
                  [com.datomic/datomic-free "0.9.5206" :exclusions [joda-time]]
                  [com.lucasbradstreet/instaparse-cljs "1.4.1.0"]
                  [com.taoensso/sente "1.6.0"]
@@ -17,7 +17,7 @@
                  [hiccup "1.0.5"]
                  [prone "0.8.2"]
                  [reagent "0.5.0"]
-                 [reagent-forms "0.5.5"]
+                 [reagent-forms "0.5.6"]
                  [reagent-utils "0.1.5"]
                  [reloaded.repl "0.1.0"]
                  [ring "1.4.0"]

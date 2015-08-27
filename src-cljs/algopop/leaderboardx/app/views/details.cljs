@@ -26,11 +26,11 @@
 (defn render-map [m path model editing]
   (into
    [:ul.list-unstyled]
-   (for [[k v] m]
+   (for [[k {:keys [node/name] :as v}] m]
      [:li.row
       [:div.col-xs-4
        {:style {:text-align "right"}}
-       (name k)]
+       name]
       [:div.col-xs-6
        [render (conj path k) model editing]]
       [:div.col-xs-2
