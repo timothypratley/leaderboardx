@@ -44,6 +44,11 @@ To start datomic:
 bin/transactor config/samples/free-transactor-template.properties
 
 
+## Thoughts
+
+Bind is one way with datascript.
+Reactions are cool for propigating change, but what about pushing change?
+
 ## License
 
 Copyright © 2015 Timothy Pratley

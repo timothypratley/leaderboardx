@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.datomic
-  (:require [com.stuartsierra.component :as component]
+  (:require [algopop.leaderboardx.db.schema :as s]
+            [com.stuartsierra.component :as component]
             [datomic.api :as d]))
 
 (defrecord Datomic [uri conn]
@@ -7,6 +8,7 @@
   (start [component]
     (let [db (d/create-database uri)
           conn (d/connect uri)]
+      ;;(s/migrate conn)
       (assoc component :conn conn)))
   (stop [component]
     (assoc component :conn nil)))

@@ -1,6 +1,7 @@
 (ns algopop.leaderboardx.app.views.assess
   (:require [algopop.leaderboardx.app.views.common :as common]
             [algopop.leaderboardx.app.db :as db]
+            [algopop.leaderboardx.app.commands :as commands]
             [algopop.leaderboardx.app.seed :as seed]
             [reagent.core :as reagent]
             [reagent.session :as session]
@@ -61,17 +62,18 @@
    :ol ol
    :textarea textarea})
 
-(defn fc [t path model editing data]
+(defn attribute [t path model editing data]
   (apply (dispatch t unknown)
          path model editing data))
 
 ;; TODO: bind-ffirst?
-(defn assess-view []
+(defn assess-view [{:keys [name date]}]
   (let [ac (db/assessment-components)
         assess (or (session/get :assess)
-                  (:assess (session/put! :assess (reagent/atom {}))))
+                  (:assess (session/put! :assess (reagent/atom {:name "New"}))))
         g (or (session/get :graph)
               (:graph (session/put! :graph (reagent/atom seed/example))))
+        nodes (db/watch-nodes)
         ;; TODO: make a better session
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
@@ -79,15 +81,26 @@
                     (:editing (session/put! :editing (reagent/atom nil))))]
     (fn an-assess-view []
       [:div
-       [:h1 [common/selectable [] selected-id editing (vec (keys (:nodes @g)))]]
+       [:h1
+        [common/editable-string assess [:name] editing]
+        [:span " - "]
+        [common/selectable [] selected-id editing (mapv :node/name (vals @nodes))]]
        (into
         [:div]
-        (for [[t & data] (ffirst @ac)]
-          [fc t (into [@selected-id] data) assess editing data]))
+        (for [[type & data] (ffirst @ac)]
+          [attribute type (into [@selected-id] data) assess editing data]))
        [:div
         [:button.btn.btn-default
+         {:on-click
+          (fn a-save-click [e]
+            (commands/save @assess))}
          "Save"]
         [:button.btn.btn-default
          "Schedule"]
         [:button.btn.btn-default
          "Publish"]]])))
+
+(defn assessments-view []
+  [:div
+   [:ul
+    [:li [:a {:href "/#/assess/Tim/fitness/14-Sept-2015"} "one"]]]])

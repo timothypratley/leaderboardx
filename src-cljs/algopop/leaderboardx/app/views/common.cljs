@@ -1,8 +1,7 @@
 (ns algopop.leaderboardx.app.views.common
   (:require [goog.dom.forms :as forms]
             [reagent.core :as reagent]
-            [datascript :as d]
-            [cljs-uuid.core :as uuid]))
+            [datascript :as d]))
 
 ;; TODO: doesn't belong here
 
@@ -31,31 +30,52 @@
    46 "DELETE"
    8 "BACKSPACE"})
 
-(defn save [e path model editing]
+(defn save [model path editing write e]
   (.preventDefault e)
-  (swap! model assoc-in path (.-value (.-target e)))
+  (write model path (.. e -target -value))
   (reset! editing nil))
 
-(defn editable-string [path model editing]
-  (if (= path @editing)
-    [focus-append-input
-     {:default-value (get-in @model path)
-      :on-blur
-      (fn editable-string-blur [e]
-        (save e path model editing))
-      :on-key-down
-      (fn editable-string-key-down [e]
-        (case (key-code-name (.-keyCode e))
-          "ESC" (reset! editing nil)
-          "ENTER" (save e path model editing)
-          nil))}]
-    [:span.editable
-     {:style {:width "100%"}
-      :on-click
-      (fn editable-string-click [e]
-        (reset! editing path))}
-     (get-in @model path)
-     [:span.glyphicon.glyphicon-pencil.edit]]))
+(defn editable-string
+  ([model path editing]
+   (editable-string model path editing
+                    (fn update-model [m p v]
+                      (swap! m assoc-in p v))))
+  ([model path editing write]
+   (if (= path @editing)
+     [focus-append-input
+      {:default-value (get-in @model path)
+       :on-blur
+       (fn editable-string-blur [e]
+         (save model path editing write e))
+       :on-key-down
+       (fn editable-string-key-down [e]
+         (case (key-code-name (.-keyCode e))
+           "ESC" (reset! editing nil)
+           "ENTER" (save model path editing write e)
+           nil))}]
+     [:span.editable
+      {:style {:width "100%"
+               :cursor "pointer"}
+       :on-click
+       (fn editable-string-click [e]
+         (reset! editing path))}
+      (get-in @model path)
+      [:span.glyphicon.glyphicon-pencil.edit]])))
+
+(defn bound-input
+  [model path editing write]
+  [:input
+   {:style {:width "100%"}
+    :default-value (get-in @model path)
+    :on-blur
+    (fn editable-string-blur [e]
+      (save model path editing write e))
+    :on-key-down
+    (fn editable-string-key-down [e]
+      (case (key-code-name (.-keyCode e))
+        "ESC" (reset! editing nil)
+        "ENTER" (save model path editing write e)
+        nil))}])
 
 (defn form-data
   "Returns a kewordized map of forms input name, value pairs."
@@ -88,18 +108,3 @@
         (reset! editing options)
         nil)}
      (get-in @model path)]))
-
-(defn bind
-  ([conn q]
-   (bind conn q (reagent/atom nil)))
-  ([conn q state]
-   (let [k (uuid/make-random)]
-     (reset! state (d/q q @conn))
-     (d/listen! conn k (fn [tx-report]
-                         (reset! state (d/q q (:db-after tx-report)))))
-     (set! (.-__key state) k)
-     state)))
-
-(defn unbind
-  [conn state]
-  (d/unlisten! conn (.-__key state)))

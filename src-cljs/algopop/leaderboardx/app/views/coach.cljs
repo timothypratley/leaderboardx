@@ -1,6 +1,6 @@
 (ns algopop.leaderboardx.app.views.coach
   (:require [algopop.leaderboardx.app.views.common :as common]
-            [algopop.leaderboardx.app.views.graph-editor :as graph-editor]
+            [algopop.leaderboardx.app.db :as db]
             [clojure.string :as string]
             [reagent.core :as reagent]))
 
@@ -59,22 +59,22 @@
    [:p "Quarter finals coming up!"]])
 
 ;; Quick links to team members
-(defn quick-links []
+(defn quick-links [nodes]
   [:div
    (into [:p]
          (interpose
           " - "
-          (for [[k v] (sort-by key (:nodes @graph-editor/g))]
-            [:a {:href "#"}
-             k])))])
+          (for [[k v] (sort nodes)]
+            [:a {:href "#"} k])))])
 
 (defn coach-view []
-  [:div
-   [:h2 "Team goals:"]
-   [team-goals]
-   [:h2 "Assessments"]
-   [assessments]
-   [:h2 "Checkpoints"]
-   [checkpoints]
-   [:h2 "Quick Links"]
-   [quick-links]])
+  (let [nodes (db/watch-nodes)]
+    [:div
+     [:h2 "Team goals:"]
+     [team-goals]
+     [:h2 "Assessments"]
+     [assessments]
+     [:h2 "Checkpoints"]
+     [checkpoints]
+     [:h2 "Quick Links"]
+     [quick-links @nodes]]))

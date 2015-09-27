@@ -19,4 +19,4 @@
          (env :http-port 3000) handler)
    ;;:repl-server (new-repl-server 3001 (env :repl-port 3001))
    :datomic-db (new-datomic-db
-                (env :db-url "datomic:mem://leaderboardx"))))
+                (env :db-url "datomic:dev://localhost:4334/leaderboardx"))))

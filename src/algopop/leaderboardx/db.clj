@@ -1,52 +1,40 @@
 (ns algopop.leaderboardx.db
-  (:require [datomic.api :as d]
+  (:require [clojure.java.io :as io]
+            [datomic.api :as d]
             [reloaded.repl :refer [system]]))
 
+(defn conn []
+  (or (:conn (:datomic-db system))
+      (throw (ex-info "Not connected" (:datomic-db system)))))
+
 (defn db []
-  (d/db (:conn (:datomic-db system))))
+  (d/db (conn)))
 
-(defn artist [artist-name]
-  (d/q '[:find ?id ?type ?gender
-         :in $ ?name
-         :where
-         [$ ?e :artist/name ?name]
-         [$ ?e :artist/gid ?id]
-         [$ ?e :artist/type ?type]
-         [$ ?e :artist/gender ?gender]]
-       (db)
-       artist-name))
-
-(defn titles [artist-name]
-  (d/q '[:find ?title
-         :in $ ?artist-name
-         :where
-         [?a :artist/name ?artist-name]
-         [?t :track/artists ?a]
-         [?t :track/name ?title]]
-       (db)
-       artist-name))
-
-(defn pull-artist [artist-name]
+(defn pull [k name]
   (d/pull
    (db)
    '[*]
-   (ffirst (d/q '[:find ?e
-                  :in $ ?artist-name
-                  :where [$ ?e :artist/name ?artist-name]]
-                (db)
-                artist-name))))
+   (ffirst
+    (d/q
+     (format
+      "[:find ?e
+        :in $ ?name
+        :where [$ ?e %s ?name]]"
+      k)
+     (db)
+     name))))
 
-(defn pull [q]
+(defn pull-q [q]
   (d/pull
-   db
+   (db)
    '[*]
    (ffirst (d/q q (db)))))
 
 (defn pull-id [id]
-  (d/pull (db) '[* {:track/artists [:db/id :artist/name]
-                    :artist/type [:db/id :db/ident]
-                    :artist/country [:db/id :country/name]
-                    :artist/gender [:db/id :db/ident]}] id))
+  (d/pull (db) '[*] id))
 
 (defn q [q]
   (d/q q (db)))
+
+(defn transact [xs]
+  (d/transact (conn) xs))

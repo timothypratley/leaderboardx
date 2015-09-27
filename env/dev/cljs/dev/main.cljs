@@ -1,4 +1,4 @@
-(ns ^:figwheel-no-load dev.main
+(ns dev.main
   (:require [algopop.leaderboardx.app.main :as main]))
 
 (enable-console-print!)
