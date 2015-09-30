@@ -1,7 +1,9 @@
 (ns algopop.leaderboardx.app.views.common
   (:require [goog.dom.forms :as forms]
             [reagent.core :as reagent]
-            [datascript :as d]))
+            [cljs.test :as t :include-macros true :refer-macros [testing is]]
+            [sablono.core :as sab :include-macros true]
+            [devcards.core :as dc :refer-macros [defcard deftest]]))
 
 ;; TODO: doesn't belong here
 
@@ -61,6 +63,16 @@
          (reset! editing path))}
       (get-in @model path)
       [:span.glyphicon.glyphicon-pencil.edit]])))
+
+(defcard editable-string-example
+  "editable string"
+  (dc/reagent (editable-string (atom {:foo "bar"}) [:foo] (atom nil))))
+
+(deftest some-test
+  "blah blah blah"
+  (testing "zzz"
+    (is (= 1 2) "nah")
+    (is (= 1 1) "obviously")))
 
 (defn bound-input
   [model path editing write]

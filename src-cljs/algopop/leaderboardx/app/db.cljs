@@ -1,7 +1,7 @@
 (ns algopop.leaderboardx.app.db
   (:require [cljs-uuid.core :as uuid]
             [clojure.walk :as walk]
-            [datascript :as d]
+            [datascript.core :as d]
             [reagent.core :as reagent]
             [reagent.ratom :as ratom :include-macros]))
 

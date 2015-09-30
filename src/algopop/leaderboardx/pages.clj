@@ -47,7 +47,7 @@
     (if dev?
       [:script {:src "js/bootstrap.min.js" :type "text/javascript"}]
       [:script {:src "//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js" :type "text/javascript"}])
-    [:script {:src "js/app.js" :type "text/javascript"}]
+    [:script {:src "js/compiled/main.js" :type "text/javascript"}]
     (when-not dev?
       [:script {:type "text/javascript"}
        "var disqus_shortname = 'leaderboardx';

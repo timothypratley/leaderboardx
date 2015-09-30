@@ -41,7 +41,7 @@
   (-> site-defaults
       (assoc-in [:security :anti-forgery]
                 {:read-token (fn [req] (-> req :params :csrf-token))})
-      (assoc-in [:static :resources] "public")))
+      #_(assoc-in [:static :resources] "public")))
 
 (def handler
   (cond-> (wrap-defaults site-routes defaults)
