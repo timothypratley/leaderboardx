@@ -2,7 +2,6 @@
   (:require [goog.dom.forms :as forms]
             [reagent.core :as reagent]
             [cljs.test :as t :include-macros true :refer-macros [testing is]]
-            [sablono.core :as sab :include-macros true]
             [devcards.core :as dc :refer-macros [defcard deftest]]))
 
 ;; TODO: doesn't belong here

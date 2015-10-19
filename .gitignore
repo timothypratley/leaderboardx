@@ -7,6 +7,7 @@ pom.xml.asc
 *.class
 *.log
 *.iml
+*#
 /.lein-*
 /.nrepl-port
 .hgignore

@@ -13,26 +13,28 @@
   [[org.clojure/clojure "1.7.0"]
    [org.clojure/clojurescript "1.7.122" :scope "provided"]
    ;;[com.datomic/datomic-free "0.9.5206" :exclusions [joda-time]]
-   [com.cognitect/transit-clj "0.8.281" :exclusions [commons-codec]]
+   [com.cognitect/transit-clj "0.8.283" :exclusions [commons-codec]]
    [com.cognitect/transit-cljs "0.8.225"]
    [com.datomic/datomic-pro  "0.9.5206" :exclusions [joda-time]]
    [com.lucasbradstreet/instaparse-cljs "1.4.1.0"]
    [com.taoensso/sente "1.6.0"]
    [compojure "1.4.0"]
    [cljsjs/d3 "3.5.5-3"]
-   [cljsjs/react "0.13.3-1"]
+   [cljsjs/react "0.14.0-0"]
    [cljs-uuid "0.0.4"]
    [datascript "0.13.1"]
    [datomic-schema "1.3.0"]
-   [devcards "0.2.0-SNAPSHOT"]
+   [devcards "0.2.0-3"]
    [environ "1.0.1"]
    [http-kit "2.1.19"]
    [hiccup "1.0.5"]
    [prone "0.8.2"]
    [reagent "0.5.1"]
-   [reagent-forms "0.5.11"]
+   [reagent-forms "0.5.12"]
    [reagent-utils "0.1.5"]
    [reloaded.repl "0.2.0"]
+   [org.clojure/tools.nrepl "0.2.11"]
+   [cider/cider-nrepl "0.9.1"]
    [ring "1.4.0"]
    [ring/ring-defaults "0.1.5"]
    [bidi "1.21.0"]
@@ -84,6 +86,8 @@
                       :compiler {:main dev.devcards
                                  :optimizations :none
                                  :output-to "resources/public/js/compiled/devcards.js"
+                                 :output-dir "resources/public/js/devcards"
+                                 :asset-path "js/devcards"
                                  :source-map-timestamp true}}}}}
 
    :uberjar

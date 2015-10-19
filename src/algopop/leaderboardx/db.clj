@@ -5,7 +5,7 @@
 
 (defn conn []
   (or (:conn (:datomic-db system))
-      (throw (ex-info "Not connected" (:datomic-db system)))))
+      (throw (ex-info "Not connected" (select-keys system [:datomic-db])))))
 
 (defn db []
   (d/db (conn)))
@@ -18,8 +18,8 @@
     (d/q
      (format
       "[:find ?e
-        :in $ ?name
-        :where [$ ?e %s ?name]]"
+:in $ ?name
+:where [$ ?e %s ?name]]"
       k)
      (db)
      name))))

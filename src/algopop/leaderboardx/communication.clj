@@ -24,10 +24,16 @@
 (defn with-patch [app-states uid p]
   (update app-states uid update-uid p))
 
+(defn model [{{:keys [page]} :route :as viewpoint}]
+  (prn "VIEWPOINT" viewpoint)
+   (if (= page "assess")
+     (db/pull :assessment-template/name "player-assessment")
+     (db/pull :assessee/name "Tim")))
+
 (defn update-models []
   (doseq [uid (:any @(:connected-uids (:sente system)))
           :let [a (get-in @app-states [uid :model])
-                b {} #_(db/pull-artist "John Lennon")]
+                b (model (get-in @app-states [uid :viewpoint]))]
           :when (not= a b)
           :let [p (patchin/diff a b)]]
     (swap! app-states update-in [uid] assoc :model b)
@@ -36,7 +42,6 @@
 (defmulti msg :id)
 
 (defn event-msg-handler [{:keys [event] :as ev-msg}]
-  (println "Event:" event)
   (msg ev-msg))
 
 ;; Message Handlers

@@ -5,6 +5,7 @@
 (defrecord WebServer [options server handler]
   component/Lifecycle
   (start [component]
+    (println "Starting http-kit webserver" (pr-str options))
     (let [server (run-server handler options)]
       (assoc component :server server)))
   (stop [component]

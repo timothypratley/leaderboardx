@@ -2,6 +2,7 @@
   (:require [cljs-uuid.core :as uuid]
             [clojure.walk :as walk]
             [datascript.core :as d]
+            [devcards.core :as dc :refer-macros [defcard deftest]]
             [reagent.core :as reagent]
             [reagent.ratom :as ratom :include-macros]))
 
@@ -22,28 +23,48 @@
     r))
 
 (defn bind
-  ([conn q]
-   (bind conn q (reagent/atom nil)))
-  ([conn q state]
-   (let [k (uuid/make-random)]
-     (reset! state (d/q q @conn))
+  ([conn q & args]
+   (let [k (uuid/make-random)
+         ratom (reagent/atom (apply d/q q @conn args))]
      (d/listen! conn k (fn [tx-report]
-                         (reset! state (d/q q (:db-after tx-report)))))
-     (set! (.-__key state) k)
-     state)))
+                         (reset! ratom (apply d/q q (:db-after tx-report) args))))
+     (set! (.-__key ratom) k)
+     ratom)))
 
 (defn unbind
-  [conn state]
-  (d/unlisten! conn (.-__key state)))
+  [conn ratom]
+  (d/unlisten! conn (.-__key ratom)))
 
 (defonce schema
-  {;; TODO: don't need direct links like friend anymore?
-   :friend {:db/valueType :db.type/ref
-            :db/cardinality :db.cardinality/many}
+  {:assessment-type/name {:db/index true},
+   :assessment/assessor {:db/valueType :db.type/ref},
+   :assessment/date {},
+   :assessee/group {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref},
+   :group/name {},
+   :user/password {},
+   :assessee/name {:db/index true},
+   :assessment/type {:db/valueType :db.type/ref},
+   :user/status {:db/valueType :db.type/ref},
+   :group/organization {:db/valueType :db.type/ref},
+   :organization/administrator {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref},
+   :assessment/status {:db/valueType :db.type/ref},
+   :assessee/tag {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref},
+   :user/email {:db/index true},
+   :tag/name {},
+   :assessment/duration-minutes {},
+   :assessment/assessee {:db/valueType :db.type/ref},
+   :assessment-type/attribute {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref},
+   :organization/name {:db/index true}
+
+   ;; stuff
+   :dom/child {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref, :db/isComponent true}
+
+   ;; TODO: migrate to real schema
    :from {:db/valueType :db.type/ref
           :db/cardinality :db.cardinality/many}
    :to {:db/valueType :db.type/ref
         :db/cardinality :db.cardinality/many}})
+
 (defonce conn (d/create-conn schema))
 
 (defn add-assessment [coach player attrs]
@@ -53,6 +74,45 @@
      :player player
      :attrs attrs}]))
 
+(def assessment-template
+  '[template player-assessment
+    [[name assesse]
+     [group metrics
+      [[select5 productivity]
+       [select5 leadership]
+       [select5 happiness]]]
+     [ol achievements]
+     [ol weaknesses]
+     [ol goach-goals]
+     [ol player-goals]
+     [textarea coach-comments]
+     [textarea player-comments]]])
+
+(defonce curr-id
+  (atom 0))
+
+(defn tree2datascript
+  ([v]
+   (reset! curr-id 0)
+   (tree2datascript v 0))
+  ([[tag title children] idx]
+   (into
+    [(let [id (swap! curr-id dec)]
+       (cond->
+           {:db/id id
+            :dom/tag (name tag)
+            :dom/value (name title)}))]
+    (apply
+     concat
+     (for [[child-idx child] (map vector (range) children)]
+       (tree2datascript child child-idx))))))
+
+(def tree
+  (tree2datascript assessment-template))
+
+(defcard tree-card
+  tree)
+
 (defonce seed
   (do
     (d/transact!
@@ -60,16 +120,7 @@
      [{:name "William"
        :somedata "something about William" }])
     (add-assessment "Coach" "William" {:producivity 7})
-    (d/transact!
-     conn
-     [{:assessment-template :player-assessment
-       :components [[:metrics "Metrics" ["Productivity" "Leadership" "Happiness"]]
-                    [:ol "Achievements"]
-                    [:ol "Weaknesses"]
-                    [:ol "Coach goals"]
-                    [:ol "Player goals"]
-                    [:textarea "Coach comments"]
-                    [:textarea "Player comments"]]}])))
+    (d/transact! conn tree)))
 
 (def q-player
   '[:find ?s ?attrs (pull ?e [*])
@@ -83,31 +134,26 @@
   (bind conn q-player))
 
 (def q-ac
-  `[:in $ ?template
-    :find ?c
+  '[:find (pull ?e [*])
+    :in $ ?template
     :where
-    [$ ?e :assessment-template ?template]
-    [$ ?e :components ?c]])
+    [$ ?e :assessment-template/name ?template]])
 
-(defn assessment-components []
-  (bind conn q-ac))
+(defn assessment-components [name]
+  (bind conn q-ac name))
 
-;;(println (d/q q-ac @conn :player-assessment))
+(def q-ac2
+  '[:find (pull ?e [*])
+    :in $ ?template
+    :where
+    [$ ?e :dom/value ?template]
+    [$ ?e :dom/tag "template"]])
 
-(defn insert []
-  (d/transact!
-   conn
-   [{:db/id 3
-     :achievements #{"Won the spelling bee."}
-     :components [[:metrics "Metrics" ["Productivity"
-                                       "Leadership"
-                                       "Happiness"]]
-                  [:ol "Achievements" ["Won the spelling bee."]]
-                  [:ol "Weaknesses"]
-                  [:ol "Coach goals"]
-                  [:ol "Player goals"]
-                  [:textarea "Coach comments"]
-                  [:textarea "Player comments"]]}]))
+(defn ac2 [template]
+  (bind conn q-ac2 template))
+
+(defcard ac2
+  @(ac2 "player-assessment"))
 
 (defn assess [ol]
   (for [i (range (count ol))]
@@ -219,6 +265,7 @@
         out-edge-ids (iterate dec out-edges-start)
         in-edges-start (- out-edges-start out-count)
         in-edge-ids (iterate dec in-edges-start)]
+    ;; TODO: is this just concat?
     (->
      ;; node entity
      [{:db/id (get-node k -1)

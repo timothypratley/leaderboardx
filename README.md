@@ -28,20 +28,22 @@ A graph of social relationships.
 
 ## Development
 
-For interactive development:
+Start datomic (from datomic directory):
+`bin/transactor config/dev-leaderboardx.properties`
 
-`lein figwheel`
-http://localhost:3449
+Star the server:
+`lein run`
+
+For browser reloading:
+`lein figwheel app devcards`
+
+Open http://localhost:3000
 
 
 To test advanced compilation:
-
 `lein with-profile uberjar do clean, cljsbuild auto`
 `lein run 8080`
 http://localhost:8080
-
-To start datomic:
-bin/transactor config/samples/free-transactor-template.properties
 
 
 ## Thoughts

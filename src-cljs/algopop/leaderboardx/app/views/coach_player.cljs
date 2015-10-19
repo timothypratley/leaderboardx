@@ -56,7 +56,6 @@
 (defn coach-player-view []
   (let [p (db/player)]
     (fn a-coach-player-view []
-      (println @p)
       [:div
        [:h1 (:name (ffirst @p))]
        [performance-table @player]
