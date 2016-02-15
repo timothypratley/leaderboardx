@@ -1,5 +1,5 @@
 (ns algopop.leaderboardx.db.schema
-  (:require [algopop.leaderboardx.db :as db]
+  (:require [algopop.leaderboardx.system :as system]
             [clojure.pprint :as pprint]
             [clojure.set :as set]
             [datomic.api :as d]
@@ -23,10 +23,10 @@
     {name [:string]
      type [:string]
      idx [:long]
-     child [:ref :many :isComponent]}
+     child [:ref :many :component]}
 
     user
-    {email [:string :indexed]
+    {email [:string :unique-identity]
      password [:string "Hashed password string"]
      status [:enum [:pending :active :inactive :cancelled]]}
 
@@ -55,7 +55,12 @@
    {:gen-all? false}))
 
 (defn migrate []
-  (db/transact (expand-to-datomic schema)))
+  (println "Migrating schema...")
+  (let [db (d/create-database system/datomic-uri)
+        conn (d/connect system/datomic-uri)]
+    (d/transact conn (expand-to-datomic schema))
+    ;; TODO: does not exit (d/disconnect conn)
+    (println "Schema transacted, Ctrl-C")))
 
 (defn map-intersection
   [m1 m2]
@@ -82,11 +87,10 @@
 (def datascript-schema
   (expand-to-datascript schema))
 
-#_(db/transact [{:db/id #db/id[:db.part/user]
-                :assessment-template/name "foo"
-                :assessment-template/child [{:db/id #db/id[:db.part/user]
-                                             :assessment-template/name "child"}]}])
-
-#_(db/q '[:find (pull ?e [*])
-        :where
-        [?e :assessment-template/name "foo"]])
+(defn spit-datascript-schema []
+  (spit "src-cljs/algopop/leaderboardx/app/schema.cljs"
+        (str ";; This file is generated. Do not modify manually.\n"
+             "(ns algopop.leaderboardx.app.schema)\n\n"
+             (with-out-str
+               (pprint/pprint (list 'def 'schema
+                                 datascript-schema))))))

@@ -15,20 +15,27 @@
     (db/transact command))
   user-state)
 
+(defn hiccupize [{:keys [assessment-template/type
+                         assessment-template/name
+                         assessment-template/child]}]
+  (into [type name]
+        (->> child
+             (sort-by :assessment-template/idx)
+             (map hiccupize))))
+
+(defn model [{{:keys [handler]} :route :as viewpoint}]
+  (prn "VIEWPOINT" viewpoint (= handler :assess) handler)
+  (if (= handler :assess)
+    (hiccupize (db/pull :assessment-template/name "player-assessment"))
+    (db/pull :assessee/name "Tim")))
+
 (defn update-uid [user-state p]
   (-> user-state
       (update :viewpoint patchin/patch p)
-      (commands)
-      (assoc :model {} #_(db/pull-artist "John Lennon"))))
+      (commands)))
 
 (defn with-patch [app-states uid p]
   (update app-states uid update-uid p))
-
-(defn model [{{:keys [page]} :route :as viewpoint}]
-  (prn "VIEWPOINT" viewpoint)
-   (if (= page "assess")
-     (db/pull :assessment-template/name "player-assessment")
-     (db/pull :assessee/name "Tim")))
 
 (defn update-models []
   (doseq [uid (:any @(:connected-uids (:sente system)))
@@ -67,4 +74,5 @@
 (defmethod msg :patchin/patch [{:keys [ring-req ?data]}]
   (prn "RECEIVED PATCH" (get-in ring-req [:session :uid]))
   (when-let [uid (get-in ring-req [:session :uid])]
-    (swap! app-states with-patch uid ?data)))
+    (swap! app-states with-patch uid ?data))
+  (update-models))

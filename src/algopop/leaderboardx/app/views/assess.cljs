@@ -5,9 +5,10 @@
             [algopop.leaderboardx.app.seed :as seed]
             [reagent.core :as reagent]
             [reagent.session :as session]
+            [reagent.ratom :as ratom]
             [cljs.test :as t :include-macros true :refer-macros [testing is]]
             [clojure.string :as string]
-            [devcards.core :as dc :refer-macros [defcard deftest]]))
+            [devcards.core :as dc :refer-macros [defcard defcard-rg deftest]]))
 
 (defn attr2title [attr]
   (string/capitalize (string/join " " (string/split (name attr) "-"))))
@@ -21,15 +22,16 @@
   (is (= "Group hug please"
          (attr2title :assessment/group-hug-please))))
 
-(defn group [title model path editing ks]
-  (prn "Group ks" ks)
+(defn group [title model path editing children]
   [:div
    [:label title]
    (into
     [:div.row]
     (let [size (quot 12 (count ks))]
-      (for [k ks]
-        [:div.form-group
+      (for [[t ct] children]
+        ;; TODO
+        ((dispatch t) t model (conj path x) ct)
+        #_[:div.form-group
          {:class (str "col-xs-" size)}
          [:label.control-label (str k)]
          [:input.form-control
@@ -53,11 +55,13 @@
         (map-indexed
          (fn a-li [idx line]
            [:li
-            [common/editable-string (conj path idx) model editing]])
+            [common/editable-string model (conj path idx) editing]])
          (get-in @model path)))
        (conj
-        [:i.small
-         {:on-click
+        [:div.small
+         {:style {:width "100%"
+                  :background "white"}
+          :on-click
           (fn an-ol-add-click [e]
             (reset! editing (conj path (count (get-in @model path))))
             (swap! model update-in path conjv ""))}
@@ -69,8 +73,8 @@
    [:textarea.form-control
     {:spellCheck "true"}]])
 
-(defn unknown [x]
-  [:div "Unknown:" x])
+(defn unknown [type title]
+  [:div (str "Unknown " type ": " title)])
 
 (defn select5 [title model path editing]
   [:div
@@ -83,44 +87,74 @@
    "ol" ol
    "textarea" textarea})
 
-(defn attribute [attr type model path editing data]
-  (apply (dispatch type unknown)
-         (attr2title attr) model path editing data))
+(defn attribute [type name model path editing children]
+  ((dispatch type (partial unknown type))
+   name model path editing children))
 
-;; TODO: bind-ffirst?
+(defn attributes [[type name & children] assess names editing]
+  (into
+   [:div]
+   (for [[type name & children] children]
+     [attribute type name assess [name] editing children])))
+
+(defn assess-form [template assess names editing selected-id]
+  [:div
+   [:h1
+    [common/editable-string assess [:name] editing]
+    [:span " - "]
+    [common/selectable [:selected] names editing (:names @names)]]
+   [attributes template assess names editing]
+   [:div
+    [:button.btn.btn-default
+     {:on-click
+      (fn a-save-click [e]
+        (commands/save @assess))}
+     "Save"]
+    [:button.btn.btn-default
+     "Schedule"]
+    [:button.btn.btn-default
+     "Publish"]]])
+
 (defn assess-view [{:keys [name date]}]
   (let [ac (db/assessment-components "player-assessment")
         assess (or (session/get :assess)
-                  (:assess (session/put! :assess (reagent/atom {:name "New"}))))
+                   (:assess (session/put! :assess (reagent/atom {:name "New"}))))
         nodes (db/watch-nodes)
+        template (session/get :model)
+        ;; TODO: should be a reaction
+        names (ratom/reaction {:names (mapv :node/name @nodes)})
         ;; TODO: make a better session
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         editing (or (session/get :editing)
                     (:editing (session/put! :editing (reagent/atom nil))))]
-    (prn "AC" @ac)
-    (fn an-assess-view [{:keys [name date]}]
-      [:div
-       [:h1
-        [common/editable-string assess [:name] editing]
-        [:span " - "]
-        [common/selectable [] selected-id editing (mapv :node/name (vals @nodes))]]
-       (into
-        [:div]
-        ;; TODO: name needs to be attr and name (for datomic)
-        ;; can't have nested maps?
-        (for [[attr type & data] (ffirst @ac)]
-          [attribute attr type assess [name] editing data]))
-       [:div
-        [:button.btn.btn-default
-         {:on-click
-          (fn a-save-click [e]
-            (commands/save @assess))}
-         "Save"]
-        [:button.btn.btn-default
-         "Schedule"]
-        [:button.btn.btn-default
-         "Publish"]]])))
+    (fn an-assess-form [x]
+      (assess-form template assess names editing selected-id))))
+
+(def assesment-template
+  ["template" "player-assessment"
+   ["name" "assesse"]
+   ["group" "metrics"
+    ["select5" "productivity"]
+    ["select5" "leadership"]
+    ["select5" "happiness"]]
+   ["ol" "achievements"]
+   ["ol" "weaknesses"]
+   ["ol" "goach-goals"]
+   ["ol" "player-goals"]
+   ["textarea" "coach-comments"]
+   ["textarea" "player-comments"]])
+
+(defn assessment-example []
+  (let [assess (reagent/atom {})
+        selected-id (reagent/atom nil)
+        editing (reagent/atom nil)
+        names (reagent/atom {:names ["tim" "foo" "bar"]})]
+    (fn an-assessment-example []
+      [assess-form assesment-template assess names editing selected-id])))
+
+(defcard-rg assessment-card
+  [assessment-example])
 
 (defn assessments-view []
   [:div

@@ -38,3 +38,13 @@
 
 (defn transact [xs]
   (d/transact (conn) xs))
+
+(def schema-q
+  '[:find ?attr ?type ?card
+    :where
+    [_ :db.install/attribute ?a]
+    [?a :db/valueType ?t]
+    [?a :db/cardinality ?c]
+    [?a :db/ident ?attr]
+    [?t :db/ident ?type]
+    [?c :db/ident ?card]])

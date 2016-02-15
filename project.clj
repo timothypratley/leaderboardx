@@ -2,6 +2,9 @@
   :description "LeaderboardX"
   :url "http://timothypratley.blogspot.com"
 
+  :aliases {"migrate" ["trampoline" "run" "-m"
+                       "algopop.leaderboardx.db.schema/migrate"]}
+
   :repositories
   {"my.datomic.com"
    {:url "https://my.datomic.com/repo"
@@ -11,33 +14,32 @@
 
   :dependencies
   [[org.clojure/clojure "1.7.0"]
-   [org.clojure/clojurescript "1.7.122" :scope "provided"]
+   [org.clojure/clojurescript "1.7.145" :scope "provided"]
    ;;[com.datomic/datomic-free "0.9.5206" :exclusions [joda-time]]
-   [com.cognitect/transit-clj "0.8.283" :exclusions [commons-codec]]
+   [com.cognitect/transit-clj "0.8.285" :exclusions [commons-codec]]
    [com.cognitect/transit-cljs "0.8.225"]
    [com.datomic/datomic-pro  "0.9.5206" :exclusions [joda-time]]
    [com.lucasbradstreet/instaparse-cljs "1.4.1.0"]
    [com.taoensso/sente "1.6.0"]
    [compojure "1.4.0"]
    [cljsjs/d3 "3.5.5-3"]
-   [cljsjs/react "0.14.0-0"]
    [cljs-uuid "0.0.4"]
-   [datascript "0.13.1"]
+   [datascript "0.13.2"]
    [datomic-schema "1.3.0"]
-   [devcards "0.2.0-3"]
+   [devcards "0.2.0-8"]
    [environ "1.0.1"]
    [http-kit "2.1.19"]
    [hiccup "1.0.5"]
    [prone "0.8.2"]
    [reagent "0.5.1"]
-   [reagent-forms "0.5.12"]
+   [reagent-forms "0.5.13"]
    [reagent-utils "0.1.5"]
-   [reloaded.repl "0.2.0"]
-   [org.clojure/tools.nrepl "0.2.11"]
+   [reloaded.repl "0.2.1"]
+   ;[org.clojure/tools.nrepl "0.2.12"]
    [cider/cider-nrepl "0.9.1"]
    [ring "1.4.0"]
    [ring/ring-defaults "0.1.5"]
-   [bidi "1.21.0"]
+   [bidi "1.22.0"]
    [timothypratley/patchin "0.3.5"]]
 
   :plugins
@@ -76,13 +78,13 @@
                             ;; TODO: move to code?
                             ;; or remove reload code
                             :on-jsload "algopop.leaderboardx.app.main/mount-root"}
-                 :source-paths ["env/dev/cljs" "src-cljs"]
+                 :source-paths ["src" "env/dev/cljs"]
                  :compiler {:main dev.main
                             :optimizations :none
                             :source-map true
                             :pretty-print true}}
            :devcards {:figwheel {:devcards true}
-                      :source-paths ["env/dev/cljs" "src-cljs"]
+                      :source-paths ["src" "env/dev/cljs"]
                       :compiler {:main dev.devcards
                                  :optimizations :none
                                  :output-to "resources/public/js/compiled/devcards.js"

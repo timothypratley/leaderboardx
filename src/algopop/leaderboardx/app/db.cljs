@@ -74,42 +74,6 @@
      :player player
      :attrs attrs}]))
 
-(def assessment-template
-  '[template player-assessment
-    [[name assesse]
-     [group metrics
-      [[select5 productivity]
-       [select5 leadership]
-       [select5 happiness]]]
-     [ol achievements]
-     [ol weaknesses]
-     [ol goach-goals]
-     [ol player-goals]
-     [textarea coach-comments]
-     [textarea player-comments]]])
-
-(defonce curr-id
-  (atom 0))
-
-(defn tree2datascript
-  ([v]
-   (reset! curr-id 0)
-   (tree2datascript v 0))
-  ([[tag title children] idx]
-   (into
-    [(let [id (swap! curr-id dec)]
-       (cond->
-           {:db/id id
-            :dom/tag (name tag)
-            :dom/value (name title)}))]
-    (apply
-     concat
-     (for [[child-idx child] (map vector (range) children)]
-       (tree2datascript child child-idx))))))
-
-(def tree
-  (tree2datascript assessment-template))
-
 (defcard tree-card
   tree)
 

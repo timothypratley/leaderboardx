@@ -312,7 +312,6 @@
                 :edges @edges})
         d3graph (d3-graph @edges @nodes)
         drawable (reagent/atom {})
-        size (reagent/atom {})
         force-layout (create-force-layout
                       d3graph
                       (fn layout-tick []
