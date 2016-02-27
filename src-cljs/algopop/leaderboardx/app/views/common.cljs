@@ -1,8 +1,7 @@
 (ns algopop.leaderboardx.app.views.common
   (:require [goog.dom.forms :as forms]
             [reagent.core :as reagent]
-            [datascript :as d]
-            [cljs-uuid.core :as uuid]))
+            [datascript.core :as d]))
 
 ;; TODO: doesn't belong here
 
@@ -49,7 +48,7 @@
   ([conn q]
    (bind conn q (reagent/atom nil)))
   ([conn q state]
-   (let [k (uuid/make-random)]
+   (let [k (random-uuid)]
      (reset! state (d/q q @conn))
      (d/listen! conn k (fn [tx-report]
                          (reset! state (d/q q (:db-after tx-report)))))

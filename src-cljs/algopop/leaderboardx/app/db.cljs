@@ -1,6 +1,6 @@
 (ns algopop.leaderboardx.app.db
   (:require [algopop.leaderboardx.app.views.common :as common]
-            [datascript :as d]))
+            [datascript.core :as d]))
 
 (defonce schema {})
 (defonce conn (d/create-conn schema))

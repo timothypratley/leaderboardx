@@ -1,0 +1,1 @@
+window.navigator.msSaveBlob = function (blob, filename) {}

@@ -233,9 +233,9 @@
              (or title "Untitled")])]]))))
 
 (defn get-svg []
-  (-> (.getElementById js/document "d3g")
-      (.-firstChild)
-      (.-innerHTML)))
+  (some-> (.getElementById js/document "d3g")
+    (.-firstChild)
+    (.-innerHTML)))
 
 (defn graph-editor-page []
   ;; TODO: pass in session instead, and rank g earlier
