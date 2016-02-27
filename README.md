@@ -41,6 +41,11 @@ To test advanced compilation:
 http://localhost:8080
 
 
+## Deployment
+
+`./bin/deploy.sh`
+
+
 ## License
 
 Copyright © 2015 Timothy Pratley
