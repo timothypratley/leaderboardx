@@ -1,6 +1,7 @@
 (ns algopop.leaderboardx.db.ordered
   "http://dbs-are-fn.com/2013/datomic_ordering_of_cardinality_many/")
 
+(comment
 {:db/id #db/id[:db.part/user]
  :db/ident :append-position-in-scope
  :db/doc "Atomically adds to the end of a list of sorted cardinality/many lists"
@@ -77,3 +78,4 @@
     :todolist/todoitems
     [56 21 92 10]
     :todoitem/position]])
+)

@@ -1,10 +1,9 @@
 (ns algopop.leaderboardx.app.db
-  (:require [cljs-uuid.core :as uuid]
-            [clojure.walk :as walk]
-            [datascript.core :as d]
-            [devcards.core :as dc :refer-macros [defcard deftest]]
-            [reagent.core :as reagent]
-            [reagent.ratom :as ratom :include-macros]))
+  (:require
+    [datascript.core :as d]
+    [devcards.core :as dc :refer-macros [defcard deftest]]
+    [reagent.core :as reagent]
+    [reagent.ratom :as ratom :include-macros]))
 
 ;; TODO:
 #_(defn bibind [conn query write]
@@ -24,7 +23,7 @@
 
 (defn bind
   ([conn q & args]
-   (let [k (uuid/make-random)
+   (let [k (random-uuid)
          ratom (reagent/atom (apply d/q q @conn args))]
      (d/listen! conn k (fn [tx-report]
                          (reset! ratom (apply d/q q (:db-after tx-report) args))))

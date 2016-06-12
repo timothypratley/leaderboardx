@@ -1,6 +1,8 @@
 (ns algopop.leaderboardx.pages
   (:require [hiccup.page :as page]))
 
+;; TODO: No no no, use a static html file, dev flag is dumb...
+;; But I do want to hiccup -> html (and back) hmmmph.
 (defn home [dev?]
   (page/html5
    [:head

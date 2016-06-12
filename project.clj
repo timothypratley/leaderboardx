@@ -13,39 +13,38 @@
     :creds :gpg}}
 
   :dependencies
-  [[org.clojure/clojure "1.7.0"]
-   [org.clojure/clojurescript "1.7.145" :scope "provided"]
+  [[org.clojure/clojure "1.8.0"]
+   [org.clojure/clojurescript "1.9.36"]
    ;;[com.datomic/datomic-free "0.9.5206" :exclusions [joda-time]]
    [com.cognitect/transit-clj "0.8.285" :exclusions [commons-codec]]
-   [com.cognitect/transit-cljs "0.8.225"]
+   [com.cognitect/transit-cljs "0.8.237"]
    [com.datomic/datomic-pro  "0.9.5206" :exclusions [joda-time]]
-   [com.lucasbradstreet/instaparse-cljs "1.4.1.0"]
-   [com.taoensso/sente "1.6.0"]
-   [compojure "1.4.0"]
-   [cljsjs/d3 "3.5.5-3"]
-   [cljs-uuid "0.0.4"]
-   [datascript "0.13.2"]
+   [com.lucasbradstreet/instaparse-cljs "1.4.1.2"]
+   [com.taoensso/sente "1.8.1"]
+   [compojure "1.5.0"]
+   [cljsjs/d3 "3.5.16-0"]
+   [datascript "0.15.0"]
    [datomic-schema "1.3.0"]
-   [devcards "0.2.0-8"]
-   [environ "1.0.1"]
+   [devcards "0.2.1-7"]
+   [environ "1.0.3"]
    [http-kit "2.1.19"]
    [hiccup "1.0.5"]
-   [prone "0.8.2"]
+   [prone "1.1.1"]
    [reagent "0.5.1"]
-   [reagent-forms "0.5.13"]
-   [reagent-utils "0.1.5"]
-   [reloaded.repl "0.2.1"]
+   [reagent-forms "0.5.24"]
+   [reagent-utils "0.1.8"]
+   [reloaded.repl "0.2.2"]
    ;[org.clojure/tools.nrepl "0.2.12"]
-   [cider/cider-nrepl "0.9.1"]
-   [ring "1.4.0"]
-   [ring/ring-defaults "0.1.5"]
-   [bidi "1.22.0"]
+   [cider/cider-nrepl "0.12.0"]
+   [ring "1.5.0"]
+   [ring/ring-defaults "0.2.1"]
+   [bidi "2.0.9"]
    [timothypratley/patchin "0.3.5"]]
 
   :plugins
-  [[lein-cljsbuild "1.1.0"]
-   [lein-environ "1.0.1"]
-   [lein-asset-minifier "0.2.3"]]
+  [[lein-cljsbuild "1.1.3"]
+   [lein-environ "1.0.3"]
+   [lein-asset-minifier "0.3.0"]]
 
   :min-lein-version "2.5.0"
 
@@ -65,9 +64,9 @@
                              :asset-path "js/compiled"}}}}
 
   :profiles
-  {:dev {:env {:dev? true}
-         :plugins [[lein-figwheel "0.4.0"]
-                   [lein-environ "1.0.1"]]
+  {:dev {:env {:dev? "true"}
+         :plugins [[lein-figwheel "0.5.4"]
+                   [lein-environ "1.0.3"]]
          :figwheel {:http-server-root "public"
                     :server-port 3449
                     :nrepl-port 7888

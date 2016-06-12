@@ -15,6 +15,7 @@
      [textarea player-comments]]])
 
 ;; TODO: #+cljs (defn #db/id [[_ id]] id)
+;; clj #db/id [:db.part/user id]
 
 (defn expand
   ([v]
@@ -23,7 +24,7 @@
    (let [id (swap! curr-id dec)]
      (merge
       (when (= -1 id)
-        {:db/id #db/id [:db.part/user id]})
+        {:db/id id})
       {:assessment-template/name (name title)
        :assessment-template/type (name type)
        :assessment-template/idx idx
