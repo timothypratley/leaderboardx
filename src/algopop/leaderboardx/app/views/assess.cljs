@@ -22,27 +22,28 @@
   (is (= "Group hug please"
          (attr2title :assessment/group-hug-please))))
 
-(defn group [title model path editing children]
+(defn group [title model path editing ks]
+  (prn "SUP FIX ME" (get-in @model path) ks)
   [:div
    [:label title]
    (into
     [:div.row]
     (let [size (quot 12 (count ks))]
-      (for [[t ct] children]
+      (for [[t ct] ks]
         ;; TODO
-        ((dispatch t) t model (conj path x) ct)
-        #_[:div.form-group
+        ;;((dispatch t) t model (conj path x) ct)
+        [:div.form-group
          {:class (str "col-xs-" size)}
-         [:label.control-label (str k)]
+         [:label.control-label (str t)]
          [:input.form-control
-          {:id (str k)
+          {:id (str t)
            :type "number"
            :on-focus
            (fn group-focus [e]
-             (reset! editing (conj path k)))
+             (reset! editing (conj path t)))
            :on-change
            (fn group-change [e]
-             (swap! model assoc-in (conj path k)
+             (swap! model assoc-in (conj path t)
                     (.. e -target -value)))}]])))])
 
 (def conjv (fnil conj []))

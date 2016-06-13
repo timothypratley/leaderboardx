@@ -1,11 +1,13 @@
 (ns algopop.leaderboardx.app.views.details
-  (:require [reagent.core :as reagent]
-            [reagent.ratom :as ratom :include-macros]
-            [reagent.session :as session]
-            [clojure.string :as string]
-            [clojure.set :as set]
-            [algopop.leaderboardx.app.db :as db]
-            [algopop.leaderboardx.app.views.common :as common]))
+  (:require
+    [reagent.core :as reagent]
+    [reagent.session :as session]
+    [clojure.string :as string]
+    [clojure.set :as set]
+    [algopop.leaderboardx.app.db :as db]
+    [algopop.leaderboardx.app.views.common :as common])
+  (:require-macros
+    [reagent.ratom :as ratom]))
 
 (def data
   (reagent/atom {:name "unknown"}))
@@ -63,7 +65,7 @@
        (map? x) (if (seq path)
                   [render-nested-map x path model editing]
                   [render-map x path model editing])
-       (string? x) [common/editable-string path model editing]
+       (string? x) [common/editable-string model path editing]
        (keyword? x) (name x)
        (seq? x) [render-seq x path model editing]
        :else (str x))]))

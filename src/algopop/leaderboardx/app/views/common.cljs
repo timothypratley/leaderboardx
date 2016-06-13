@@ -1,13 +1,14 @@
 (ns algopop.leaderboardx.app.views.common
   (:require [goog.dom.forms :as forms]
             [reagent.core :as reagent]
+            [reagent.dom :as dom]
             [cljs.test :as t :include-macros true :refer-macros [testing is]]
             [devcards.core :as dc :refer-macros [defcard deftest]]))
 
 ;; TODO: doesn't belong here
 
 (defn focus-append [this]
-  (doto (.getDOMNode this)
+  (doto (dom/dom-node this)
     (.focus)
     (.setSelectionRange 100000 100000)))
 
@@ -65,7 +66,7 @@
 
 (defcard editable-string-example
   "editable string"
-  (dc/reagent (editable-string (atom {:foo "bar"}) [:foo] (atom nil))))
+  (dc/reagent (editable-string (reagent/atom {:foo "bar"}) [:foo] (reagent/atom nil))))
 
 (deftest some-test
   "blah blah blah"

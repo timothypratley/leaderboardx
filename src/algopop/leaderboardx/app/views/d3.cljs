@@ -5,6 +5,7 @@
             [clojure.string :as string]
             [clojure.walk :as walk]
             [reagent.core :as reagent]
+            [reagent.dom :as dom]
             [reagent.ratom :as ratom :include-macros]
             [goog.crypt])
   (:import [goog.crypt Md5]))
@@ -258,7 +259,7 @@
     ;; TODO: relative deltas from drag start? what about scroll?
     :on-mouse-move
     (fn graph-mouse-move [e]
-      (let [elem (.getDOMNode this)
+      (let [elem (dom/dom-node this)
             r (.getBoundingClientRect elem)
             left (.-left r)
             top (.-top r)

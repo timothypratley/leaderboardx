@@ -85,10 +85,10 @@
 (defn rank
   "Edges are maps containing :from and :to ids which exist in node-ids.
   Returns a sequence in ranked order."
-  [nodes-ids edges]
+  [node-ids edges]
   (let [prs (pagerank/pagerank (graph->matrix node-ids edges))
         id-prs (map vector node-ids prs)
         by-pr (reverse (sort-by second id-prs))
         with-ranks (map conj by-pr (iterate inc 1))
         [first-rank & next-ranks :as by-pr] with-ranks]
-    (lazy-cons first-rank (map same-rank-dups with-ranks next-ranks))))
+    (cons first-rank (map same-rank-dups with-ranks next-ranks))))
