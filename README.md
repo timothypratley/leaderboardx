@@ -44,6 +44,11 @@ To start datomic:
 bin/transactor config/samples/free-transactor-template.properties
 
 
+## Deployment
+
+`./bin/deploy.sh`
+
+
 ## License
 
 Copyright © 2015 Timothy Pratley

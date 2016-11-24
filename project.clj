@@ -8,11 +8,10 @@
                  [com.lucasbradstreet/instaparse-cljs "1.4.1.0"]
                  [com.taoensso/sente "1.6.0"]
                  [compojure "1.4.0"]
-                 [cljsjs/d3 "3.5.5-3"]
-                 [cljsjs/react "0.13.3-1"]
-                 [cljs-uuid "0.0.4"]
-                 [datascript "0.11.6"]
-                 [environ "1.0.0"]
+                 [cljsjs/d3 "3.5.7-1"]
+                 [cljsjs/react "0.14.3-0"]
+                 [datascript "0.15.0"]
+                 [environ "1.0.2"]
                  [http-kit "2.1.19"]
                  [hiccup "1.0.5"]
                  [prone "0.8.2"]
@@ -25,9 +24,9 @@
                  [secretary "1.2.3"]
                  [timothypratley/patchin "0.3.5"]]
 
-  :plugins [[lein-cljsbuild "1.0.6"]
-            [lein-environ "1.0.0"]
-            [lein-asset-minifier "0.2.3"]]
+  :plugins [[lein-cljsbuild "1.1.2" :exclusions [org.clojure/clojure]]
+            [lein-environ "1.0.2"]
+            [lein-asset-minifier "0.2.7" :exclusions [org.clojure/clojure]]]
 
   :ring {:handler algopop.leaderboardx/handler
          :uberwar-name "algopop.leaderboardx.war"}
@@ -46,9 +45,10 @@
 
   :cljsbuild {:builds {:app {:compiler {:output-to "resources/public/js/app.js"
                                         :output-dir "resources/public/js/out"
-                                        :asset-path "js/out"}}}}
+                                        :asset-path "js/out"
+                                        :externs ["externs.js"]}}}}
 
-  :profiles {:dev {:plugins [[lein-figwheel "0.3.7"]]
+  :profiles {:dev {:plugins [[lein-figwheel "0.5.0-6"]]
                    :figwheel {:http-server-root "public"
                               :server-port 3449
                               :nrepl-port 7888

@@ -67,9 +67,9 @@
     nil))
 
 (defn get-svg []
-  (-> (.getElementById js/document "d3g")
-      (.-firstChild)
-      (.-innerHTML)))
+  (some-> (.getElementById js/document "d3g")
+    (.-firstChild)
+    (.-innerHTML)))
 
 (defn graph-editor-page []
   (let [g (db/get-graph)
