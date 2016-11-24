@@ -76,10 +76,11 @@
        [add-node]
        [:table.table.table-responsive
         [:thead
-         [:th "Rank"]
-         [select-type node-types editing]
-         [select-type link-types editing]
-         [:th "From"]]
+         [:tr
+          [:th "Rank"]
+          [select-type node-types editing]
+          [select-type link-types editing]
+          [:th "From"]]]
         (into
          [:tbody]
          (for [[id rank name] @nodes-by-rank

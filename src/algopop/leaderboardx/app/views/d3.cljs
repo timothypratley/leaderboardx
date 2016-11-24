@@ -287,14 +287,11 @@
    [draw-svg drawable d3graph force-layout mouse-down? selected-id root editing]])
 
 (defn create-force-layout [d3graph tick]
-  (-> (js/d3.layout.force)
-      ;;(js/cola.d3adaptor)
-      (.nodes (.-nodes d3graph))
-      (.links (.-links d3graph))
-      ;;(.linkDistance 100)
-      (.charge -250)
-      ;;(.chargeDistance 300)
-      (.size #js [1000, 1000])
+  (-> (js/d3.forceSimulation (.-nodes d3graph))
+      (.force "charge" (js/d3.forceManyBody))
+      (.force "link" (js/d3.forceLink (.-links d3graph)))
+      (.force "center" (js/d3.forceCenter))
+      ;;(.size #js [1000, 1000])
       (.on "tick" tick)))
 
 (defn update-db [d3graph]
@@ -312,7 +309,7 @@
                {:nodes @nodes
                 :edges @edges})
         d3graph (d3-graph @edges @nodes)
-        drawable (reagent/atom {})
+        drawable (reagent/atom {:bounds [400 400 600 600]})
         force-layout (create-force-layout
                       d3graph
                       (fn layout-tick []
@@ -328,5 +325,4 @@
      {:display-name "graph"
       :reagent-render
       (fn graph-render [selected-id root editing]
-        (.start force-layout)
         [draw-graph (reagent/current-component) drawable d3graph force-layout mouse-down? selected-id root editing])})))

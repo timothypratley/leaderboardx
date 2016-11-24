@@ -15,10 +15,11 @@
 
 (defn performance-table [[headers & data-rows]]
   [:table.table.table-responsive
-   (into [:thead]
-         (cons [:th]
-               (for [date (rest headers)]
-                 [:th date])))
+   [:thead
+    (into [:tr]
+          (cons [:th]
+                (for [date (rest headers)]
+                  [:th date])))]
    (into [:tbody]
          (for [[attr & vs] data-rows]
            (into [:tr]
