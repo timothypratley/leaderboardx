@@ -5,6 +5,7 @@
 (defrecord Datomic [uri conn]
   component/Lifecycle
   (start [component]
+    (println "Starting datomic-db" uri)
     (let [db (d/create-database uri)
           conn (d/connect uri)]
       (assoc component :conn conn)))

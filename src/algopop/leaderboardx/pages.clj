@@ -1,6 +1,8 @@
 (ns algopop.leaderboardx.pages
   (:require [hiccup.page :as page]))
 
+;; TODO: No no no, use a static html file, dev flag is dumb...
+;; But I do want to hiccup -> html (and back) hmmmph.
 (defn home [dev?]
   (page/html5
    [:head
@@ -27,21 +29,32 @@
     [:meta {:name "theme-color" :content "#ffffff"}]
     [:link {:rel "stylesheet" :href "css/site.css"}]
     [:link {:rel "stylesheet" :href "//netdna.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"}]
-    [:script "(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','//www.google-analytics.com/analytics.js','ga');ga('create', 'UA-40336415-3', 'auto');ga('send', 'pageview');"]
-    [:script "var $buoop = {c:2}; function $buo_f(){var e = document.createElement(\"script\"); e.src = \"//browser-update.org/update.min.js\"; document.body.appendChild(e);}; try {document.addEventListener(\"DOMContentLoaded\", $buo_f,false)} catch(e){window.attachEvent(\"onload\", $buo_f)}"]]
+    [:link {:rel "stylesheet" :href "css/bootstrap.min.css"}]
+    (when-not dev?
+      [:script "(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','//www.google-analytics.com/analytics.js','ga');ga('create', 'UA-40336415-3', 'auto');ga('send', 'pageview');"])
+    (when-not dev?
+      [:script "var $buoop = {c:2}; function $buo_f(){var e = document.createElement(\"script\"); e.src = \"//browser-update.org/update.min.js\"; document.body.appendChild(e);}; try {document.addEventListener(\"DOMContentLoaded\", $buo_f,false)} catch(e){window.attachEvent(\"onload\", $buo_f)}"])]
    [:body
     [:div {:id "app"}
-     "<div class='container'><header><nav role='navigation' class='navbar navbar-inverse'><div class='container-fluid'><div class='navbar-header'><button type='button' data-toggle='collapse' data-target='#navbar-collapse' class='navbar-toggle collapsed'><span class='sr-only'>Toggle navigation</span><span class='icon-bar'></span><span class='icon-bar'></span><span class='icon-bar'></span></button><a href='#/' class='navbar-brand'><panel><img src='img/brand.png' height='40px'><span>  Leaderboard</span><span style='font-family:cursive;'>X</span></panel></a></div><div id='navbar-collapse' class='collapse navbar-collapse'><ul class='nav navbar-nav navbar-right'><noscript><a href='http://enable-javascript.com/'><kbd>Please enable JavaScript</kbd></a></noscript></ul></div></div></nav></header><div class='well'><div><div class='jumbotron'><h2><span>Welcome to Leaderboard</span><span style='font-family:cursive;'>X</span></h2><p>How do you rank?</p><small>Contact timothypratley@gmail.com</small></div><div><div class=\"embed-responsive embed-responsive-16by9\"><iframe src=\"//www.youtube.com/embed/RMTFP43Ce98\" class=\"embed-responsive-item\"></iframe></div></div></div></div></div>"]
+     (when-not dev?
+       "<div class='container'><header><nav role='navigation' class='navbar navbar-inverse'><div class='container-fluid'><div class='navbar-header'><button type='button' data-toggle='collapse' data-target='#navbar-collapse' class='navbar-toggle collapsed'><span class='sr-only'>Toggle navigation</span><span class='icon-bar'></span><span class='icon-bar'></span><span class='icon-bar'></span></button><a href='#/' class='navbar-brand'><panel><img src='img/brand.png' height='40px'><span>  Leaderboard</span><span style='font-family:cursive;'>X</span></panel></a></div><div id='navbar-collapse' class='collapse navbar-collapse'><ul class='nav navbar-nav navbar-right'><noscript><a href='http://enable-javascript.com/'><kbd>Please enable JavaScript</kbd></a></noscript></ul></div></div></nav></header><div class='well'><div><div class='jumbotron'><h2><span>Welcome to Leaderboard</span><span style='font-family:cursive;'>X</span></h2><p>How do you rank?</p><small>Contact timothypratley@gmail.com</small></div><div><div class=\"embed-responsive embed-responsive-16by9\"><iframe src=\"//www.youtube.com/embed/RMTFP43Ce98\" class=\"embed-responsive-item\"></iframe></div></div></div></div></div>")]
     [:script {:src "//cdnjs.cloudflare.com/ajax/libs/es5-shim/4.1.5/es5-shim.min.js" :type "text/javascript"}]
     [:script {:src "//cdnjs.cloudflare.com/ajax/libs/es5-shim/4.1.5/es5-sham.min.js" :type "text/javascript"}]
-    [:script {:src "//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.2/html5shiv.min.js" :type "text/javascript"}]
-    [:script {:src "//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js" :type "text/javascript"}]
-    [:script {:src "//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js" :type "text/javascript"}]
-    [:script {:src "js/app.js" :type "text/javascript"}]
-    [:script {:type "text/javascript"}
-     "var disqus_shortname = 'leaderboardx';
+    (if dev?
+      [:script {:src "js/html5shiv.min.js" :type "text/javascript"}]
+      [:script {:src "//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.2/html5shiv.min.js" :type "text/javascript"}])
+    (if dev?
+      [:script {:src "js/jquery.min.js" :type "text/javascript"}]
+      [:script {:src "//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js" :type "text/javascript"}])
+    (if dev?
+      [:script {:src "js/bootstrap.min.js" :type "text/javascript"}]
+      [:script {:src "//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js" :type "text/javascript"}])
+    [:script {:src "js/compiled/main.js" :type "text/javascript"}]
+    (when-not dev?
+      [:script {:type "text/javascript"}
+       "var disqus_shortname = 'leaderboardx';
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
         dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();"]]))
+    })();"])]))

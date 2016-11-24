@@ -75,8 +75,7 @@
   (let [g (db/get-graph)
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
-        editing (or (session/get
-                     :editing)
+        editing (or (session/get :editing)
                     (:editing (session/put! :editing (reagent/atom nil))))
         keydown-handler
         (fn a-keydown-handler [e]
@@ -85,13 +84,11 @@
      {:display-name "graph-editor"
       :reagent-render
       (fn graph-editor []
-        ;; TODO: rank g earlier
-        (let [gr (graph/with-ranks @g)]
-          [:div
-           [toolbar/toolbar g get-svg]
-           [title-editor g editing]
-           [:div#d3g [d3/graph gr selected-id g editing]]
-           [:div [table/table gr selected-id editing g]]]))
+        [:div
+         [toolbar/toolbar g get-svg]
+         [title-editor g editing]
+         [:div#d3g [d3/graph selected-id g editing]]
+         [:div [table/table selected-id editing g]]])
       :component-did-mount
       (fn graph-editor-did-mount [this]
         (.addEventListener js/document "keydown" keydown-handler))

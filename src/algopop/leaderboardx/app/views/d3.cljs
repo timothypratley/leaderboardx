@@ -1,39 +1,14 @@
 (ns algopop.leaderboardx.app.views.d3
   (:require [algopop.leaderboardx.app.graph :as graph]
+            [algopop.leaderboardx.app.db :as db]
             [cljsjs.d3]
             [clojure.string :as string]
             [clojure.walk :as walk]
             [reagent.core :as reagent]
+            [reagent.dom :as dom]
+            [reagent.ratom :as ratom :include-macros]
             [goog.crypt])
   (:import [goog.crypt Md5]))
-
-(defn d3g
-  ([g] (d3g g {}))
-  ([{:keys [nodes edges title]} existing-nodes]
-   (let [new-nodes (concat
-                    (for [[_ n] nodes]
-                      (walk/stringify-keys n))
-                    (for [[_ x] edges
-                          [_ e] x]
-                      (walk/stringify-keys e)))
-         id->idx (into {} (map vector (map #(get % "id") new-nodes) (range)))]
-     (clj->js {:title title
-               :nodes new-nodes
-               :idx id->idx
-               :paths (for [[source targets] edges
-                            [target {:keys [db/id]}] targets]
-                        [(id->idx source)
-                         (id->idx id)
-                         (id->idx target)])
-               :links (apply concat
-                             (for [[source targets] edges
-                                   [target {:keys [db/id]}] targets]
-                               [{:id [source target]
-                                 :source (id->idx source)
-                                 :target (id->idx id)}
-                                {:id [source target]
-                                 :source (id->idx target)
-                                 :target (id->idx id)}]))}))))
 
 (defn overwrite [k x y]
   (let [a (aget x k)
@@ -44,10 +19,30 @@
 (defn assign [k a b]
   (aset a k (aget b k)))
 
-(defn reconcile [g d3graph]
-  (let [existing (into {} (for [node (.-nodes d3graph)]
-                            [(.-id node) (js->clj node)]))
-        replacement (d3g g existing)]
+(defn d3-graph [nodes edges]
+  (let [d3nodes (concat nodes edges)
+        id->idx (zipmap (map :id d3nodes) (range))
+        d3nodes (map walk/stringify-keys d3nodes)]
+    (clj->js
+     {:title "Untitled"
+      :nodes (map val d3nodes)
+      :idx id->idx
+      :paths (for [{:keys [db/id from to]} edges]
+               [(id->idx from)
+                (id->idx id)
+                (id->idx to)])
+      :links (apply
+              concat
+              (for [{:keys [db/id from to]} edges]
+                [{:link [from id]
+                  :source (id->idx from)
+                  :target (id->idx id)}
+                 {:link [id to]
+                  :source (id->idx id)
+                  :target (id->idx to)}]))})))
+
+(defn update-d3graph [d3graph nodes edges]
+  (let [replacement (d3-graph nodes edges)]
     (assign "title" d3graph replacement)
     (overwrite "nodes" d3graph replacement)
     (assign "idx" d3graph replacement)
@@ -136,7 +131,7 @@
 
 (defn draw-node [{:keys [id name x y rank pagerank shape]} n max-pagerank idx d3graph force-layout mouse-down? selected-id root editing]
   (let [selected? (= id @selected-id)
-        rank-scale (/ pagerank max-pagerank)
+        rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
         r (scale-dist n rank-scale)]
     [:g
      {:transform (str "translate(" x "," y ")"
@@ -264,7 +259,7 @@
     ;; TODO: relative deltas from drag start? what about scroll?
     :on-mouse-move
     (fn graph-mouse-move [e]
-      (let [elem (.getDOMNode this)
+      (let [elem (dom/dom-node this)
             r (.getBoundingClientRect elem)
             left (.-left r)
             top (.-top r)
@@ -291,42 +286,43 @@
                 (.resume force-layout)))))))}
    [draw-svg drawable d3graph force-layout mouse-down? selected-id root editing]])
 
-(defn create-force-layout [g tick]
-  (-> (js/d3.layout.force)
-      ;;(js/cola.d3adaptor)
-      (.nodes (.-nodes g))
-      (.links (.-links g))
-      ;;(.linkDistance 100)
-      (.charge -250)
-      ;;(.chargeDistance 300)
-      (.size #js [1000, 1000])
+(defn create-force-layout [d3graph tick]
+  (-> (js/d3.forceSimulation (.-nodes d3graph))
+      (.force "charge" (js/d3.forceManyBody))
+      (.force "link" (js/d3.forceLink (.-links d3graph)))
+      (.force "center" (js/d3.forceCenter))
+      ;;(.size #js [1000, 1000])
       (.on "tick" tick)))
 
-(defn update-db [d3g]
-  (doall
-   (for [n (.-nodes d3g)]
-     (cond-> {:db/id (.-id n)
-              :x (.-x n)
-              :y (.-y n)}
-       (.-fixed n) (assoc :pinned? true)))))
+(defn update-db [d3graph]
+  (db/update-nodes
+   (for [node (.-nodes d3graph)]
+     (cond-> {:db/id (.-id node)
+              :x (.-x node)
+              :y (.-y node)}
+       (.-fixed node) (assoc :pinned? true)))))
 
-(defn graph [g selected-id root editing]
-  (let [d3graph (d3g nil)
-        drawable (reagent/atom {})
-        size (reagent/atom {})
+(defn graph [selected-id root editing]
+  (let [nodes (db/watch-nodes)
+        edges (db/watch-edges)
+        depg (ratom/reaction
+               {:nodes @nodes
+                :edges @edges})
+        d3graph (d3-graph @edges @nodes)
+        drawable (reagent/atom {:bounds [400 400 600 600]})
         force-layout (create-force-layout
                       d3graph
                       (fn layout-tick []
                         (update-db d3graph)
-                        ;; TODO: write x/y changes in on transaction
-                        (reset! drawable
-                                (js->clj d3graph :keywordize-keys true))
+                        (reset! drawable (js->clj d3graph :keywordize-keys true))
                         (swap! drawable update-bounds)))
         mouse-down? (reagent/atom nil)]
+    (add-watch depg :watch-graph
+               (fn a-graph-watcher [k r a b]
+                 (when (not= a b)
+                   (update-d3graph d3graph (:nodes b) (:edges b)))))
     (reagent/create-class
      {:display-name "graph"
       :reagent-render
-      (fn graph-render [g selected-id root]
-        (reconcile g d3graph)
-        (.start force-layout)
+      (fn graph-render [selected-id root editing]
         [draw-graph (reagent/current-component) drawable d3graph force-layout mouse-down? selected-id root editing])})))

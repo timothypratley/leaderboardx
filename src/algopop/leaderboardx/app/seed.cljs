@@ -34,11 +34,18 @@
         nodes (into {} (for [k ks]
                          [k {:hair (rand-nth ["red" "brown" "black" "blonde"])}]))]
     {:nodes nodes
-     :edges (into {} (for [from ks]
-                       [from (into {} (for [to (take 2 (shuffle (remove #{from} ks)))]
-                                        [to {:value 1}]))]))}))
+     :edges (for [from ks]
+              [from (into {} (for [to (take 2 (shuffle (remove #{from} ks)))]
+                               [to {:value 1}]))])}))
+
+(defn set-rand! []
+  (doseq [[k outs] (:edges (rand-graph))]
+    (db/replace-edges k outs nil)))
 
 (def example
-  {:nodes {"Amy" {}, "Rhys" {}, "Noah" {}, "Michael" {}, "Isabella" {}, "Toby" {}, "Olivia" {}, "Jayden" {}, "Madison" {}, "Daniel" {}, "Mia" {}, "William" {}, "Matt" {}, "Claire" {}, "Sophia" {}, "Emma" {}, "Joel" {}, "Emily" {}, "Abigail" {}, "Alex" {}, "Lily" {}, "Charlotte" {}, "Liam" {}, "Rachelle" {}, "Mason" {}},
-   :edges {"Amy" {"Lily" {}, "Abigail" {}, "Emma" {}}, "Rhys" {"William" {}, "Liam" {}, "Matt" {}}, "Noah" {"William" {}, "Matt" {}}, "Michael" {"William" {}, "Mason" {}, "Abigail" {}}, "Toby" {"Joel" {}, "Mason" {}, "Alex" {}}, "Olivia" {"Mia" {}, "Claire" {}, "Charlotte" {}}, "Jayden" {"Rhys" {}, "Liam" {}, "Matt" {}}, "Madison" {"Isabella" {}, "Emily" {}, "William" {}}, "Daniel" {"Mason" {}, "Jayden" {}, "Sophia" {}}, "Mia" {"Emily" {}, "Olivia" {}, "Claire" {}}, "William" {"Matt" {}, "Emily" {}, "Noah" {}}, "Matt" {"Liam" {}, "Jayden" {}, "William" {}}, "Claire" {"Charlotte" {}, "Olivia" {}, "Emily" {}}, "Sophia" {"Emma" {}, "Abigail" {}, "Rachelle" {}}, "Emma" {"Abigail" {}, "Sophia" {}, "Amy" {}}, "Joel" {"Emily" {}, "Alex" {}, "Isabella" {}}, "Emily" {"Mia" {}, "Joel" {}, "William" {}}, "Abigail" {"Rachelle" {}, "Amy" {}, "Sophia" {}}, "Alex" {"Mason" {}, "Joel" {}, "Daniel" {}}, "Isabella" {"Madison" {}, "Emily" {}, "Mia" {}}, "Lily" {"Amy" {}, "Sophia" {}, "Rachelle" {}}, "Charlotte" {"Olivia" {}, "Emily" {}, "Claire" {}}, "Liam" {"Matt" {}, "Jayden" {}, "William" {}}, "Rachelle" {"Abigail" {}, "Sophia" {}, "Emma" {}}, "Mason" {"Alex" {}, "Daniel" {}, "Toby" {}}},
+  {:edges ["Amy" ["Lily", "Abigail", "Emma"], "Rhys" ["William", "Liam", "Matt"], "Noah" ["William", "Matt"], "Michael" ["William", "Mason", "Abigail"], "Toby" ["Joel", "Mason", "Alex"], "Olivia" ["Mia", "Claire", "Charlotte"], "Jayden" ["Rhys", "Liam", "Matt"], "Madison" ["Isabella", "Emily", "William"], "Daniel" ["Mason", "Jayden", "Sophia"], "Mia" ["Emily", "Olivia", "Claire"], "William" ["Matt", "Emily", "Noah"], "Matt" ["Liam", "Jayden", "William"], "Claire" ["Charlotte", "Olivia", "Emily"], "Sophia" ["Emma", "Abigail", "Rachelle"], "Emma" ["Abigail", "Sophia", "Amy"], "Joel" ["Emily", "Alex", "Isabella"], "Emily" ["Mia", "Joel", "William"], "Abigail" ["Rachelle", "Amy", "Sophia"], "Alex" ["Mason", "Joel", "Daniel"], "Isabella" ["Madison", "Emily", "Mia"], "Lily" ["Amy", "Sophia", "Rachelle"], "Charlotte" ["Olivia", "Emily", "Claire"], "Liam" ["Matt", "Jayden", "William"], "Rachelle" ["Abigail", "Sophia", "Emma"], "Mason" ["Alex", "Daniel", "Toby"]],
    :title "Example"})
+
+(defn set-example! []
+  (doseq [[k outs] (partition-all 2 (:edges example))]
+    (db/replace-edges k outs nil)))

@@ -1,35 +1,21 @@
 (defproject algopop/leaderboardx "0.1.0-SNAPSHOT"
-  :description "LeaderboardX is a ranking product"
+  :description "LeaderboardX"
   :url "http://timothypratley.blogspot.com"
 
-  :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.107" :scope "provided"]
-                 [com.datomic/datomic-free "0.9.5206" :exclusions [joda-time]]
-                 [com.lucasbradstreet/instaparse-cljs "1.4.1.0"]
-                 [com.taoensso/sente "1.6.0"]
-                 [compojure "1.4.0"]
-                 [cljsjs/d3 "3.5.7-1"]
-                 [cljsjs/react "0.14.3-0"]
-                 [datascript "0.15.0"]
-                 [environ "1.0.2"]
-                 [http-kit "2.1.19"]
-                 [hiccup "1.0.5"]
-                 [prone "0.8.2"]
-                 [reagent "0.5.0"]
-                 [reagent-forms "0.5.6"]
-                 [reagent-utils "0.1.5"]
-                 [reloaded.repl "0.1.0"]
-                 [ring "1.4.0"]
-                 [ring/ring-defaults "0.1.5"]
-                 [secretary "1.2.3"]
-                 [timothypratley/patchin "0.3.5"]]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
+                 [org.clojure/clojurescript "1.9.293" :scope "provided"]
+                 [com.datomic/datomic-free "0.9.5407" :exclusions [joda-time]]
+                 [com.lucasbradstreet/instaparse-cljs "1.4.1.2"]
+                 [com.taoensso/sente "1.11.0"]
+                 [compojure "1.5.1"]
+                 [cljsjs/d3 "4.3.0-2"]
+                 [cljsjs/react "15.4.0-0"]
+                 [datascript "0.15.5"]
+                 [environ "1.1.0"]]
 
-  :plugins [[lein-cljsbuild "1.1.2" :exclusions [org.clojure/clojure]]
-            [lein-environ "1.0.2"]
-            [lein-asset-minifier "0.2.7" :exclusions [org.clojure/clojure]]]
-
-  :ring {:handler algopop.leaderboardx/handler
-         :uberwar-name "algopop.leaderboardx.war"}
+  :plugins [[lein-cljsbuild "1.1.4"]
+            [lein-environ "1.1.0"]
+            [lein-asset-minifier "0.3.0"]]
 
   :min-lein-version "2.5.0"
 
@@ -37,40 +23,42 @@
 
   :main algopop.leaderboardx.main
 
-  :clean-targets ^{:protect false} ["resources/public/js"]
+  :clean-targets ^{:protect false} ["resources/public/js/compiled"]
 
   :minify-assets
   {:assets
-    {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
+   {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
 
   :cljsbuild {:builds {:app {:compiler {:output-to "resources/public/js/app.js"
                                         :output-dir "resources/public/js/out"
                                         :asset-path "js/out"
                                         :externs ["externs.js"]}}}}
 
-  :profiles {:dev {:plugins [[lein-figwheel "0.5.0-6"]]
-                   :figwheel {:http-server-root "public"
-                              :server-port 3449
-                              :nrepl-port 7888
-                              :css-dirs ["resources/public/css"]
-                              :ring-handler algopop.leaderboardx.routes/handler}
-                   :env {:dev? true}
-                   :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs" "src-cljs"]
-                                              :figwheel {:websocket-host "localhost"
-                                                         :on-jsload "algopop.leaderboardx.app.main/mount-root"}
-                                              :compiler {:main "dev.main"
-                                                         :optimizations :none
-                                                         :source-map true
-                                                         :pretty-print true}}}}}
+  :profiles
+  {:dev
+   {:env {:dev? true}
+    :plugins [[lein-figwheel "0.5.0-6"]]
+    :figwheel {:http-server-root "public"
+               :css-dirs ["resources/public/css"]
+               :ring-handler algopop.leaderboardx.routes/handler}
+    :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs" "src"]
+                               :figwheel {:websocket-host "localhost"
+                                          :on-jsload "algopop.leaderboardx.app.main/mount-root"}
+                               :compiler {:main "dev.main"
+                                          :optimizations :none
+                                          :source-map true
+                                          :pretty-print true}}}}}
 
-             :uberjar {:hooks [leiningen.cljsbuild minify-assets.plugin/hooks]
-                       :env {:production true}
-                       :aot :all
-                       :omit-source true
-                       :cljsbuild {:jar true
-                                   :builds {:app
-                                             {:source-paths ["env/prod/cljs" "src-cljs"]
-                                              :compiler
-                                              {:optimizations :advanced
-                                               :source-map "resources/public/js/app.map"
-                                               :pretty-print false}}}}}})
+   :uberjar
+   {:env {:production true}
+    :source-paths ["env/prod/cljs" "src"]
+    :hooks [leiningen.cljsbuild minify-assets.plugin/hooks]
+    :aot :all
+    :omit-source true
+    :cljsbuild {:jar true
+                :builds {:app
+                         {:compiler
+                          {:main prod.main
+                           :optimizations :advanced
+                           :source-map "resources/public/js/compiled.main.map"
+                           :pretty-print false}}}}}})

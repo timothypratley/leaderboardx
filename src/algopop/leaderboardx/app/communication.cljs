@@ -59,8 +59,7 @@
                         graph/replace-edges
                         k
                         [(str v)]
-                        []))
-  )
+                        [])))
 
 (defmethod event-msg-handler :chsk/handshake
   [{:as ev-msg :keys [?data]}]
@@ -93,6 +92,6 @@
   (let [va (:viewpoint a)
         vb (:viewpoint b)]
     (when (not= va vb)
-      (chsk-send! [:edge/viewpoint (patchin/diff va vb)]))))
+      (chsk-send! [:patchin/patch (patchin/diff va vb)]))))
 
 (add-watch session/state :k maybe-send-viewpoint)

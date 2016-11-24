@@ -1,6 +1,6 @@
 # LeaderboardX
 
-Peer ranking
+Build Sociograms, and other Pageranked graphs quickly:
 http://leaderboardx.herokuapp.com/
 
 
@@ -28,21 +28,38 @@ A graph of social relationships.
 
 ## Development
 
-For interactive development:
+Start Datomic (from datomic directory):
+`bin/transactor config/dev-leaderboardx.properties`
 
-`lein figwheel`
-http://localhost:3449
+Start the server:
+`lein run`
 
+For browser reloading:
+`lein figwheel app devcards`
+
+Open http://localhost:3000
 
 To test advanced compilation:
-
 `lein with-profile uberjar do clean, cljsbuild auto`
 `lein run 8080`
 http://localhost:8080
 
-To start datomic:
-bin/transactor config/samples/free-transactor-template.properties
+If the schema changes:
+`lein run migrate`
 
+To reset the database:
+datomic delete
+`lein run migrate`
+
+To run the Datomic console:
+`./bin/console -p 8088 dev datomic:dev://localhost:4334/leaderboardx`
+Open http://localhost:8088
+
+## Thoughts
+
+Bind is one way with datascript.
+Reactions are cool for propigating change, but what about pushing change?
+Om-next will be awesome.
 
 ## Deployment
 

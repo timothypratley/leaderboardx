@@ -1,5 +1,5 @@
 (ns algopop.leaderboardx.app.views.header
-  (:require [algopop.leaderboardx.app.pages :as pages]
+  (:require [algopop.leaderboardx.app.routes :as routes]
             [reagent.session :as session]))
 
 ;; TODO: what if empty?
@@ -49,6 +49,6 @@
        [:ul.nav.navbar-nav.navbar-right]
        (concat
         [[notifications]]
-        (for [[k v] (sort-by key pages/page)]
+        (for [[k v] (sort-by key routes/view)]
           [:li [:a {:href (str "#/" (name k))} [:kbd (name k)]]])
         #_[[user-menu]]))]]]])

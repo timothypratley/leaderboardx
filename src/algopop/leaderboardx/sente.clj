@@ -14,6 +14,7 @@
                            options]
   component/Lifecycle
   (start [component]
+    (println "Starting sente")
     (let [{:keys [ch-recv send-fn ajax-post-fn ajax-get-or-ws-handshake-fn connected-uids]}
           (sente/make-channel-socket! server-adapter options)]
       (assoc component

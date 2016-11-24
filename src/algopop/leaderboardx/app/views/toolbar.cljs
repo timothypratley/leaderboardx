@@ -1,6 +1,6 @@
 (ns algopop.leaderboardx.app.views.toolbar
-  (:require [algopop.leaderboardx.app.io.dot :as dot]
-            [algopop.leaderboardx.app.io.csv :as csv]
+  (:require ;;[algopop.leaderboardx.app.io.dot :as dot]
+            ;;[algopop.leaderboardx.app.io.csv :as csv]
             [algopop.leaderboardx.app.seed :as seed]
             [algopop.leaderboardx.app.logging :as log]
             [clojure.string :as string]
@@ -71,7 +71,7 @@
       :on-change
       (fn import-csv-change [e]
         (when-let [file (aget e "target" "files" 0)]
-          (if-let [r (cond (ends-with (.-name file) ".txt") csv/read-graph
+          #_(if-let [r (cond (ends-with (.-name file) ".txt") csv/read-graph
                           (ends-with (.-name file) ".dot") dot/read-graph)]
             (read-file g file r)
             (log/error "Must supply a .dot or .txt file"))))}]]])
@@ -98,25 +98,26 @@
     [:ul.dropdown-menu {:role "menu"}
      [action-button "Empty"
       (fn clear-click [e]
+        ;; TODO: how to delete?
         (reset! g {:nodes {}
                    :edges {}}))]
      [action-button "Random"
       (fn random-click [e]
-        (reset! g (seed/rand-graph)))]
+        (seed/set-rand!))]
      [action-button "Example"
       (fn random-click [e]
-        (reset! g seed/example))]
-     [import-button "File (dot or txt)" ".dot,.txt" dot/read-graph g]]]
+        (seed/set-example!))]
+     #_[import-button "File (dot or txt)" ".dot,.txt" dot/read-graph g]]]
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle
      {:data-toggle "dropdown"
       :aria-expanded "false"}
      "Save"]
     [:ul.dropdown-menu {:role "menu"}
-     [action-button "Graph (dot)"
+     #_[action-button "Graph (dot)"
       (fn export-graphviz [e]
         (save-file (filename @g "dot") "text/dot" (dot/write-graph @g)))]
-     [action-button "Summary table (txt)"
+     #_[action-button "Summary table (txt)"
       (fn export-csv-click [e]
         (save-file (filename @g "txt") "text/csv" (csv/write-graph @g)))]
      [action-button "Image (svg)"
