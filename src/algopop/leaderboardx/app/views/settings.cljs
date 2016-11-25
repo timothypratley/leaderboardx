@@ -1,6 +1,5 @@
 (ns algopop.leaderboardx.app.views.settings
   (:require
-   [algopop.leaderboardx.app.communication :as comm]
    [reagent.session :as session]))
 
 (defn settings-view []
@@ -10,6 +9,5 @@
    [:button.btn.btn-default
     {:on-click (fn [e]
                  (session/assoc-in! [:viewpoint :route :foo] "bar")
-                 (prn "S" session/state)
-                 (comm/chsk-send! [:leaderboardx/hello "hi"]))}
+                 (prn "S" session/state))}
     "doit"]])

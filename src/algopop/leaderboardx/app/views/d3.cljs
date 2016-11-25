@@ -1,55 +1,67 @@
 (ns algopop.leaderboardx.app.views.d3
-  (:require [algopop.leaderboardx.app.graph :as graph]
-            [algopop.leaderboardx.app.db :as db]
-            [cljsjs.d3]
-            [clojure.string :as string]
-            [clojure.walk :as walk]
-            [reagent.core :as reagent]
-            [reagent.dom :as dom]
-            [reagent.ratom :as ratom :include-macros]
-            [goog.crypt])
-  (:import [goog.crypt Md5]))
+  (:require
+    [cljsjs.d3]
+    [cljs.test]
+    [clojure.string :as string]
+    [reagent.core :as reagent]
+    [reagent.dom :as dom]
+    [goog.crypt :as crypt]
+    [devcards.core])
+  (:require-macros
+    [devcards.core :refer [defcard-rg]]
+    [reagent.ratom :refer [reaction]])
+  (:import
+    [goog.crypt Md5]))
 
-(defn overwrite [k x y]
-  (let [a (aget x k)
-        b (aget y k)]
-    (set! (.-length a) 0)
-    (.apply (.-push a) a b)))
+(defn update-simulation [simulation nodes edges]
+  (let [particles (concat nodes edges)
+        existing-particles (.nodes simulation)
+        ids (set (map :db/id particles))
+        kept-particles (filter #(contains? ids (.-id %)) existing-particles)
+        existing-ids (set (keys (.-idxs simulation)))
+        added-particles (clj->js (remove #(contains? existing-ids (:db/id %)) particles))
+        js-particles (concat kept-particles added-particles)
+        idxs (zipmap (map #(.-id %) js-particles) (range))]
+    (.nodes simulation
+            (clj->js
+              (map-indexed
+                (fn [idx particle]
+                  (set! (.-index particle) idx)
+                  particle)
+                js-particles)))
+    (.force simulation "link"
+            (js/d3.forceLink
+              (clj->js
+                (map-indexed
+                  (fn [idx x]
+                    (assoc x :index idx))
+                  (apply
+                    concat
+                    (for [{:keys [db/id from to]} edges]
+                      [{:link [from id]
+                        :source (idxs from)
+                        :target (idxs id)}
+                       {:link [id to]
+                        :source (idxs id)
+                        :target (idxs to)}]))))))
+    (set! (.-name simulation) "Untitled")
+    (set! (.-idxs simulation) idxs)
+    (set! (.-paths simulation)
+          (for [{:keys [db/id from to]} edges]
+            [(idxs from)
+             (idxs id)
+             (idxs to)]))))
 
-(defn assign [k a b]
-  (aset a k (aget b k)))
+(defn restart-simulation [simulation]
+  (doto simulation
+    (.restart)
+    (.alpha 1)))
 
-(defn d3-graph [nodes edges]
-  (let [d3nodes (concat nodes edges)
-        id->idx (zipmap (map :id d3nodes) (range))
-        d3nodes (map walk/stringify-keys d3nodes)]
-    (clj->js
-     {:title "Untitled"
-      :nodes (map val d3nodes)
-      :idx id->idx
-      :paths (for [{:keys [db/id from to]} edges]
-               [(id->idx from)
-                (id->idx id)
-                (id->idx to)])
-      :links (apply
-              concat
-              (for [{:keys [db/id from to]} edges]
-                [{:link [from id]
-                  :source (id->idx from)
-                  :target (id->idx id)}
-                 {:link [id to]
-                  :source (id->idx id)
-                  :target (id->idx to)}]))})))
-
-(defn update-d3graph [d3graph nodes edges]
-  (let [replacement (d3-graph nodes edges)]
-    (assign "title" d3graph replacement)
-    (overwrite "nodes" d3graph replacement)
-    (assign "idx" d3graph replacement)
-    (overwrite "paths" d3graph replacement)
-    (overwrite "links" d3graph replacement)))
-
-(def node-color [213 210 255])
+(defn color-for [uid]
+  (let [h (hash uid)]
+    [(bit-and 0xff h)
+     (bit-and 0xff (bit-shift-right h 8))
+     (bit-and 0xff (bit-shift-right h 16))]))
 
 (defn scale-rgb [rgb rank-scale]
   (map int (map * rgb (repeat (+ 0.9 (* 0.5 rank-scale))))))
@@ -61,21 +73,27 @@
   (str "rgb(" r "," g "," b ")"))
 
 (defn md5-hash [s]
-  (let [md5 (goog.crypt.Md5.)]
+  (let [md5 (Md5.)]
     (.update md5 s)
-    (.byteArrayToHex goog.crypt (.digest md5))))
+    (crypt/byteArrayToHex (.digest md5))))
 
-;; TODO: try rounded edge square?
 (defn gravatar-background [id r email]
   (let [guid (md5-hash (string/trim email))]
-    ;; TODO: Replace when added to react
-    [:g {:dangerouslySetInnerHTML
-         {:__html (str "<defs>
-   <pattern id=\"" guid "\" patternUnits=\"userSpaceOnUse\" height=\"" (* r 2) "\" width=\"" (* r 2) "\" patternTransform=\"translate(" (- r) "," (- r) ")\">
-     <image height=\"" (* r 2) "\" width=\"" (* r 2) "\" xlink:href=\"http://www.gravatar.com/avatar/" guid "\"></image>
-   </pattern>
-  </defs>
-  <circle r=\"" r "\" fill=\"url(#" guid ")\"/>")}}]))
+    [:g
+     [:defs
+      [:pattern
+       {:id guid
+        :pattern-units "userSpaceOnUse"
+        :height (* r 2)
+        :width (* r 2)
+        :pattern-transform (str "translate(" (- r) "," (- r) ")")}
+       [:image
+        {:height (* r 2)
+         :width (* r 2)
+         :xlink-href (str "http://www.gravatar.com/avatar/" guid)}]]]
+     [:circle
+      {:r r
+       :fill (str "url(#" guid ")")}]]))
 
 (defn stringify-points [points]
   (->> points
@@ -120,19 +138,27 @@
     :style {:cursor "pointer"}}
    r])
 
-(defn email? [s]
-  (->> s
-       (string/trim)
-       (string/upper-case)
-       (re-matches #"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}")))
-
 (def next-shape
   (zipmap (keys shapes) (rest (cycle (keys shapes)))))
 
-(defn draw-node [{:keys [id name x y rank pagerank shape]} n max-pagerank idx d3graph force-layout mouse-down? selected-id root editing]
+(defn email? [s]
+  (and (string? s)
+       (->> s
+            (string/trim)
+            (string/upper-case)
+            (re-matches #"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}"))))
+
+(defn draw-node [{:keys [id name x y pagerank shape uid]}
+                 node-count
+                 max-pagerank
+                 simulation
+                 mouse-down?
+                 selected-id
+                 {:keys [shift-click-node]}
+                 editing]
   (let [selected? (= id @selected-id)
         rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
-        r (scale-dist n rank-scale)]
+        r (scale-dist node-count rank-scale)]
     [:g
      {:transform (str "translate(" x "," y ")"
                       (when selected?
@@ -140,38 +166,38 @@
       :on-double-click
       (fn node-double-click [e]
         (reset! selected-id nil)
-        (aset d3graph "nodes" idx "fixed" 0)
-        (.resume force-layout))
+        (when-let [idx (get (.-idxs simulation) id)]
+          (let [particle (aget (.nodes simulation) idx)]
+            (js-delete particle "fx")
+            (js-delete particle "fy")))
+        (restart-simulation simulation))
       :on-mouse-down
       (fn node-mouse-down [e]
         (.stopPropagation e)
         (.preventDefault e)
-        (let [new-selected-id (aget d3graph "nodes" idx "id")]
-          (when (and (.-shiftKey e) @selected-id new-selected-id)
-            (if (= @selected-id new-selected-id)
-              (swap! root update-in [:nodes new-selected-id :shape] next-shape :triangle)
-              (swap! root graph/with-edge [@selected-id new-selected-id])))
+        (let [new-selected-id id]
+          (when (and shift-click-node (.-shiftKey e) @selected-id new-selected-id)
+            (shift-click-node @selected-id new-selected-id))
           (reset! selected-id new-selected-id)
           (reset! editing nil))
-        (reset! mouse-down? true)
-        (aset d3graph "nodes" idx "fixed" 1))}
-     (if false #_(email? id)
-         [gravatar-background id r id]
-         [shape-background (keyword shape) r node-color rank-scale selected?])
-
-     [:text.unselectable {:text-anchor "middle"
-                          :font-size (min (max n 8) 22)
-                          :style {:pointer-events "none"
-                                  :dominant-baseline "central"}}
+        (reset! mouse-down? true))}
+     (if (email? name)
+       [gravatar-background id r name]
+       [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
+     [:text.unselectable
+      {:text-anchor "middle"
+       :font-size (min (max node-count 8) 22)
+       :style {:pointer-events "none"
+               :dominant-baseline "central"}}
       name]]))
 
 (defn average [& args]
   (/ (apply + args) (count args)))
 
 (defn rise-over-run [o a]
-  (/ (* 180 (js/Math.atan2 o a)) Math.PI))
+  (/ (* 180 (js/Math.atan2 o a)) js/Math.PI))
 
-(defn draw-link [[from mid to :as path] nodes d3graph force-layout mouse-down? selected-id root editing]
+(defn draw-edge [[from mid to :as path] nodes simulation mouse-down? selected-id {:keys [shift-click-edge]} editing]
   (let [{x1 :x y1 :y} (get nodes from)
         {x2 :x y2 :y id :id} (get nodes mid)
         {x3 :x y3 :y} (get nodes to)
@@ -180,32 +206,33 @@
      {:on-double-click
       (fn link-double-click [e]
         (reset! selected-id nil)
-        (aset d3graph "nodes" mid "fixed" 0)
-        (.resume force-layout))
+        (when-let [idx (get (.-idxs simulation) id)]
+          (let [particle (aget (.nodes simulation) idx)]
+            (js-delete particle "fx")
+            (js-delete particle "fy")))
+        (restart-simulation simulation))
       :on-mouse-down
       (fn link-mouse-down [e]
         (.stopPropagation e)
         (.preventDefault e)
         (reset! mouse-down? true)
-        (reset! selected-id (aget d3graph "nodes" mid "id"))
+        (reset! selected-id (.-id (aget (.nodes simulation) mid)))
         (reset! editing nil)
-        (when (and (.-shiftKey e) @selected-id)
-          (let [[from to] @selected-id]
-            (swap! root update-in [:edges from to :weight]
-                   #(if % nil 1))))
-        (aset d3graph "nodes" mid "fixed" 1))
+        (when (and shift-click-edge (.-shiftKey e))
+          (shift-click-edge (get nodes mid))))
       :stroke (if selected?
                 "#6699aa"
                 "#9ecae1")}
      [:path
       {:fill "none"
-       :stroke-dasharray (when-let [w (get-in @root [:edges from to :weight])]
+       ;; TODO: pass in the edge
+       #_#_:stroke-dasharray (when-let [w (get-in @root [:edges from to :weight])]
                            (str w "," 5))
        :d (apply str (interleave
-                      ["M" "," " " "," " " ","]
-                      (for [idx path
-                            dim [:x :y]]
-                        (get-in nodes [idx dim]))))}]
+                       ["M" "," " " "," " " ","]
+                       (for [idx path
+                             dim [:x :y]]
+                         (get-in nodes [idx dim]))))}]
      [:polygon
       {:points "-5,-5 -5,5 7,0"
        :fill "#9ecae1"
@@ -230,21 +257,25 @@
 (defn update-bounds [g]
   (assoc g :bounds (normalize-bounds (reduce bounds [400 400 600 600] (:nodes g)))))
 
-(defn draw-svg [drawable d3graph force-layout mouse-down? selected-id root editing]
-  (let [{:keys [nodes paths title bounds]} @drawable
-        max-pagerank (reduce max (map :pagerank nodes))]
-    (into
-     [:svg.unselectable
-      {:view-box (string/join " " bounds)
-       :style {:width "100%"
-               :height "100%"}}]
-     (concat
-      (for [path paths]
-        [draw-link path nodes d3graph force-layout mouse-down? selected-id root editing])
-      (for [[node idx] (map vector (remove :to nodes) (range))]
-        [draw-node node (count nodes) max-pagerank idx d3graph force-layout mouse-down? selected-id root editing])))))
+(defn draw-svg [drawable simulation mouse-down? selected-id callbacks editing]
+  (let [{:keys [nodes paths bounds]} @drawable
+        max-pagerank (reduce max (map :pagerank nodes))
+        non-edge-nodes (remove :to nodes)
+        node-count (count non-edge-nodes)]
+    [:svg.unselectable
+     {:view-box (string/join " " bounds)
+      :style {:width "100%"
+              :height "100%"}}
+     (doall
+       (concat
+         (for [path paths]
+           ^{:key path}
+           [draw-edge path nodes simulation mouse-down? selected-id callbacks editing])
+         (for [node non-edge-nodes]
+           ^{:key (:id node)}
+           [draw-node node node-count max-pagerank simulation mouse-down? selected-id callbacks editing])))]))
 
-(defn draw-graph [this drawable d3graph force-layout mouse-down? selected-id root editing]
+(defn draw-graph [this drawable simulation mouse-down? selected-id editing root]
   [:div
    {:style {:height "60vh"}
     :on-mouse-down
@@ -256,7 +287,6 @@
     :on-mouse-up
     (fn graph-mouse-up [e]
       (reset! mouse-down? nil))
-    ;; TODO: relative deltas from drag start? what about scroll?
     :on-mouse-move
     (fn graph-mouse-move [e]
       (let [elem (dom/dom-node this)
@@ -279,50 +309,50 @@
           (let [k (if (string? @selected-id)
                     @selected-id
                     (pr-str (js->clj @selected-id)))]
-            (when-let [idx (aget d3graph "idx" k)]
-              (when-let [node (aget d3graph "nodes" idx)]
-                (aset node "px" x)
-                (aset node "py" y)
-                (.resume force-layout)))))))}
-   [draw-svg drawable d3graph force-layout mouse-down? selected-id root editing]])
+            (when-let [idx (get (.-idxs simulation) k)]
+              (when-let [particle (aget (.nodes simulation) idx)]
+                (set! (.-fx particle) x)
+                (set! (.-fy particle) y)
+                (restart-simulation simulation)))))))}
+   [draw-svg drawable simulation mouse-down? selected-id root editing]])
 
-(defn create-force-layout [d3graph tick]
-  (-> (js/d3.forceSimulation (.-nodes d3graph))
-      (.force "charge" (js/d3.forceManyBody))
-      (.force "link" (js/d3.forceLink (.-links d3graph)))
-      (.force "center" (js/d3.forceCenter))
-      ;;(.size #js [1000, 1000])
-      (.on "tick" tick)))
+;; TODO: nodes should have a stronger charge than links
+(defn create-simulation []
+  (-> (js/d3.forceSimulation #js [])
+      (.force "charge" (doto (js/d3.forceManyBody)
+                         (.distanceMax 150)))
+      (.force "link" (js/d3.forceLink #js []))))
 
-(defn update-db [d3graph]
-  (db/update-nodes
-   (for [node (.-nodes d3graph)]
-     (cond-> {:db/id (.-id node)
-              :x (.-x node)
-              :y (.-y node)}
-       (.-fixed node) (assoc :pinned? true)))))
+(defn graph [nodes edges selected-id editing callbacks]
+  (let [snapshot (reagent/atom {:bounds [400 400 600 600]})
+        simulation (create-simulation)
+        mouse-down? (reagent/atom nil)
+        ;; TODO: mount/unmount
+        watch (fn a-graph-watcher [k r a b]
+                (when (not= a b)
+                  (update-simulation simulation @nodes @edges)
+                  (restart-simulation simulation)))]
+    (update-simulation simulation @nodes @edges)
+    (add-watch nodes :watch-nodes watch)
+    (add-watch edges :watch-edges watch)
+    (.on simulation "tick"
+         (fn layout-tick []
+           (swap! snapshot assoc
+                  :nodes (js->clj (.nodes simulation) :keywordize-keys true)
+                  :paths (.-paths simulation))
+           (swap! snapshot update-bounds)))
+    (fn graph-render [nodes edges selected-id editing callbacks]
+      [draw-graph (reagent/current-component) snapshot simulation mouse-down? selected-id editing callbacks])))
 
-(defn graph [selected-id root editing]
-  (let [nodes (db/watch-nodes)
-        edges (db/watch-edges)
-        depg (ratom/reaction
-               {:nodes @nodes
-                :edges @edges})
-        d3graph (d3-graph @edges @nodes)
-        drawable (reagent/atom {:bounds [400 400 600 600]})
-        force-layout (create-force-layout
-                      d3graph
-                      (fn layout-tick []
-                        (update-db d3graph)
-                        (reset! drawable (js->clj d3graph :keywordize-keys true))
-                        (swap! drawable update-bounds)))
-        mouse-down? (reagent/atom nil)]
-    (add-watch depg :watch-graph
-               (fn a-graph-watcher [k r a b]
-                 (when (not= a b)
-                   (update-d3graph d3graph (:nodes b) (:edges b)))))
-    (reagent/create-class
-     {:display-name "graph"
-      :reagent-render
-      (fn graph-render [selected-id root editing]
-        [draw-graph (reagent/current-component) drawable d3graph force-layout mouse-down? selected-id root editing])})))
+(defcard-rg graph-example
+  (fn []
+    (let [nodes (reagent/atom [{:index 0 :db/id 0 :name "foo" :uid "zz"}
+                               {:index 1 :db/id 1 :name "bar" :uid "zz"}])
+          edges (reagent/atom [{:from 0 :to 1}])
+          selected-id (reagent/atom nil)
+          editing (reagent/atom nil)
+          callbacks {}]
+      (fn []
+        [:div
+         {:style {:border "1px solid black"}}
+         [graph nodes edges selected-id editing callbacks]]))))

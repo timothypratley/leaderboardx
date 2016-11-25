@@ -4,17 +4,18 @@
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
                  [org.clojure/clojurescript "1.9.293" :scope "provided"]
-                 [com.datomic/datomic-free "0.9.5407" :exclusions [joda-time]]
-                 [com.lucasbradstreet/instaparse-cljs "1.4.1.2"]
-                 [com.taoensso/sente "1.11.0"]
-                 [compojure "1.5.1"]
+                 [bidi "2.0.14"]
                  [cljsjs/d3 "4.3.0-2"]
-                 [cljsjs/react "15.4.0-0"]
+                 [compojure "1.5.1"]
+                 [com.lucasbradstreet/instaparse-cljs "1.4.1.2"]
+                 [com.taoensso/encore "2.87.0"]
                  [datascript "0.15.5"]
-                 [environ "1.1.0"]]
+                 [devcards "0.2.2"]
+                 [posh "0.5.4"]
+                 [reagent "0.6.0"]
+                 [reagent-utils "0.2.0"]]
 
   :plugins [[lein-cljsbuild "1.1.4"]
-            [lein-environ "1.1.0"]
             [lein-asset-minifier "0.3.0"]]
 
   :min-lein-version "2.5.0"
@@ -37,10 +38,9 @@
   :profiles
   {:dev
    {:env {:dev? true}
-    :plugins [[lein-figwheel "0.5.0-6"]]
+    :plugins [[lein-figwheel "0.5.8"]]
     :figwheel {:http-server-root "public"
-               :css-dirs ["resources/public/css"]
-               :ring-handler algopop.leaderboardx.routes/handler}
+               :css-dirs ["resources/public/css"]}
     :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs" "src"]
                                :figwheel {:websocket-host "localhost"
                                           :on-jsload "algopop.leaderboardx.app.main/mount-root"}

@@ -8,7 +8,6 @@
             [algopop.leaderboardx.app.views.graph-editor :as graph-editor]
             [algopop.leaderboardx.app.views.graph-table :as graph-table]
             [algopop.leaderboardx.app.views.settings :as settings]
-            [reagent.session :as session]
             [bidi.bidi :as bidi]))
 
 (def view

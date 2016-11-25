@@ -1,16 +1,11 @@
 (ns algopop.leaderboardx.app.views.graph-editor
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require
-   [algopop.leaderboardx.app.db :as db]
    [algopop.leaderboardx.app.graph :as graph]
-   [algopop.leaderboardx.app.seed :as seed]
    [algopop.leaderboardx.app.views.common :as common]
    [algopop.leaderboardx.app.views.d3 :as d3]
    [algopop.leaderboardx.app.views.graph-table :as table]
    [algopop.leaderboardx.app.views.toolbar :as toolbar]
-   [goog.string :as gstring]
-   [clojure.set :as set]
-   [clojure.string :as string]
    [reagent.core :as reagent]
    [reagent.session :as session]))
 
@@ -72,7 +67,7 @@
     (.-innerHTML)))
 
 (defn graph-editor-page []
-  (let [g (db/get-graph)
+  (let [g (reagent/atom {})
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         editing (or (session/get :editing)
@@ -87,8 +82,8 @@
         [:div
          [toolbar/toolbar g get-svg]
          [title-editor g editing]
-         [:div#d3g [d3/graph selected-id g editing]]
-         [:div [table/table selected-id editing g]]])
+         [:div#d3g [d3/graph (reagent/atom {}) (reagent/atom {}) selected-id editing {}]]
+         [:div [table/table selected-id editing]]])
       :component-did-mount
       (fn graph-editor-did-mount [this]
         (.addEventListener js/document "keydown" keydown-handler))

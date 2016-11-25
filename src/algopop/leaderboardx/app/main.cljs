@@ -1,15 +1,15 @@
 (ns algopop.leaderboardx.app.main
-  (:require [algopop.leaderboardx.app.communication :as communication]
-            [algopop.leaderboardx.app.routes :as routes]
-            [algopop.leaderboardx.app.views.header :as header]
-            [cljsjs.react :as react]
-            [goog.events :as events]
-            [goog.history.EventType :as EventType]
-            [reagent.core :as reagent]
-            [reagent.session :as session])
+  (:require
+    [algopop.leaderboardx.app.routes :as routes]
+    [algopop.leaderboardx.app.views.header :as header]
+    [goog.dom :as dom]
+    [goog.events :as events]
+    [goog.history.EventType :as EventType]
+    [reagent.core :as reagent]
+    [reagent.session :as session])
   (:import goog.History))
 
-(defn current-page []
+(defn container []
   [:div.container
    [header/header]
    [:div.well
@@ -26,7 +26,7 @@
     (.setEnabled true)))
 
 (defn mount-root []
-  (reagent/render [#'current-page] (js/document.getElementById "app")))
+  (reagent/render [container] (dom/getElement "app")))
 
 (defn init! []
   (hook-browser-navigation!)

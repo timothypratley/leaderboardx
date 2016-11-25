@@ -19,7 +19,7 @@
           (reset! selected-id source))))))
 
 (defn list-edges [edges]
-  (string/join ", " (sort edges)))
+  (string/join ", " (sort @edges)))
 
 (defn add-node []
   [:form.form-inline
