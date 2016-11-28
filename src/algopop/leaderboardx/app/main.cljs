@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.main
   (:require
+    [algopop.leaderboardx.app.db]
     [algopop.leaderboardx.app.routes :as routes]
     [algopop.leaderboardx.app.views.header :as header]
     [goog.dom :as dom]
@@ -26,7 +27,7 @@
     (.setEnabled true)))
 
 (defn mount-root []
-  (reagent/render [container] (dom/getElement "app")))
+  (reagent/render [#'container] (dom/getElement "app")))
 
 (defn init! []
   (hook-browser-navigation!)

@@ -68,3 +68,30 @@
          previous (repeat n 1)
          initial-pageranks (repeat n (/ 1 n))]
      (iteratively-improve (normalize-matrix g) click-through epsilon previous initial-pageranks))))
+
+;; some datascript specific translation
+
+(defn matrix-with-link [acc [to from]]
+  (assoc-in acc [to from] 1))
+
+(defn graph->matrix [node-ids edges]
+  (let [n (count node-ids)
+        id->idx (zipmap node-ids (range))
+        matrix (vec (repeat n (vec (repeat n 0))))]
+    (reduce matrix-with-link matrix
+            (for [{{from :db/id} :from {to :db/id} :to} edges]
+              [(id->idx to) (id->idx from)]))))
+
+(defn same-rank-dups [[prev-id prev-pr prev-rank] [id pr rank]]
+  (if (= pr prev-pr)
+    [id pr prev-rank]
+    [id pr rank]))
+
+(defn ranks
+  [node-ids edges]
+  (let [prs (pagerank (graph->matrix node-ids edges))
+        id-prs (map vector node-ids prs)
+        by-pr (reverse (sort-by second id-prs))
+        with-ranks (map conj by-pr (iterate inc 1))
+        [first-rank & next-ranks :as by-pr] with-ranks]
+    (cons first-rank (map same-rank-dups with-ranks next-ranks))))

@@ -1,16 +1,19 @@
 (ns algopop.leaderboardx.app.db
   (:require
+    [algopop.leaderboardx.app.pagerank :as pagerank]
     [datascript.core :as d]
     [devcards.core :as dc :refer-macros [defcard deftest]]
     [posh.reagent :refer [q posh! transact!] :as posh]
     [reagent.core :as reagent]
-    [reagent.ratom :as ratom :include-macros]))
+    [reagent.ratom :as ratom :include-macros]
+    [datascript.db :as db]))
 
 (defonce schema
   {:assessment-type/name {:db/index true},
    :assessment/assessor {:db/valueType :db.type/ref},
    :assessment/date {},
    :assessee/group {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref},
+   :edge/name {},
    :group/name {},
    :user/password {},
    :assessee/name {:db/index true},
@@ -30,11 +33,8 @@
    ;; stuff
    :dom/child {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref, :db/isComponent true}
 
-   ;; TODO: migrate to real schema
-   :from {:db/valueType :db.type/ref
-          :db/cardinality :db.cardinality/many}
-   :to {:db/valueType :db.type/ref
-        :db/cardinality :db.cardinality/many}})
+   :from {:db/valueType :db.type/ref}
+   :to {:db/valueType :db.type/ref}})
 
 (defonce conn
   (doto
@@ -101,56 +101,64 @@
      :rank rank
      :pagerank pagerank}))
 
-;; TODO: how to combine this with a single transaction?
-;; use with-db??
-(defn set-ranks [ranks]
-  (transact! conn (rank-entities ranks)))
-
-(defn add-edge [name]
-  (transact!
-    conn
-    [{:edge/name name}]))
-
-(defn add-node [name]
-  (println "ADDING" name)
-  (transact!
-    conn
-    [{:node/name name}]))
-
-(def nodes-q
-  '[:find ?e (pull ?e [*])
-    :where [?e :node/name ?name]])
-
-(defn get-nodes []
-  (into {} @(q nodes-q conn)))
-
 (def node-q
-  '[:find ?e
+  '[:find [?e ...]
     :in $ ?name
     :where [?e :node/name ?name]])
 
 (defn get-node
   ([name]
-    ;; TODO: is there a once version?
-   (ffirst @(q node-q conn name)))
+   (first (d/q node-q @conn name)))
   ([name default]
    (or (get-node name) default)))
 
 (defn p [id]
   (posh/pull conn '[*] id))
 
-(def edges-q
-  '[:find ?e (pull ?e [*])
-    :where [?e :edge/name ?name]])
+(def nodes-q
+  '[:find [?e ...]
+    :where
+    [?e :node/name ?name]])
 
-(defn get-edges []
-  (into {} @(q edges-q conn)))
+(def edges-q
+  '[:find [?e ...]
+    :where
+    [?e :from ?from]
+    [?e :to ?to]])
+
+(defn set-ranks! []
+  (let [node-ids (d/q nodes-q @conn)
+        es (d/pull-many @conn '[*] (d/q edges-q @conn))]
+    (transact!
+      conn
+      (rank-entities (pagerank/ranks node-ids es)))))
+
+(defn add-edge [name]
+  (transact!
+    conn
+    [{:edge/name name}])
+  (set-ranks!))
+
+(defn add-node [name]
+  (transact!
+    conn
+    [{:node/name name}])
+  (set-ranks!))
+
+(defn pull-q
+  ([conn query]
+   (pull-q conn '[*] query))
+  ([conn pattern query & args]
+   (ratom/reaction
+     (doall
+       (for [e @(apply q query conn args)]
+         @(posh/pull conn pattern e))))))
 
 (defn watch-nodes []
-  (q nodes-q conn))
+  (pull-q conn nodes-q))
 
 (defn watch-edges []
-  (q edges-q conn))
+  (pull-q conn edges-q))
 
 (defn update-nodes [nodes]
   (transact! conn nodes))
@@ -191,7 +199,8 @@
 
 ;; TODO: if node already exists ^^
 (defn replace-edges-entities [k outs ins]
-  (let [out-count (count outs)
+  (let [node-id (get-node k -1)
+        out-count (count outs)
         in-count (count ins)
         outs-start -2
         out-ids (map get-node outs (iterate dec outs-start))
@@ -204,7 +213,7 @@
     ;; TODO: is this just concat?
     (->
       ;; node entity
-      [{:db/id (get-node k -1)
+      [{:db/id node-id
         :node/name k}]
       ;; related out and in target node entities
       (into
@@ -216,7 +225,7 @@
         (for [[out-id edge-id name] (map vector out-ids out-edge-ids outs)]
           {:db/id edge-id
            :edge/name (str k " to " name)
-           :from -1
+           :from node-id
            :to out-id}))
       ;; in edge entities
       (into
@@ -224,21 +233,14 @@
           {:db/id edge-id
            :edge/name (str name " to " k)
            :from in-id
-           :to -1})))))
+           :to node-id})))))
 
 (defn replace-edges [k outs ins]
-  (transact! conn (replace-edges-entities k outs ins)))
-
-(def table-nodes-q
-  '[:find ?node ?rank ?name
-    :in $
-    :where
-    [?node :node/name ?name]
-    [(get-else $ ?node :rank -1) ?rank]])
+  (transact! conn (replace-edges-entities k outs ins))
+  (set-ranks!))
 
 (defn nodes-for-table []
-  (let [nodes (q table-nodes-q conn)]
-    (ratom/reaction (sort-by second @nodes))))
+  (ratom/reaction (sort-by :rank @(watch-nodes))))
 
 (def outs-q
   '[:find [?name ...]
@@ -261,16 +263,3 @@
 
 (defn ins [id]
   (q ins-q conn id))
-
-;;; TODO: depricate
-(defn f [acc [from to x]]
-  (assoc-in acc [from to] x))
-
-(defn get-graph []
-  (let [ns (watch-nodes)
-        es (watch-edges)]
-    (ratom/reaction
-      {:nodes (ratom/reaction (into {} @ns))
-       :edges (ratom/reaction
-                (reduce f {} (for [[eid {:keys [from to] :as e}] @es]
-                               [(:db/id (first from)) (:db/id (first to)) e])))})))

@@ -24,7 +24,7 @@
 
   :main algopop.leaderboardx.main
 
-  :clean-targets ^{:protect false} ["resources/public/js/compiled"]
+  :clean-targets ^{:protect false} ["resources/public/js/out"]
 
   :minify-assets
   {:assets

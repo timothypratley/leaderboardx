@@ -20,15 +20,15 @@
         kept-particles (filter #(contains? ids (.-id %)) existing-particles)
         existing-ids (set (keys (.-idxs simulation)))
         added-particles (clj->js (remove #(contains? existing-ids (:db/id %)) particles))
-        js-particles (concat kept-particles added-particles)
-        idxs (zipmap (map #(.-id %) js-particles) (range))]
+        final-particles (concat kept-particles added-particles)
+        idxs (zipmap (map #(.-id %) final-particles) (range))]
     (.nodes simulation
             (clj->js
               (map-indexed
                 (fn [idx particle]
                   (set! (.-index particle) idx)
                   particle)
-                js-particles)))
+                final-particles)))
     (.force simulation "link"
             (js/d3.forceLink
               (clj->js
@@ -37,7 +37,7 @@
                     (assoc x :index idx))
                   (apply
                     concat
-                    (for [{:keys [db/id from to]} edges]
+                    (for [{id :db/id {from :db/id} :from {to :db/id} :to} edges]
                       [{:link [from id]
                         :source (idxs from)
                         :target (idxs id)}
@@ -47,7 +47,7 @@
     (set! (.-name simulation) "Untitled")
     (set! (.-idxs simulation) idxs)
     (set! (.-paths simulation)
-          (for [{:keys [db/id from to]} edges]
+          (for [{id :db/id {from :db/id} :from {to :db/id} :to} edges]
             [(idxs from)
              (idxs id)
              (idxs to)]))))
@@ -58,10 +58,12 @@
     (.alpha 1)))
 
 (defn color-for [uid]
-  (let [h (hash uid)]
-    [(bit-and 0xff h)
-     (bit-and 0xff (bit-shift-right h 8))
-     (bit-and 0xff (bit-shift-right h 16))]))
+  (if uid
+    (let [h (hash uid)]
+      [(bit-and 0xff h)
+       (bit-and 0xff (bit-shift-right h 8))
+       (bit-and 0xff (bit-shift-right h 16))])
+    [255 255 255]))
 
 (defn scale-rgb [rgb rank-scale]
   (map int (map * rgb (repeat (+ 0.9 (* 0.5 rank-scale))))))
@@ -227,7 +229,7 @@
       {:fill "none"
        ;; TODO: pass in the edge
        #_#_:stroke-dasharray (when-let [w (get-in @root [:edges from to :weight])]
-                           (str w "," 5))
+                               (str w "," 5))
        :d (apply str (interleave
                        ["M" "," " " "," " " ","]
                        (for [idx path
@@ -325,7 +327,8 @@
 
 (defn graph [nodes edges selected-id editing callbacks]
   (let [snapshot (reagent/atom {:bounds [400 400 600 600]})
-        simulation (create-simulation)
+        simulation (doto
+                     (create-simulation))
         mouse-down? (reagent/atom nil)
         ;; TODO: mount/unmount
         watch (fn a-graph-watcher [k r a b]
@@ -336,7 +339,7 @@
     (add-watch nodes :watch-nodes watch)
     (add-watch edges :watch-edges watch)
     (.on simulation "tick"
-         (fn layout-tick []
+         (fn simulation-tick []
            (swap! snapshot assoc
                   :nodes (js->clj (.nodes simulation) :keywordize-keys true)
                   :paths (.-paths simulation))

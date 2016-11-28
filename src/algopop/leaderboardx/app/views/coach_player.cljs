@@ -6,12 +6,13 @@
   (apply mapv vector xs))
 
 (def player
-  (reagent/atom [["William" "April" "May"]
-                 ["Productivity" 7 8]
-                 ["Leadership" 5 5]
-                 ["Effort" 7 8]
-                 ["Attitude" 5 7]
-                 ["Happiness" 5 4]]))
+  (reagent/atom
+    [["William" "April" "May"]
+     ["Productivity" 7 8]
+     ["Leadership" 5 5]
+     ["Effort" 7 8]
+     ["Attitude" 5 7]
+     ["Happiness" 5 4]]))
 
 (defn performance-table [[headers & data-rows]]
   [:table.table.table-responsive

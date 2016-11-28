@@ -43,7 +43,31 @@
     (db/replace-edges k outs nil)))
 
 (def example
-  {:edges ["Amy" ["Lily", "Abigail", "Emma"], "Rhys" ["William", "Liam", "Matt"], "Noah" ["William", "Matt"], "Michael" ["William", "Mason", "Abigail"], "Toby" ["Joel", "Mason", "Alex"], "Olivia" ["Mia", "Claire", "Charlotte"], "Jayden" ["Rhys", "Liam", "Matt"], "Madison" ["Isabella", "Emily", "William"], "Daniel" ["Mason", "Jayden", "Sophia"], "Mia" ["Emily", "Olivia", "Claire"], "William" ["Matt", "Emily", "Noah"], "Matt" ["Liam", "Jayden", "William"], "Claire" ["Charlotte", "Olivia", "Emily"], "Sophia" ["Emma", "Abigail", "Rachelle"], "Emma" ["Abigail", "Sophia", "Amy"], "Joel" ["Emily", "Alex", "Isabella"], "Emily" ["Mia", "Joel", "William"], "Abigail" ["Rachelle", "Amy", "Sophia"], "Alex" ["Mason", "Joel", "Daniel"], "Isabella" ["Madison", "Emily", "Mia"], "Lily" ["Amy", "Sophia", "Rachelle"], "Charlotte" ["Olivia", "Emily", "Claire"], "Liam" ["Matt", "Jayden", "William"], "Rachelle" ["Abigail", "Sophia", "Emma"], "Mason" ["Alex", "Daniel", "Toby"]],
+  {:edges ["Amy" ["Lily", "Abigail", "Emma"],
+           "Rhys" ["William", "Liam", "Matt"],
+           "Noah" ["William", "Matt"],
+           "Michael" ["William", "Mason", "Abigail"],
+           "Toby" ["Joel", "Mason", "Alex"],
+           "Olivia" ["Mia", "Claire", "Charlotte"],
+           "Jayden" ["Rhys", "Liam", "Matt"],
+           "Madison" ["Isabella", "Emily", "William"],
+           "Daniel" ["Mason", "Jayden", "Sophia"],
+           "Mia" ["Emily", "Olivia", "Claire"],
+           "William" ["Matt", "Emily", "Noah"],
+           "Matt" ["Liam", "Jayden", "William"],
+           "Claire" ["Charlotte", "Olivia", "Emily"],
+           "Sophia" ["Emma", "Abigail", "Rachelle"],
+           "Emma" ["Abigail", "Sophia", "Amy"],
+           "Joel" ["Emily", "Alex", "Isabella"],
+           "Emily" ["Mia", "Joel", "William"],
+           "Abigail" ["Rachelle", "Amy", "Sophia"],
+           "Alex" ["Mason", "Joel", "Daniel"],
+           "Isabella" ["Madison", "Emily", "Mia"],
+           "Lily" ["Amy", "Sophia", "Rachelle"],
+           "Charlotte" ["Olivia", "Emily", "Claire"],
+           "Liam" ["Matt", "Jayden", "William"],
+           "Rachelle" ["Abigail", "Sophia", "Emma"],
+           "Mason" ["Alex", "Daniel", "Toby"]],
    :title "Example"})
 
 (defn set-example! []

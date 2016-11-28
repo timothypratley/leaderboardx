@@ -1,6 +1,7 @@
 (ns algopop.leaderboardx.app.graph
   (:require [algopop.leaderboardx.app.pagerank :as pagerank]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [algopop.leaderboardx.app.db :as db]))
 
 ;; TODO: store ins as part of graph instead of recalculating
 (defn in-edges [g k]
@@ -65,30 +66,3 @@
           (update-in [:nodes new-k] merge-left node)
           (update-in [:edges new-k] merge-left outs)
           (rename-in-edges k new-k ins)))))
-
-(defn matrix-with-link [acc [to from]]
-  (assoc-in acc [to from] 1))
-
-(defn graph->matrix [node-ids edges]
-  (let [n (count node-ids)
-        id->idx (zipmap node-ids (range))
-        matrix (vec (repeat n (vec (repeat n 0))))]
-    (reduce matrix-with-link matrix
-            (for [{:keys [from to]} edges]
-              [(id->idx to) (id->idx from)]))))
-
-(defn same-rank-dups [[prev-id prev-pr prev-rank] [id pr rank]]
-  (if (= pr prev-pr)
-    [id pr prev-rank]
-    [id pr rank]))
-
-(defn rank
-  "Edges are maps containing :from and :to ids which exist in node-ids.
-  Returns a sequence in ranked order."
-  [node-ids edges]
-  (let [prs (pagerank/pagerank (graph->matrix node-ids edges))
-        id-prs (map vector node-ids prs)
-        by-pr (reverse (sort-by second id-prs))
-        with-ranks (map conj by-pr (iterate inc 1))
-        [first-rank & next-ranks :as by-pr] with-ranks]
-    (cons first-rank (map same-rank-dups with-ranks next-ranks))))

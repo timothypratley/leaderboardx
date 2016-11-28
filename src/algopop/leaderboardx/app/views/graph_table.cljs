@@ -69,8 +69,6 @@
   (let [search-term (reagent/atom "")
         nodes-by-rank (db/nodes-for-table)]
     (fn a-table [selected-id editing]
-      ;; TODO: don't do this here
-      ;;(db/set-ranks (graph/rank nodes edges))
       [:div
        [common/editable-string search-term [] (atom true)]
        [add-node]
@@ -83,7 +81,7 @@
           [:th "From"]]]
         (into
          [:tbody]
-         (for [[id rank name] @nodes-by-rank
+         (for [{:keys [db/id rank node/name]} @nodes-by-rank
                :let [selected? (= id @selected-id)
                      match? (and (seq @search-term)
                                  (gstring/startsWith name @search-term))

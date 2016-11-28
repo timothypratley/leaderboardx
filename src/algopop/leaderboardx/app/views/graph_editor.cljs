@@ -1,6 +1,7 @@
 (ns algopop.leaderboardx.app.views.graph-editor
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require
+   [algopop.leaderboardx.app.db :as db]
    [algopop.leaderboardx.app.graph :as graph]
    [algopop.leaderboardx.app.views.common :as common]
    [algopop.leaderboardx.app.views.d3 :as d3]
@@ -67,7 +68,9 @@
     (.-innerHTML)))
 
 (defn graph-editor-page []
-  (let [g (reagent/atom {})
+  (let [nodes (db/watch-nodes)
+        edges (db/watch-edges)
+        g (reagent/atom {})
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         editing (or (session/get :editing)
@@ -82,7 +85,7 @@
         [:div
          [toolbar/toolbar g get-svg]
          [title-editor g editing]
-         [:div#d3g [d3/graph (reagent/atom {}) (reagent/atom {}) selected-id editing {}]]
+         [:div#d3g [d3/graph nodes edges selected-id editing {}]]
          [:div [table/table selected-id editing]]])
       :component-did-mount
       (fn graph-editor-did-mount [this]
