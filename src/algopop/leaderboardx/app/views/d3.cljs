@@ -244,8 +244,11 @@
                          " scale(1.25,1.25)"))
        :style {:cursor "pointer"}}]]))
 
-(defn bounds [[minx miny maxx maxy] {:keys [x y]}]
-  [(min minx x) (min miny y) (max maxx x) (max maxy y)])
+(defn bounds [[minx miny maxx maxy] simulation-node]
+  [(min minx (.-x simulation-node))
+   (min miny (.-y simulation-node))
+   (max maxx (.-x simulation-node))
+   (max maxy (.-y simulation-node))])
 
 (defn normalize-bounds [[minx miny maxx maxy]]
   (let [width (+ 100 (- maxx minx))
@@ -256,8 +259,8 @@
         midy (average maxy miny)]
     [(- midx (/ width 2)) (- midy (/ height 2)) width height]))
 
-(defn update-bounds [g]
-  (assoc g :bounds (normalize-bounds (reduce bounds [400 400 600 600] (:nodes g)))))
+(defn update-bounds [g simulation-nodes]
+  (assoc g :bounds (normalize-bounds (reduce bounds [0 0 1 1] simulation-nodes))))
 
 (defn draw-svg [drawable simulation mouse-down? selected-id callbacks editing]
   (let [{:keys [nodes paths bounds]} @drawable
@@ -308,9 +311,7 @@
             x (+ (* divx scale) cx)
             y (+ (* divy scale) cy)]
         (when (and @selected-id @mouse-down?)
-          (let [k (if (string? @selected-id)
-                    @selected-id
-                    (pr-str (js->clj @selected-id)))]
+          (let [k @selected-id]
             (when-let [idx (get (.-idxs simulation) k)]
               (when-let [particle (aget (.nodes simulation) idx)]
                 (set! (.-fx particle) x)
@@ -322,7 +323,8 @@
 (defn create-simulation []
   (-> (js/d3.forceSimulation #js [])
       (.force "charge" (doto (js/d3.forceManyBody)
-                         (.distanceMax 150)))
+                         (.distanceMax 300)
+                         (.strength -100)))
       (.force "link" (js/d3.forceLink #js []))))
 
 (defn graph [nodes edges selected-id editing callbacks]
@@ -343,7 +345,7 @@
            (swap! snapshot assoc
                   :nodes (js->clj (.nodes simulation) :keywordize-keys true)
                   :paths (.-paths simulation))
-           (swap! snapshot update-bounds)))
+           (swap! snapshot update-bounds (.nodes simulation))))
     (fn graph-render [nodes edges selected-id editing callbacks]
       [draw-graph (reagent/current-component) snapshot simulation mouse-down? selected-id editing callbacks])))
 
