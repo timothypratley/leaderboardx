@@ -1,25 +1,26 @@
 (ns algopop.leaderboardx.app.views.graph-editor
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require
-   [algopop.leaderboardx.app.db :as db]
-   [algopop.leaderboardx.app.graph :as graph]
-   [algopop.leaderboardx.app.views.common :as common]
-   [algopop.leaderboardx.app.views.d3 :as d3]
-   [algopop.leaderboardx.app.views.graph-table :as table]
-   [algopop.leaderboardx.app.views.toolbar :as toolbar]
-   [reagent.core :as reagent]
-   [reagent.session :as session]))
+    [algopop.leaderboardx.app.db :as db]
+    [algopop.leaderboardx.app.graph :as graph]
+    [algopop.leaderboardx.app.views.common :as common]
+    [algopop.leaderboardx.app.views.d3 :as d3]
+    [algopop.leaderboardx.app.views.graph-table :as table]
+    [algopop.leaderboardx.app.views.graph-settings :as graph-settings]
+    [algopop.leaderboardx.app.views.toolbar :as toolbar]
+    [reagent.core :as reagent]
+    [reagent.session :as session]))
 
 (defn title-input [title]
   (reagent/create-class
-   {:display-name "title-input"
-    :component-did-mount common/focus-append
-    :reagent-render
-    (fn title-input-render [title]
-      [:input {:type "text"
-               :name "new-title"
-               :style {:width "550px"}
-               :default-value title}])}))
+    {:display-name "title-input"
+     :component-did-mount common/focus-append
+     :reagent-render
+     (fn title-input-render [title]
+       [:input {:type "text"
+                :name "new-title"
+                :style {:width "550px"}
+                :default-value title}])}))
 
 (defn title-editor [g editing]
   (let [title (:title @g)]
@@ -75,21 +76,39 @@
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         editing (or (session/get :editing)
                     (:editing (session/put! :editing (reagent/atom nil))))
+        node-types (db/node-types)
+        edge-types (db/edge-types)
+        selected-node-type (reagent/atom (or (first @node-types) "likes"))
+        selected-edge-type (reagent/atom (or (first @edge-types) "likes"))
+        show-settings? (reagent/atom false)
         keydown-handler
         (fn a-keydown-handler [e]
-          (handle-keydown e selected-id editing g))]
+          (handle-keydown e selected-id editing g))
+        callbacks
+        {:shift-click-edge
+         (fn [{:keys [id]}]
+           (db/invert-edge id))
+         :shift-click-node
+         (fn [a b]
+           (db/add-edge a b))}]
     (reagent/create-class
-     {:display-name "graph-editor"
-      :reagent-render
-      (fn graph-editor []
-        [:div
-         [toolbar/toolbar g get-svg]
-         [title-editor g editing]
-         [:div#d3g [d3/graph nodes edges selected-id editing {}]]
-         [:div [table/table selected-id editing]]])
-      :component-did-mount
-      (fn graph-editor-did-mount [this]
-        (.addEventListener js/document "keydown" keydown-handler))
-      :component-will-unmount
-      (fn graph-editor-will-unmount [this]
-        (.removeEventListener js/document "keydown" keydown-handler))})))
+      {:display-name "graph-editor"
+       :reagent-render
+       (fn graph-editor []
+         [:div
+          [toolbar/toolbar g get-svg show-settings?]
+          (when @show-settings?
+            [:div.panel.panel-default
+             [:div.panel-body
+              [graph-settings/graph-settings node-types edge-types]]])
+          [title-editor g editing]
+          [:div#d3g [d3/graph nodes edges selected-id editing callbacks]]
+          [:div.panel.panel-default
+           [:div.panel-body
+            [table/table selected-id editing node-types edge-types selected-node-type selected-edge-type]]]])
+       :component-did-mount
+       (fn graph-editor-did-mount [this]
+         (.addEventListener js/document "keydown" keydown-handler))
+       :component-will-unmount
+       (fn graph-editor-will-unmount [this]
+         (.removeEventListener js/document "keydown" keydown-handler))})))

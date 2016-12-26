@@ -32,37 +32,35 @@
    46 "DELETE"
    8 "BACKSPACE"})
 
-(defn save [model path editing write e]
+(defn save [editing write e]
   (.preventDefault e)
-  (write model path (.. e -target -value))
+  (write (.. e -target -value))
   (reset! editing nil))
 
 (defn editable-string
-  ([model path editing]
-   (editable-string model path editing
-                    (fn update-model [m p v]
-                      (swap! m assoc-in p v))))
-  ([model path editing write]
-   (if (= path @editing)
-     [focus-append-input
-      {:default-value (get-in @model path)
-       :on-blur
-       (fn editable-string-blur [e]
-         (save model path editing write e))
-       :on-key-down
-       (fn editable-string-key-down [e]
-         (case (key-code-name (.-keyCode e))
-           "ESC" (reset! editing nil)
-           "ENTER" (save model path editing write e)
-           nil))}]
-     [:span.editable
-      {:style {:width "100%"
-               :cursor "pointer"}
-       :on-click
-       (fn editable-string-click [e]
-         (reset! editing path))}
-      (get-in @model path)
-      [:span.glyphicon.glyphicon-pencil.edit]])))
+  [editing write current-value]
+  (let [id (random-uuid)]
+    (fn an-editable-string [editing write current-value]
+      (if (= id @editing)
+        [focus-append-input
+         {:default-value current-value
+          :on-blur
+          (fn editable-string-blur [e]
+            (save editing write e))
+          :on-key-down
+          (fn editable-string-key-down [e]
+            (case (key-code-name (.-keyCode e))
+              "ESC" (reset! editing nil)
+              "ENTER" (save editing write e)
+              nil))}]
+        [:span.editable
+         {:style {:width "100%"
+                  :cursor "pointer"}
+          :on-click
+          (fn editable-string-click [e]
+            (reset! editing id))}
+         current-value
+         [:span.glyphicon.glyphicon-pencil.edit]]))))
 
 (defcard editable-string-example
   "editable string"
@@ -81,12 +79,12 @@
     :default-value (get-in @model path)
     :on-blur
     (fn editable-string-blur [e]
-      (save model path editing write e))
+      (save editing write e))
     :on-key-down
     (fn editable-string-key-down [e]
       (case (key-code-name (.-keyCode e))
         "ESC" (reset! editing nil)
-        "ENTER" (save model path editing write e)
+        "ENTER" (save editing write e)
         nil))}])
 
 (defn form-data
@@ -120,3 +118,26 @@
         (reset! editing options)
         nil)}
      (get-in @model path)]))
+
+(defn add [write]
+  (let [show? (reagent/atom false)]
+    (fn an-add [write]
+      (if @show?
+        [:input
+         {:style {:width "100%"}
+          :on-blur
+          (fn editable-string-blur [e]
+            (write (.. e -target -value)))
+          :on-key-down
+          (fn editable-string-key-down [e]
+            (case (key-code-name (.-keyCode e))
+              "ESC" (swap! show? not)
+              "ENTER" (do
+                        (write (.. e -target -value))
+                        (swap! show? not))
+              nil))}]
+        [:button
+         {:on-click
+          (fn add-click [e]
+            (swap! show? not))}
+         "Add"]))))

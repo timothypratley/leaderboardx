@@ -24,7 +24,7 @@
 
   :main algopop.leaderboardx.main
 
-  :clean-targets ^{:protect false} ["resources/public/js/out"]
+  :clean-targets ^{:protect false} ["resources/public/js/out" "resources/public/js/app.js"]
 
   :minify-assets
   {:assets
@@ -51,13 +51,13 @@
 
    :uberjar
    {:env {:production true}
-    :source-paths ["env/prod/cljs" "src"]
     :hooks [leiningen.cljsbuild minify-assets.plugin/hooks]
     :aot :all
     :omit-source true
-    :cljsbuild {:jar true
-                :builds {:app
-                         {:compiler
+    :cljsbuild {:builds {:app
+                         {:jar true
+                          :source-paths ["env/prod/cljs" "src"]
+                          :compiler
                           {:main prod.main
                            :optimizations :advanced
                            :source-map "resources/public/js/compiled.main.map"

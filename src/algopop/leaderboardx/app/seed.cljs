@@ -39,8 +39,7 @@
                                [to {:value 1}]))])}))
 
 (defn set-rand! []
-  (doseq [[k outs] (:edges (rand-graph))]
-    (db/replace-edges k outs nil)))
+  (db/replace-many-edges (partition-all 2 (:edges (rand-graph))) "likes"))
 
 (def example
   {:edges ["Amy" ["Lily", "Abigail", "Emma"],
@@ -71,5 +70,4 @@
    :title "Example"})
 
 (defn set-example! []
-  (doseq [[k outs] (partition-all 2 (:edges example))]
-    (db/replace-edges k outs nil)))
+  (db/replace-many-edges (partition-all 2 (:edges example)) "likes"))

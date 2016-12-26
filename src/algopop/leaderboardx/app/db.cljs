@@ -4,34 +4,48 @@
     [datascript.core :as d]
     [devcards.core :as dc :refer-macros [defcard deftest]]
     [posh.reagent :refer [q posh! transact!] :as posh]
-    [reagent.core :as reagent]
     [reagent.ratom :as ratom :include-macros]
     [datascript.db :as db]))
 
 (defonce schema
-  {:assessment-type/name {:db/index true},
-   :assessment/assessor {:db/valueType :db.type/ref},
-   :assessment/date {},
-   :assessee/group {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref},
-   :edge/name {},
-   :group/name {},
-   :user/password {},
-   :assessee/name {:db/index true},
-   :assessment/type {:db/valueType :db.type/ref},
-   :user/status {:db/valueType :db.type/ref},
-   :group/organization {:db/valueType :db.type/ref},
-   :organization/administrator {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref},
-   :assessment/status {:db/valueType :db.type/ref},
-   :assessee/tag {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref},
-   :user/email {:db/index true},
-   :tag/name {},
-   :assessment/duration-minutes {},
-   :assessment/assessee {:db/valueType :db.type/ref},
-   :assessment-type/attribute {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref},
+  {:assessment-type/name {:db/index true}
+   :assessment/assessor {:db/valueType :db.type/ref}
+   :assessment/date {}
+   :assessee/group {:db/cardinality :db.cardinality/many
+                    :db/valueType :db.type/ref}
+   :edge/types {:db/cardinality :db.cardinality/many
+                :db/valueType :db.type/ref
+                :db/isComponent true}
+   :node/types {:db/cardinality :db.cardinality/many
+                :db/valueType :db.type/ref
+                :db/isComponent true}
+   :edge/type {}
+   :edge/name {}
+   :node/type {}
+   :node/name {}
+   :group/name {}
+   :user/password {}
+   :assessee/name {:db/index true}
+   :assessment/type {:db/valueType :db.type/ref}
+   :user/status {:db/valueType :db.type/ref}
+   :group/organization {:db/valueType :db.type/ref}
+   :organization/administrator {:db/cardinality :db.cardinality/many
+                                :db/valueType :db.type/ref}
+   :assessment/status {:db/valueType :db.type/ref}
+   :assessee/tag {:db/cardinality :db.cardinality/many
+                  :db/valueType :db.type/ref}
+   :user/email {:db/index true}
+   :tag/name {}
+   :assessment/duration-minutes {}
+   :assessment/assessee {:db/valueType :db.type/ref}
+   :assessment-type/attribute {:db/cardinality :db.cardinality/many
+                               :db/valueType :db.type/ref}
    :organization/name {:db/index true}
 
    ;; stuff
-   :dom/child {:db/cardinality :db.cardinality/many, :db/valueType :db.type/ref, :db/isComponent true}
+   :dom/child {:db/cardinality :db.cardinality/many
+               :db/valueType :db.type/ref
+               :db/isComponent true}
 
    :from {:db/valueType :db.type/ref}
    :to {:db/valueType :db.type/ref}})
@@ -54,7 +68,13 @@
     (transact!
       conn
       [{:name "William"
-        :somedata "something about William"}])
+        :somedata "something about William"}
+       ;;       {:node/types {"person" {}}}
+       {:edge/types #{{:edge/type "likes"
+                       :edge/color "#9ecae1"}
+                      {:edge/type "dislikes"
+                       :edge/distance 300
+                       :edge/color "#9e0000"}}}])
     (add-assessment "Coach" "William" {:producivity 7})))
 
 (def q-player
@@ -96,7 +116,7 @@
      :line (ol i)}))
 
 (defn rank-entities [ranks]
-  (for [[id rank pagerank] ranks]
+  (for [[id pagerank rank] ranks]
     {:db/id id
      :rank rank
      :pagerank pagerank}))
@@ -106,11 +126,11 @@
     :in $ ?name
     :where [?e :node/name ?name]])
 
-(defn get-node
-  ([name]
-   (first (d/q node-q @conn name)))
-  ([name default]
-   (or (get-node name) default)))
+(defn get-node-by-name
+  ([node-name]
+   (first (d/q node-q @conn node-name)))
+  ([node-name default]
+   (or (get-node-by-name node-name) default)))
 
 (defn p [id]
   (posh/pull conn '[*] id))
@@ -132,12 +152,6 @@
     (transact!
       conn
       (rank-entities (pagerank/ranks node-ids es)))))
-
-(defn add-edge [name]
-  (transact!
-    conn
-    [{:edge/name name}])
-  (set-ranks!))
 
 (defn add-node [name]
   (transact!
@@ -180,7 +194,7 @@
 (defn rename-node [id new-name]
   (let [{:keys [node/name] :as node} (p id)]
     (when (not= new-name name)
-      (if-let [existing (get-node new-name)]
+      (if-let [existing (get-node-by-name new-name)]
         (let [outs (get-out-edges id)
               ins (get-in-edges id)]
           (update-nodes
@@ -197,15 +211,27 @@
           [{:db/id id
             :node/name new-name}])))))
 
-;; TODO: if node already exists ^^
-(defn replace-edges-entities [k outs ins]
-  (let [node-id (get-node k -1)
+(defn edge-tx [edge-id from to]
+  {:db/id edge-id
+   :edge/name (str (d/pull @conn [:name/name] from) " to " (d/pull @conn [:name/name] to))
+   :from from
+   :to to})
+
+(defn add-edge [from to]
+  (transact! conn [(edge-tx -1 from to)])
+  (set-ranks!))
+
+(defn invert-edge [id]
+  (transact! conn [{:db/id id :weight 300}]))
+
+(defn replace-edges-entities [node-name outs ins edge-type]
+  (let [node-id (get-node-by-name node-name -1)
         out-count (count outs)
         in-count (count ins)
         outs-start -2
-        out-ids (map get-node outs (iterate dec outs-start))
+        out-ids (map get-node-by-name outs (iterate dec outs-start))
         ins-start (- outs-start out-count)
-        in-ids (map get-node ins (iterate dec ins-start))
+        in-ids (map get-node-by-name ins (iterate dec ins-start))
         out-edges-start (- ins-start in-count)
         out-edge-ids (iterate dec out-edges-start)
         in-edges-start (- out-edges-start out-count)
@@ -214,29 +240,36 @@
     (->
       ;; node entity
       [{:db/id node-id
-        :node/name k}]
+        :node/name node-name}]
       ;; related out and in target node entities
       (into
-        (for [[id name] (map vector (concat out-ids in-ids) (concat outs ins))]
+        (for [[id adjacent-node-name] (map vector (concat out-ids in-ids) (concat outs ins))]
           {:db/id id
-           :node/name name}))
+           :node/name adjacent-node-name}))
       ;; out edge entities
       (into
-        (for [[out-id edge-id name] (map vector out-ids out-edge-ids outs)]
+        (for [[out-id edge-id adjacent-node-name] (map vector out-ids out-edge-ids outs)]
           {:db/id edge-id
-           :edge/name (str k " to " name)
+           :edge/name (str node-name " to " adjacent-node-name)
+           :edge/type edge-type
            :from node-id
            :to out-id}))
       ;; in edge entities
       (into
-        (for [[in-id edge-id name] (map vector in-ids in-edge-ids ins)]
+        (for [[in-id edge-id adjacent-node-name] (map vector in-ids in-edge-ids ins)]
           {:db/id edge-id
-           :edge/name (str name " to " k)
+           :edge/name (str adjacent-node-name " to " node-name)
+           :edge/type edge-type
            :from in-id
            :to node-id})))))
 
-(defn replace-edges [k outs ins]
-  (transact! conn (replace-edges-entities k outs ins))
+(defn replace-edges [k outs ins edge-type]
+  (transact! conn (replace-edges-entities k outs ins edge-type))
+  (set-ranks!))
+
+(defn replace-many-edges [xs edge-type]
+  (doseq [[k outs ins] xs]
+    (transact! conn (replace-edges-entities k outs ins edge-type)))
   (set-ranks!))
 
 (defn nodes-for-table []
@@ -263,3 +296,29 @@
 
 (defn ins [id]
   (q ins-q conn id))
+
+(defn values [attribute]
+  [:find '[(pull ?value [*]) ...]
+   :where
+   ['_ attribute '?value]])
+
+(def node-types-q
+  '[:find [?type ...]
+    :where
+    [?e :node/types ?type]
+    [?type :node/type ?t]])
+
+(def edge-types-q
+  '[:find [?type ...]
+    :where
+    [?e :edge/types ?type]
+    [?type :edge/type ?t]])
+
+(defn node-types []
+  (pull-q conn node-types-q))
+
+(defn edge-types []
+  (pull-q conn edge-types-q))
+
+(defn insert! [e]
+  (transact! conn [e]))

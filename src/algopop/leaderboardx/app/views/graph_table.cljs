@@ -15,7 +15,9 @@
       (when (seq source)
         (let [outs (map string/trim (string/split outs delimiter))
               ins (map string/trim (string/split ins delimiter))]
-          (db/replace-edges source outs ins)
+          ;; TODO: use the edge type, not "likes"
+          ;; TODO: only show video and discuss on about and discuss tabs
+          (db/replace-edges source outs ins "likes")
           (reset! selected-id source))))))
 
 (defn list-edges [edges]
@@ -28,56 +30,44 @@
       (.preventDefault e)
       (let [{:keys [name outs ins]} (common/form-data e)]
         (replace-edges (atom nil) name outs ins)))}
-   [:input.form-control
-    {:type "submit"
-     :value "Add"}]
    [:input.form-control {:name "name"}]
    [:input.form-control {:name "outs"}]
-   [:input.form-control {:name "ins"}]])
-
-(def node-types
-  ["Person"
-   "Assessment"])
-
-(def link-types
-  ["Endorses"
-   "Owns"])
+   [:input.form-control {:name "ins"}]
+   [:input.form-control
+    {:type "submit"
+     :value "Add"}]])
 
 ;; TODO: use re-com
 (defn select-type [types editing]
   (let [current-type (reagent/atom (first types))]
-    (fn a-select-type []
-      (if (= @editing types)
-        [:th
-         (into
-          [:select
-           {:on-change
-            (fn selection [e]
-              (when-let [idx (.-selectedIndex (.-target e))]
-                (reset! current-type (types idx))
-                (reset! editing nil)))}]
-          (for [t types]
-            [:option t]))]
-        [:th
-         {:on-click
-          (fn type-click [e]
-            (reset! editing types)
-            nil)}
-         @current-type]))))
+    (fn a-select-type [types editing]
+      [:th
+       (into
+         [:select
+          {:on-change
+           (fn selection [e]
+             (when-let [idx (.-selectedIndex (.-target e))]
+               (reset! current-type (types idx))
+               (reset! editing nil)))}]
+         (for [{:keys [edge/type]} types]
+           [:option type]))])))
 
-(defn table [selected-id editing]
+(defn table [selected-id editing node-types edge-types selected-node-type selected-edge-type]
   (let [search-term (reagent/atom "")
         nodes-by-rank (db/nodes-for-table)]
-    (fn a-table [selected-id editing]
+    (fn a-table [selected-id editing node-types edge-types selected-node-type selected-edge-type]
       [:div
-       [common/editable-string search-term [] (atom true)]
+       [common/editable-string editing
+        (fn [v]
+          (reset! search-term v))
+        "search"]
        [add-node]
        [:table.table.table-responsive
         [:thead
          [:tr
           [:th "Rank"]
-          [select-type node-types editing]
-          [select-type link-types editing]
+          [select-type @node-types editing]
+          [select-type @edge-types editing]
           [:th "From"]]]
         (into
          [:tbody]
@@ -95,15 +85,18 @@
              (fn table-row-click [e]
                (reset! selected-id id))}
             [:td rank]
-            [:td [common/editable-string (atom {id {:name name}}) [id :name] editing
+            [:td [common/editable-string editing
                   (fn update-node-name [m p v]
-                    (db/rename-node id v))]]
-            [:td [common/editable-string (atom {id {:outs outs}}) [id :outs] editing
+                    (db/rename-node id v))
+                  name]]
+            [:td [common/editable-string editing
                   (fn update-out-edges [m p v]
-                    (replace-edges selected-id name v ins))]]
-            [:td [common/editable-string (atom {id {:ins ins}}) [id :ins] editing
+                    (replace-edges selected-id name v ins))
+                  outs]]
+            [:td [common/editable-string editing
                   (fn update-in-edges [m p v]
-                    (replace-edges selected-id name outs v))]]]))]])))
+                    (replace-edges selected-id name outs v))
+                  ins]]]))]])))
 
 (defn table-view []
   (let [selected-id (reagent/atom nil)

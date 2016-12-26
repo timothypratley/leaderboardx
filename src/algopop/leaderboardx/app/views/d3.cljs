@@ -15,35 +15,48 @@
 
 (defn update-simulation [simulation nodes edges]
   (let [particles (concat nodes edges)
-        existing-particles (.nodes simulation)
-        ids (set (map :db/id particles))
-        kept-particles (filter #(contains? ids (.-id %)) existing-particles)
+        particles-by-id (into {} (for [p particles] [(:db/id p) p]))
+        simulation-particles (.nodes simulation)
+        kept-particles (clj->js
+                         (for [p simulation-particles
+                               :let [found (particles-by-id (.-id p))]
+                               :when found]
+                           (merge (js->clj p) found)))
         existing-ids (set (keys (.-idxs simulation)))
         added-particles (clj->js (remove #(contains? existing-ids (:db/id %)) particles))
         final-particles (concat kept-particles added-particles)
         idxs (zipmap (map #(.-id %) final-particles) (range))]
-    (.nodes simulation
-            (clj->js
-              (map-indexed
-                (fn [idx particle]
-                  (set! (.-index particle) idx)
-                  particle)
-                final-particles)))
-    (.force simulation "link"
-            (js/d3.forceLink
-              (clj->js
-                (map-indexed
-                  (fn [idx x]
-                    (assoc x :index idx))
-                  (apply
-                    concat
-                    (for [{id :db/id {from :db/id} :from {to :db/id} :to} edges]
-                      [{:link [from id]
-                        :source (idxs from)
-                        :target (idxs id)}
-                       {:link [id to]
-                        :source (idxs id)
-                        :target (idxs to)}]))))))
+    (.nodes
+      simulation
+      (clj->js
+        (map-indexed
+          (fn [idx particle]
+            (set! (.-index particle) idx)
+            particle)
+          final-particles)))
+    (.links
+      (.force simulation "link")
+      (clj->js
+        (map-indexed
+          (fn [idx x]
+            (assoc x :index idx))
+          (apply
+            concat
+            (for [{id :db/id {from :db/id} :from {to :db/id} :to weight :weight} edges]
+              (cond->
+                [{:link [from id]
+                  :source (idxs from)
+                  :target (idxs id)
+                  :weight weight}
+                 {:link [id to]
+                  :source (idxs id)
+                  :target (idxs to)
+                  :weight weight}]
+                weight
+                (conj {:link [from to]
+                       :source (idxs from)
+                       :target (idxs to)
+                       :weight (* 3 weight)})))))))
     (set! (.-name simulation) "Untitled")
     (set! (.-idxs simulation) idxs)
     (set! (.-paths simulation)
@@ -201,7 +214,7 @@
 
 (defn draw-edge [[from mid to :as path] nodes simulation mouse-down? selected-id {:keys [shift-click-edge]} editing]
   (let [{x1 :x y1 :y} (get nodes from)
-        {x2 :x y2 :y id :id} (get nodes mid)
+        {x2 :x y2 :y id :id weight :weight} (get nodes mid)
         {x3 :x y3 :y} (get nodes to)
         selected? (= id (js->clj @selected-id))]
     [:g
@@ -222,14 +235,17 @@
         (reset! editing nil)
         (when (and shift-click-edge (.-shiftKey e))
           (shift-click-edge (get nodes mid))))
-      :stroke (if selected?
-                "#6699aa"
-                "#9ecae1")}
+      :stroke (if weight
+                (if selected?
+                  "#660000"
+                  "#9e0000")
+                (if selected?
+                  "#6699aa"
+                  "#9ecae1"))}
      [:path
       {:fill "none"
        ;; TODO: pass in the edge
-       #_#_:stroke-dasharray (when-let [w (get-in @root [:edges from to :weight])]
-                               (str w "," 5))
+       :stroke-dasharray (when weight "5,5")
        :d (apply str (interleave
                        ["M" "," " " "," " " ","]
                        (for [idx path
@@ -237,7 +253,9 @@
                          (get-in nodes [idx dim]))))}]
      [:polygon
       {:points "-5,-5 -5,5 7,0"
-       :fill "#9ecae1"
+       :fill (if weight
+               "#9e0000"
+               "#9ecae1")
        :transform (str "translate(" x2 "," y2
                        ") rotate(" (rise-over-run (- y3 y1) (- x3 x1)) ")"
                        (when selected?
@@ -259,8 +277,16 @@
         midy (average maxy miny)]
     [(- midx (/ width 2)) (- midy (/ height 2)) width height]))
 
+(defn initial-bounds [simulation-node]
+  (if simulation-node
+    [(.-x simulation-node)
+     (.-y simulation-node)
+     (.-x simulation-node)
+     (.-y simulation-node)]
+    [0 0 0 0]))
+
 (defn update-bounds [g simulation-nodes]
-  (assoc g :bounds (normalize-bounds (reduce bounds [0 0 1 1] simulation-nodes))))
+  (assoc g :bounds (normalize-bounds (reduce bounds (initial-bounds (first simulation-nodes)) simulation-nodes))))
 
 (defn draw-svg [drawable simulation mouse-down? selected-id callbacks editing]
   (let [{:keys [nodes paths bounds]} @drawable
@@ -322,15 +348,21 @@
 ;; TODO: nodes should have a stronger charge than links
 (defn create-simulation []
   (-> (js/d3.forceSimulation #js [])
-      (.force "charge" (doto (js/d3.forceManyBody)
-                         (.distanceMax 300)
-                         (.strength -100)))
-      (.force "link" (js/d3.forceLink #js []))))
+      (.force
+        "charge"
+        (doto (js/d3.forceManyBody)
+          (.distanceMax 300)
+          (.strength -100)))
+      (.force
+        "link"
+        (doto (js/d3.forceLink #js [])
+          (.distance
+            (fn [link idx]
+              (or (.-weight link) 30)))))))
 
 (defn graph [nodes edges selected-id editing callbacks]
-  (let [snapshot (reagent/atom {:bounds [400 400 600 600]})
-        simulation (doto
-                     (create-simulation))
+  (let [snapshot (reagent/atom {:bounds [0 0 0 0]})
+        simulation (create-simulation)
         mouse-down? (reagent/atom nil)
         ;; TODO: mount/unmount
         watch (fn a-graph-watcher [k r a b]

@@ -2,10 +2,20 @@
   (:require ;;[algopop.leaderboardx.app.io.dot :as dot]
             ;;[algopop.leaderboardx.app.io.csv :as csv]
             [algopop.leaderboardx.app.seed :as seed]
+            [algopop.leaderboardx.app.views.graph-settings :as settings]
             [algopop.leaderboardx.app.logging :as log]
             [clojure.string :as string]
             [reagent.core :as reagent]))
 
+(defn settings [show-settings?]
+  [:div.btn-group
+   [:button.btn.btn-default.dropdown-toggle
+    {:on-click
+     (fn settings-click [e]
+       (swap! show-settings? not))}
+    [:span.glyphicon.glyphicon-cog {:aria-hidden "true"}]]])
+
+;; TODO: make this open a panel like settings
 (defn help []
   [:div.btn-group
    [:button.btn.btn-default.dropdown-toggle
@@ -21,7 +31,7 @@
       [:li "To delete nodes and links, click on the graph or table and press the DELETE key."]
       [:li "Select one name and shift click another to add a link."]
       [:li "Shift click a selected node to change its shape."]
-      [:li "Shift click a link to make it dashed."]
+      [:li "Shift click a link to change the link type."]
       [:li "Drag nodes or edges around with the mouse."]
       [:li "Double click to unpin nodes and edges."]
       [:li "Click on the table row then click again to edit."]
@@ -88,7 +98,7 @@
    (string/replace svg #" data-reactid=\"[^\"]*\"" "")
    "</svg>"))
 
-(defn toolbar [g get-svg]
+(defn toolbar [g get-svg show-settings?]
   [:div.btn-toolbar.pull-right {:role "toolbar"}
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle
@@ -123,4 +133,5 @@
      [action-button "Image (svg)"
       (fn export-svg [e]
         (save-file (filename @g "svg") "image/svg+xml" (format-svg (get-svg))))]]]
-   [help]])
+   [help]
+   [settings show-settings?]])
