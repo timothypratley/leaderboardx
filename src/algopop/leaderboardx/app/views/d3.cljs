@@ -13,7 +13,7 @@
   (:import
     [goog.crypt Md5]))
 
-(defn update-simulation [simulation nodes edges]
+(defn update-simulation [simulation node-types edge-types nodes edges]
   (let [particles (concat nodes edges)
         particles-by-id (into {} (for [p particles] [(:db/id p) p]))
         simulation-particles (.nodes simulation)
@@ -42,28 +42,26 @@
             (assoc x :index idx))
           (apply
             concat
-            (for [{id :db/id {from :db/id} :from {to :db/id} :to weight :weight} edges]
+            (for [{:keys [db/id edge/type]
+                   {from :db/id} :from
+                   {to :db/id} :to} edges
+                  :let [distance (:edge/distance (get edge-types type))]]
               (cond->
                 [{:link [from id]
                   :source (idxs from)
                   :target (idxs id)
-                  :weight weight}
+                  :distance distance}
                  {:link [id to]
                   :source (idxs id)
                   :target (idxs to)
-                  :weight weight}]
-                weight
+                  :distance distance}]
+                distance
                 (conj {:link [from to]
                        :source (idxs from)
                        :target (idxs to)
-                       :weight (* 3 weight)})))))))
+                       :distance (* 3 distance)})))))))
     (set! (.-name simulation) "Untitled")
-    (set! (.-idxs simulation) idxs)
-    (set! (.-paths simulation)
-          (for [{id :db/id {from :db/id} :from {to :db/id} :to} edges]
-            [(idxs from)
-             (idxs id)
-             (idxs to)]))))
+    (set! (.-idxs simulation) idxs)))
 
 (defn restart-simulation [simulation]
   (doto simulation
@@ -163,48 +161,53 @@
             (string/upper-case)
             (re-matches #"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}"))))
 
-(defn draw-node [{:keys [id name x y pagerank shape uid]}
-                 node-count
-                 max-pagerank
-                 simulation
-                 mouse-down?
-                 selected-id
-                 {:keys [shift-click-node]}
-                 editing]
-  (let [selected? (= id @selected-id)
-        rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
-        r (scale-dist node-count rank-scale)]
-    [:g
-     {:transform (str "translate(" x "," y ")"
-                      (when selected?
-                        " scale(1.25,1.25)"))
-      :on-double-click
-      (fn node-double-click [e]
-        (reset! selected-id nil)
-        (when-let [idx (get (.-idxs simulation) id)]
-          (let [particle (aget (.nodes simulation) idx)]
-            (js-delete particle "fx")
-            (js-delete particle "fy")))
-        (restart-simulation simulation))
-      :on-mouse-down
-      (fn node-mouse-down [e]
-        (.stopPropagation e)
-        (.preventDefault e)
-        (let [new-selected-id id]
-          (when (and shift-click-node (.-shiftKey e) @selected-id new-selected-id)
-            (shift-click-node @selected-id new-selected-id))
-          (reset! selected-id new-selected-id)
-          (reset! editing nil))
-        (reset! mouse-down? true))}
-     (if (email? name)
-       [gravatar-background id r name]
-       [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
-     [:text.unselectable
-      {:text-anchor "middle"
-       :font-size (min (max node-count 8) 22)
-       :style {:pointer-events "none"
-               :dominant-baseline "central"}}
-      name]]))
+(defn draw-node
+  [node-types
+   {:keys [db/id node/name pagerank shape uid]}
+   node-count
+   max-pagerank
+   simulation
+   mouse-down?
+   selected-id
+   {:keys [shift-click-node]}
+   editing]
+  (when-let [idxs (.-idxs simulation)]
+    (let [particle (aget (.nodes simulation) (idxs id))
+          x (.-x particle)
+          y (.-y particle)
+          selected? (= id @selected-id)
+          rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
+          r (scale-dist node-count rank-scale)]
+      ^{:key id}
+      [:g
+       {:transform (str "translate(" x "," y ")"
+                        (when selected?
+                          " scale(1.25,1.25)"))
+        :on-double-click
+        (fn node-double-click [e]
+          (reset! selected-id nil)
+          (js-delete particle "fx")
+          (js-delete particle "fy")
+          (restart-simulation simulation))
+        :on-mouse-down
+        (fn node-mouse-down [e]
+          (.stopPropagation e)
+          (.preventDefault e)
+          (let [new-selected-id id]
+            (when (and shift-click-node (.-shiftKey e) @selected-id new-selected-id)
+              (shift-click-node @selected-id new-selected-id))
+            (reset! selected-id new-selected-id)
+            (reset! editing nil))
+          (reset! mouse-down? true))}
+       (if (email? name)
+         [gravatar-background id r name]
+         [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
+       [:text.unselectable
+        {:text-anchor "middle"
+         :font-size (min (max node-count 8) 22)
+         :style {:pointer-events "none"
+                 :dominant-baseline "central"}}
+        name]])))
 
 (defn average [& args]
   (/ (apply + args) (count args)))
@@ -212,55 +215,60 @@
 (defn rise-over-run [o a]
   (/ (* 180 (js/Math.atan2 o a)) js/Math.PI))
 
-(defn draw-edge [[from mid to :as path] nodes simulation mouse-down? selected-id {:keys [shift-click-edge]} editing]
-  (let [{x1 :x y1 :y} (get nodes from)
-        {x2 :x y2 :y id :id weight :weight} (get nodes mid)
-        {x3 :x y3 :y} (get nodes to)
-        selected? (= id (js->clj @selected-id))]
-    [:g
-     {:on-double-click
-      (fn link-double-click [e]
-        (reset! selected-id nil)
-        (when-let [idx (get (.-idxs simulation) id)]
+(defn darken [color]
+  ;; TODO: implement
+  color)
+
+(defn draw-edge [edge-types edge simulation mouse-down? selected-id {:keys [shift-click-edge]} editing]
+  (when-let [idxs (.-idxs simulation)]
+    (let [{{from :db/id} :from
+           {to :db/id} :to
+           :keys [db/id edge/type]} edge
+          {:keys [edge/color edge/dasharray]} (get edge-types type)
+          idx (idxs id)
+          particle (aget (.nodes simulation) idx)
+          x2 (.-x particle)
+          y2 (.-y particle)
+          from-particle (aget (.nodes simulation) (idxs from))
+          x1 (.-x from-particle)
+          y1 (.-y from-particle)
+          to-particle (aget (.nodes simulation) (idxs to))
+          x3 (.-x to-particle)
+          y3 (.-y to-particle)
+          selected? (= id @selected-id)]
+      ^{:key id}
+      [:g
+       {:on-double-click
+        (fn link-double-click [e]
+          (reset! selected-id nil)
           (let [particle (aget (.nodes simulation) idx)]
             (js-delete particle "fx")
-            (js-delete particle "fy")))
-        (restart-simulation simulation))
-      :on-mouse-down
-      (fn link-mouse-down [e]
-        (.stopPropagation e)
-        (.preventDefault e)
-        (reset! mouse-down? true)
-        (reset! selected-id (.-id (aget (.nodes simulation) mid)))
-        (reset! editing nil)
-        (when (and shift-click-edge (.-shiftKey e))
-          (shift-click-edge (get nodes mid))))
-      :stroke (if weight
-                (if selected?
-                  "#660000"
-                  "#9e0000")
-                (if selected?
-                  "#6699aa"
-                  "#9ecae1"))}
-     [:path
-      {:fill "none"
-       ;; TODO: pass in the edge
-       :stroke-dasharray (when weight "5,5")
-       :d (apply str (interleave
-                       ["M" "," " " "," " " ","]
-                       (for [idx path
-                             dim [:x :y]]
-                         (get-in nodes [idx dim]))))}]
-     [:polygon
-      {:points "-5,-5 -5,5 7,0"
-       :fill (if weight
-               "#9e0000"
-               "#9ecae1")
-       :transform (str "translate(" x2 "," y2
-                       ") rotate(" (rise-over-run (- y3 y1) (- x3 x1)) ")"
-                       (when selected?
-                         " scale(1.25,1.25)"))
-       :style {:cursor "pointer"}}]]))
+            (js-delete particle "fy"))
+          (restart-simulation simulation))
+        :on-mouse-down
+        (fn link-mouse-down [e]
+          (.stopPropagation e)
+          (.preventDefault e)
+          (reset! mouse-down? true)
+          (reset! selected-id id)
+          (reset! editing nil)
+          (when (and shift-click-edge (.-shiftKey e))
+            (shift-click-edge edge)))
+        :stroke (cond-> (or color "#9ecae1")
+                  selected? (darken))}
+       [:path
+        {:fill "none"
+         :stroke-dasharray dasharray
+         :d (str "M " x1 "," y1 " Q " x2 "," y2 " " x3 "," y3)}]
+       [:polygon
+        {:points "0,-5 0,5 12,0"
+         :fill (cond-> (or color "#9ecae1")
+                 selected? (darken))
+         :transform (str "translate(" (/ (+ x1 x2 x2 x3) 4) "," (/ (+ y1 y2 y2 y3) 4)
+                         ") rotate(" (rise-over-run (- y3 y1) (- x3 x1)) ")"
+                         (when selected?
+                           " scale(1.25,1.25)"))
+         :style {:cursor "pointer"}}]])))
 
 (defn bounds [[minx miny maxx maxy] simulation-node]
   [(min minx (.-x simulation-node))
@@ -288,25 +296,23 @@
 (defn update-bounds [g simulation-nodes]
   (assoc g :bounds (normalize-bounds (reduce bounds (initial-bounds (first simulation-nodes)) simulation-nodes))))
 
-(defn draw-svg [drawable simulation mouse-down? selected-id callbacks editing]
-  (let [{:keys [nodes paths bounds]} @drawable
-        max-pagerank (reduce max (map :pagerank nodes))
-        non-edge-nodes (remove :to nodes)
-        node-count (count non-edge-nodes)]
+(defn draw-svg [node-types edge-types nodes edges snapshot simulation mouse-down? selected-id callbacks editing]
+  (let [{:keys [bounds]} @snapshot
+        max-pagerank (reduce max (map :pagerank @nodes))
+        node-count (count @nodes)]
     [:svg.unselectable
      {:view-box (string/join " " bounds)
       :style {:width "100%"
               :height "100%"}}
+     ;; These are forced with parens instead of vector because the simulation updated
      (doall
        (concat
-         (for [path paths]
-           ^{:key path}
-           [draw-edge path nodes simulation mouse-down? selected-id callbacks editing])
-         (for [node non-edge-nodes]
-           ^{:key (:id node)}
-           [draw-node node node-count max-pagerank simulation mouse-down? selected-id callbacks editing])))]))
+         (for [edge @edges]
+           (draw-edge edge-types edge simulation mouse-down? selected-id callbacks editing))
+         (for [node @nodes]
+           (draw-node node-types node node-count max-pagerank simulation mouse-down? selected-id callbacks editing))))]))
 
-(defn draw-graph [this drawable simulation mouse-down? selected-id editing root]
+(defn draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id editing root]
   [:div
    {:style {:height "60vh"}
     :on-mouse-down
@@ -326,7 +332,7 @@
             top (.-top r)
             width (.-width r)
             height (.-height r)
-            [bx by bw bh] (:bounds @drawable)
+            [bx by bw bh] (:bounds @snapshot)
             cx (+ bx (/ bw 2))
             cy (+ by (/ bh 2))
             scale (/ bw (min width height))
@@ -343,7 +349,7 @@
                 (set! (.-fx particle) x)
                 (set! (.-fy particle) y)
                 (restart-simulation simulation)))))))}
-   [draw-svg drawable simulation mouse-down? selected-id root editing]])
+   [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root editing]])
 
 ;; TODO: nodes should have a stronger charge than links
 (defn create-simulation []
@@ -358,28 +364,25 @@
         (doto (js/d3.forceLink #js [])
           (.distance
             (fn [link idx]
-              (or (.-weight link) 30)))))))
+              (or (.-distance link) 30)))))))
 
-(defn graph [nodes edges selected-id editing callbacks]
-  (let [snapshot (reagent/atom {:bounds [0 0 0 0]})
-        simulation (create-simulation)
-        mouse-down? (reagent/atom nil)
-        ;; TODO: mount/unmount
-        watch (fn a-graph-watcher [k r a b]
-                (when (not= a b)
-                  (update-simulation simulation @nodes @edges)
-                  (restart-simulation simulation)))]
-    (update-simulation simulation @nodes @edges)
-    (add-watch nodes :watch-nodes watch)
-    (add-watch edges :watch-edges watch)
+(defn graph [node-types edge-types nodes edges selected-id editing callbacks]
+  (reagent/with-let
+    [snapshot (reagent/atom {:bounds [0 0 0 0]
+                             :partilces @nodes})
+     simulation (create-simulation)
+     mouse-down? (reagent/atom nil)
+     watch (reagent/track!
+             (fn a-graph-watcher []
+               (update-simulation simulation node-types edge-types @nodes @edges)
+               (restart-simulation simulation)))]
     (.on simulation "tick"
          (fn simulation-tick []
-           (swap! snapshot assoc
-                  :nodes (js->clj (.nodes simulation) :keywordize-keys true)
-                  :paths (.-paths simulation))
            (swap! snapshot update-bounds (.nodes simulation))))
-    (fn graph-render [nodes edges selected-id editing callbacks]
-      [draw-graph (reagent/current-component) snapshot simulation mouse-down? selected-id editing callbacks])))
+    [draw-graph (reagent/current-component) node-types edge-types nodes edges snapshot simulation mouse-down? selected-id editing callbacks]
+    (finally
+      (reagent/dispose! watch)
+      (.stop simulation))))
 
 (defcard-rg graph-example
   (fn []

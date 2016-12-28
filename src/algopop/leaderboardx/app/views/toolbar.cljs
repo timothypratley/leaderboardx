@@ -1,11 +1,11 @@
 (ns algopop.leaderboardx.app.views.toolbar
-  (:require ;;[algopop.leaderboardx.app.io.dot :as dot]
-            ;;[algopop.leaderboardx.app.io.csv :as csv]
-            [algopop.leaderboardx.app.seed :as seed]
-            [algopop.leaderboardx.app.views.graph-settings :as settings]
-            [algopop.leaderboardx.app.logging :as log]
-            [clojure.string :as string]
-            [reagent.core :as reagent]))
+  (:require                                                 ;;[algopop.leaderboardx.app.io.dot :as dot]
+    ;;[algopop.leaderboardx.app.io.csv :as csv]
+    [algopop.leaderboardx.app.seed :as seed]
+    [algopop.leaderboardx.app.views.graph-settings :as settings]
+    [algopop.leaderboardx.app.logging :as log]
+    [clojure.string :as string]
+    [reagent.core :as reagent]))
 
 (defn settings [show-settings?]
   [:div.btn-group
@@ -42,7 +42,7 @@
     (let [b (js/Blob. #js [s] #js {:type t})]
       (if js/window.navigator.msSaveBlob
         (js/window.navigator.msSaveBlob b filename)
-        (let [link (js/document.createElement  "a")]
+        (let [link (js/document.createElement "a")]
           (aset link "download" filename)
           (if js/window.webkitURL
             (aset link "href" (js/window.webkitURL.createObjectURL b))
@@ -82,9 +82,9 @@
       (fn import-csv-change [e]
         (when-let [file (aget e "target" "files" 0)]
           #_(if-let [r (cond (ends-with (.-name file) ".txt") csv/read-graph
-                          (ends-with (.-name file) ".dot") dot/read-graph)]
-            (read-file g file r)
-            (log/error "Must supply a .dot or .txt file"))))}]]])
+                             (ends-with (.-name file) ".dot") dot/read-graph)]
+              (read-file g file r)
+              (log/error "Must supply a .dot or .txt file"))))}]]])
 
 (defn action-button [label f]
   [:li [:a.btn {:on-click f} label]])
@@ -94,9 +94,9 @@
 
 (defn format-svg [svg]
   (str
-   "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
-   (string/replace svg #" data-reactid=\"[^\"]*\"" "")
-   "</svg>"))
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
+    (string/replace svg #" data-reactid=\"[^\"]*\"" "")
+    "</svg>"))
 
 (defn toolbar [g get-svg show-settings?]
   [:div.btn-toolbar.pull-right {:role "toolbar"}
@@ -125,11 +125,11 @@
      "Save"]
     [:ul.dropdown-menu {:role "menu"}
      #_[action-button "Graph (dot)"
-      (fn export-graphviz [e]
-        (save-file (filename @g "dot") "text/dot" (dot/write-graph @g)))]
+        (fn export-graphviz [e]
+          (save-file (filename @g "dot") "text/dot" (dot/write-graph @g)))]
      #_[action-button "Summary table (txt)"
-      (fn export-csv-click [e]
-        (save-file (filename @g "txt") "text/csv" (csv/write-graph @g)))]
+        (fn export-csv-click [e]
+          (save-file (filename @g "txt") "text/csv" (csv/write-graph @g)))]
      [action-button "Image (svg)"
       (fn export-svg [e]
         (save-file (filename @g "svg") "image/svg+xml" (format-svg (get-svg))))]]]

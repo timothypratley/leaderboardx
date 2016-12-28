@@ -13,14 +13,14 @@
 (def view
   {:about #'about/about-page
    :graph-editor #'graph-editor/graph-editor-page
-   ;;:details #'details/details-view
-   ;;:settings #'settings/settings-view
-   ;;:coach-dashboard #'coach/coach-view
-   ;;:coach-player #'coach-player/coach-player-view
-   ;;:assessments #'assess/assessments-view
-   ;;:assess #'assess/assess-view
-   ;;:table #'graph-table/table-view
-   ;;:endorse #'endorse/endorse-page
+   :details #'details/details-view
+   :settings #'settings/settings-view
+   :coach-dashboard #'coach/coach-view
+   :coach-player #'coach-player/coach-player-view
+   :assessments #'assess/assessments-view
+   :assess #'assess/assess-view
+   :table #'graph-table/table-view
+   :endorse #'endorse/endorse-page
    })
 
 ;; TODO: can routes just be functions?

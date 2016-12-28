@@ -34,13 +34,14 @@
 
 (defn save [editing write e]
   (.preventDefault e)
-  (write (.. e -target -value))
+  (when write
+    (write (.. e -target -value)))
   (reset! editing nil))
 
 (defn editable-string
-  [editing write current-value]
+  [current-value editing write]
   (let [id (random-uuid)]
-    (fn an-editable-string [editing write current-value]
+    (fn render-editable-string [current-value editing write]
       (if (= id @editing)
         [focus-append-input
          {:default-value current-value

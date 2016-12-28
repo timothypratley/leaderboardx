@@ -56,7 +56,7 @@
         (map-indexed
          (fn a-li [idx line]
            [:li
-            [common/editable-string model (conj path idx) editing]])
+            [common/editable-string line editing]])
          (get-in @model path)))
        (conj
         [:div.small
@@ -101,7 +101,7 @@
 (defn assess-form [template assess names editing selected-id]
   [:div
    [:h1
-    [common/editable-string assess [:name] editing]
+    [common/editable-string (:name assess) editing]
     [:span " - "]
     [common/selectable [:selected] names editing (:names @names)]]
    [attributes template assess names editing]

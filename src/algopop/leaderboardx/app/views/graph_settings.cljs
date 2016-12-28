@@ -2,19 +2,34 @@
   (:require [algopop.leaderboardx.app.db :as db]
             [algopop.leaderboardx.app.views.common :as common]))
 
-(defn graph-settings [node-types edge-types]
+(defn graph-settings [node-types edge-types editing]
   [:div
    [:h3 "Node Types"]
    [:ul.list-unstyled
-    (for [node-type @node-types]
-      ^{:key node-type}
-      [:li node-type])
+    (for [{:keys [node/type] :as row} (sort-by :node/type (vals node-types))]
+      ^{:key type}
+      [:li.row
+       [:div.col-xs-2
+        {:style {:text-align "right"}}
+        [:h4 type
+         [:button "x"]]]
+       [:div.col-xs-10
+        [:div.well
+         [:ul.list-unstyled
+          (for [[k v] (dissoc row :db/id :node/type)]
+            [:li.row
+             [:div.col-xs-2
+              {:style {:font-weight "bold"
+                       :text-align "right"}}
+              [common/editable-string k editing]]
+             [:div.col-xs-10
+              [common/editable-string v editing]]])]]]])
     [common/add
      (fn [v]
        (db/insert! {:node/types #{v}}))]]
    [:h3 "Edge Types"]
    [:ul.list-unstyled
-    (for [{:keys [db/id edge/type edge/color edge/distance]} @edge-types]
+    (for [{:keys [db/id edge/type edge/color edge/distance]} (sort-by :edge/type (vals edge-types))]
       ^{:key type}
       [:li
        [:h4 type

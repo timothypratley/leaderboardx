@@ -9,9 +9,6 @@
   (:require-macros
     [reagent.ratom :as ratom]))
 
-(def data
-  (reagent/atom {:name "unknown"}))
-
 (declare render)
 
 (defn render-nested-map [m path model editing]
@@ -65,7 +62,7 @@
        (map? x) (if (seq path)
                   [render-nested-map x path model editing]
                   [render-map x path model editing])
-       (string? x) [common/editable-string model path editing]
+       (string? x) [common/editable-string x editing]
        (keyword? x) (name x)
        (seq? x) [render-seq x path model editing]
        :else (str x))]))
@@ -73,7 +70,10 @@
 (defn details [x]
   (let [editing (reagent/atom nil)
         model (ratom/reaction
-               (into {} @x))]
+               (into
+                 {}
+                 (for [{:keys [db/id] :as node} @x]
+                   [id node])))]
     (fn a-details-view [x]
       [render [] model editing])))
 
@@ -82,10 +82,10 @@
     (fn a-details-view []
       [:div
        [:form.row
-        {:on-submit (fn details-submit [e]
-                      (let [{:keys [k v]} (common/form-data e)]
-                        (db/add-node v)
-                        (swap! data assoc k v)))}
+        {:on-submit
+         (fn details-submit [e]
+           (let [{:keys [k v]} (common/form-data e)]
+             (db/add-node v)))}
         [:div.col-xs-4
          [:input.form-control
           {:type "text"

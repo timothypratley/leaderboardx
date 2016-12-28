@@ -76,20 +76,31 @@
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         editing (or (session/get :editing)
                     (:editing (session/put! :editing (reagent/atom nil))))
-        node-types (db/node-types)
-        edge-types (db/edge-types)
-        selected-node-type (reagent/atom (or (first @node-types) "likes"))
-        selected-edge-type (reagent/atom (or (first @edge-types) "likes"))
+        ;; TODO: find a way to get a map from datascript
+        node-types (into
+                     {}
+                     (for [t @(db/node-types)]
+                       [(:node/type t) t]))
+        edge-types (into
+                     {}
+                     (for [t @(db/edge-types)]
+                       [(:edge/type t) t]))
+        next-edge-type (zipmap (keys edge-types)
+                               (rest (cycle (keys edge-types))))
+        selected-node-type (reagent/atom (ffirst node-types))
+        selected-edge-type (reagent/atom (ffirst edge-types))
         show-settings? (reagent/atom false)
         keydown-handler
         (fn a-keydown-handler [e]
           (handle-keydown e selected-id editing g))
         callbacks
         {:shift-click-edge
-         (fn [{:keys [id]}]
-           (db/invert-edge id))
+         (fn shift-click-edge [{:keys [db/id edge/type]}]
+           (db/insert!
+             {:db/id id
+              :edge/type (next-edge-type type)}))
          :shift-click-node
-         (fn [a b]
+         (fn shift-click-node [a b]
            (db/add-edge a b))}]
     (reagent/create-class
       {:display-name "graph-editor"
@@ -100,9 +111,9 @@
           (when @show-settings?
             [:div.panel.panel-default
              [:div.panel-body
-              [graph-settings/graph-settings node-types edge-types]]])
+              [graph-settings/graph-settings node-types edge-types editing]]])
           [title-editor g editing]
-          [:div#d3g [d3/graph nodes edges selected-id editing callbacks]]
+          [:div#d3g [d3/graph node-types edge-types nodes edges selected-id editing callbacks]]
           [:div.panel.panel-default
            [:div.panel-body
             [table/table selected-id editing node-types edge-types selected-node-type selected-edge-type]]]])

@@ -39,17 +39,17 @@
 
 ;; TODO: use re-com
 (defn select-type [types editing]
-  (let [current-type (reagent/atom (first types))]
+  (let [current-type (reagent/atom (ffirst types))]
     (fn a-select-type [types editing]
       [:th
        (into
          [:select
           {:on-change
            (fn selection [e]
-             (when-let [idx (.-selectedIndex (.-target e))]
-               (reset! current-type (types idx))
+             (when-let [v (.. e -target -value)]
+               (reset! current-type v)
                (reset! editing nil)))}]
-         (for [{:keys [edge/type]} types]
+         (for [type (keys types)]
            [:option type]))])))
 
 (defn table [selected-id editing node-types edge-types selected-node-type selected-edge-type]
@@ -57,17 +57,16 @@
         nodes-by-rank (db/nodes-for-table)]
     (fn a-table [selected-id editing node-types edge-types selected-node-type selected-edge-type]
       [:div
-       [common/editable-string editing
+       [common/editable-string "search" editing
         (fn [v]
-          (reset! search-term v))
-        "search"]
+          (reset! search-term v))]
        [add-node]
        [:table.table.table-responsive
         [:thead
          [:tr
           [:th "Rank"]
-          [select-type @node-types editing]
-          [select-type @edge-types editing]
+          [select-type node-types editing]
+          [select-type edge-types editing]
           [:th "From"]]]
         (into
          [:tbody]
@@ -85,18 +84,15 @@
              (fn table-row-click [e]
                (reset! selected-id id))}
             [:td rank]
-            [:td [common/editable-string editing
+            [:td [common/editable-string name editing
                   (fn update-node-name [m p v]
-                    (db/rename-node id v))
-                  name]]
-            [:td [common/editable-string editing
+                    (db/rename-node id v))]]
+            [:td [common/editable-string outs editing
                   (fn update-out-edges [m p v]
-                    (replace-edges selected-id name v ins))
-                  outs]]
-            [:td [common/editable-string editing
+                    (replace-edges selected-id name v ins))]]
+            [:td [common/editable-string ins editing
                   (fn update-in-edges [m p v]
-                    (replace-edges selected-id name outs v))
-                  ins]]]))]])))
+                    (replace-edges selected-id name outs v))]]]))]])))
 
 (defn table-view []
   (let [selected-id (reagent/atom nil)

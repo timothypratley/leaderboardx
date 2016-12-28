@@ -69,11 +69,17 @@
       conn
       [{:name "William"
         :somedata "something about William"}
-       ;;       {:node/types {"person" {}}}
+       {:node/types #{{:node/type "person"
+                       :node/color "white"
+                       :node/charge -30}
+                      {:node/type "class"
+                       :node/color "green"
+                       :node/charge 100}}}
        {:edge/types #{{:edge/type "likes"
                        :edge/color "#9ecae1"}
                       {:edge/type "dislikes"
                        :edge/distance 300
+                       :edge/dasharray "5,5"
                        :edge/color "#9e0000"}}}])
     (add-assessment "Coach" "William" {:producivity 7})))
 
@@ -220,9 +226,6 @@
 (defn add-edge [from to]
   (transact! conn [(edge-tx -1 from to)])
   (set-ranks!))
-
-(defn invert-edge [id]
-  (transact! conn [{:db/id id :weight 300}]))
 
 (defn replace-edges-entities [node-name outs ins edge-type]
   (let [node-id (get-node-by-name node-name -1)
