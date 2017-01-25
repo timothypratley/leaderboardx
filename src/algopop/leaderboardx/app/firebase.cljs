@@ -124,7 +124,6 @@
   will update that atom from querying path (which may change)."
   [a path query]
   (reagent/with-let [r (reagent/atom nil)]
-    (prn "AEON")
     #_(when @a
       (reset! a nil))
     #_(when @r
@@ -135,7 +134,6 @@
         (cond-> query query)
         (.on "value"
              (fn [x]
-               (prn "GOT VALUE" (.val x))
                (reset! a (s/firebase->clj (.val x)))))))
     nil
     (finally
@@ -153,7 +151,6 @@
       (doto (db-ref path)
         (.on "value"
              (fn [x]
-               (prn "Got subaeon" (.val x))
                (swap! a assoc (last path) (s/firebase->clj (.val x)))))))
     nil
     (finally

@@ -15,7 +15,7 @@
 
 (defn update-simulation [simulation node-types edge-types nodes edges]
   (let [particles (concat nodes edges)
-        particles-by-id (into {} (for [[id p] particles] [id p]))
+        particles-by-id (into {} (for [p particles] [(:db/id p) p]))
         simulation-particles (.nodes simulation)
         kept-particles (clj->js
                          (for [p simulation-particles
@@ -23,9 +23,9 @@
                                :when found]
                            (merge (js->clj p) found)))
         existing-ids (set (keys (.-idxs simulation)))
-        added-particles (clj->js (remove #(contains? existing-ids (get % "name")) particles))
+        added-particles (clj->js (remove #(contains? existing-ids (:db/id %)) particles))
         final-particles (concat kept-particles added-particles)
-        idxs (zipmap (map #(.-name %) final-particles) (range))]
+        idxs (zipmap (map #(.-id %) final-particles) (range))]
     (.nodes
       simulation
       (clj->js
@@ -163,8 +163,7 @@
 
 (defn draw-node
   [node-types
-   ;; TODO: yikes
-   [id {:strs [name pagerank shape uid] :as node}]
+   {:keys [db/id node/name pagerank shape uid]}
    node-count
    max-pagerank
    simulation
@@ -172,44 +171,43 @@
    selected-id
    {:keys [shift-click-node]}
    editing]
-  (prn "ZUP " id name node)
   (when-let [idxs (.-idxs simulation)]
-    (when-let [particle (aget (.nodes simulation) (idxs id))]
-      (let [x (.-x particle)
-            y (.-y particle)
-            selected? (= id @selected-id)
-            rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
-            r (scale-dist node-count rank-scale)]
-        ^{:key id}
-        [:g
-         {:transform (str "translate(" x "," y ")"
-                          (when selected?
-                            " scale(1.25,1.25)"))
-          :on-double-click
-          (fn node-double-click [e]
-            (reset! selected-id nil)
-            (js-delete particle "fx")
-            (js-delete particle "fy")
-            (restart-simulation simulation))
-          :on-mouse-down
-          (fn node-mouse-down [e]
-            (.stopPropagation e)
-            (.preventDefault e)
-            (let [new-selected-id id]
-              (when (and shift-click-node (.-shiftKey e) @selected-id new-selected-id)
-                (shift-click-node @selected-id new-selected-id))
-              (reset! selected-id new-selected-id)
-              (reset! editing nil))
-            (reset! mouse-down? true))}
-         (if (email? name)
-           [gravatar-background id r name]
-           [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
-         [:text.unselectable
-          {:text-anchor "middle"
-           :font-size (min (max node-count 8) 22)
-           :style {:pointer-events "none"
-                   :dominant-baseline "central"}}
-          name]]))))
+    (let [particle (aget (.nodes simulation) (idxs id))
+          x (.-x particle)
+          y (.-y particle)
+          selected? (= id @selected-id)
+          rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
+          r (scale-dist node-count rank-scale)]
+      ^{:key id}
+      [:g
+       {:transform (str "translate(" x "," y ")"
+                        (when selected?
+                          " scale(1.25,1.25)"))
+        :on-double-click
+        (fn node-double-click [e]
+          (reset! selected-id nil)
+          (js-delete particle "fx")
+          (js-delete particle "fy")
+          (restart-simulation simulation))
+        :on-mouse-down
+        (fn node-mouse-down [e]
+          (.stopPropagation e)
+          (.preventDefault e)
+          (let [new-selected-id id]
+            (when (and shift-click-node (.-shiftKey e) @selected-id new-selected-id)
+              (shift-click-node @selected-id new-selected-id))
+            (reset! selected-id new-selected-id)
+            (reset! editing nil))
+          (reset! mouse-down? true))}
+       (if (email? name)
+         [gravatar-background id r name]
+         [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
+       [:text.unselectable
+        {:text-anchor "middle"
+         :font-size (min (max node-count 8) 22)
+         :style {:pointer-events "none"
+                 :dominant-baseline "central"}}
+        name]])))
 
 (defn average [& args]
   (/ (apply + args) (count args)))
@@ -226,7 +224,7 @@
     (let [{{from :db/id} :from
            {to :db/id} :to
            :keys [db/id edge/type]} edge
-          {:keys [edge/color edge/dasharray]} (get edge-types type)
+          {:keys [edge/color edge/dasharray weight negate]} (get edge-types type)
           idx (idxs id)
           particle (aget (.nodes simulation) idx)
           x2 (.-x particle)
@@ -237,6 +235,13 @@
           to-particle (aget (.nodes simulation) (idxs to))
           x3 (.-x to-particle)
           y3 (.-y to-particle)
+          phi (+ (js/Math.atan2 (- y3 y1) (- x3 x1)) (/ js/Math.PI 2))
+          xo (* 5 (js/Math.cos phi))
+          yo (* 5 (js/Math.sin phi))
+          xo2 (* xo 3)
+          yo2 (* yo 3)
+          midx (/ (+ x1 x2 x2 x3) 4)
+          midy (/ (+ y1 y2 y2 y3) 4)
           selected? (= id @selected-id)]
       ^{:key id}
       [:g
@@ -256,17 +261,33 @@
           (reset! editing nil)
           (when (and shift-click-edge (.-shiftKey e))
             (shift-click-edge edge)))
-        :stroke (cond-> (or color "#9ecae1")
+        ;; TODO: negate color should be paramatarizable
+        :stroke (cond-> (or (when negate "#ff0000") color "#9ecae1")
                   selected? (darken))}
-       [:path
-        {:fill "none"
-         :stroke-dasharray dasharray
-         :d (str "M " x1 "," y1 " Q " x2 "," y2 " " x3 "," y3)}]
+       (when (not= 3 weight)
+         [:path
+          {:fill "none"
+           :stroke-dasharray dasharray
+           :d (str "M " x1 "," y1 " Q " x2 "," y2 " " x3 "," y3)}])
+       (when (#{3 2} weight)
+         [:path
+          {:fill "none"
+           :stroke-dasharray dasharray
+           :d (str "M " (+ x1 xo) "," (+ y1 yo) " Q " (+ x2 xo) "," (+ y2 yo) " " (+ x3 xo) "," (+ y3 yo))}])
+       (when (#{3 2} weight)
+         [:path
+          {:fill "none"
+           :stroke-dasharray dasharray
+           :d (str "M " (- x1 xo) "," (- y1 yo) " Q " (- x2 xo) "," (- y2 yo) " " (- x3 xo) "," (- y3 yo))}])
+       (when negate
+         [:path
+          {:fill "none"
+           :d (str "M " (- midx xo2) "," (- midy yo2) " L " (+ midx xo2) "," (+ midy yo2))}])
        [:polygon
         {:points "0,-5 0,5 12,0"
          :fill (cond-> (or color "#9ecae1")
                  selected? (darken))
-         :transform (str "translate(" (/ (+ x1 x2 x2 x3) 4) "," (/ (+ y1 y2 y2 y3) 4)
+         :transform (str "translate(" midx "," midy
                          ") rotate(" (rise-over-run (- y3 y1) (- x3 x1)) ")"
                          (when selected?
                            " scale(1.25,1.25)"))

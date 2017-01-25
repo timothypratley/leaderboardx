@@ -6,7 +6,6 @@
 ;; TODO: how to specify a dataflow that will destroy itself?
 
 (defn edgess [edges in-edges out-edges]
-  (prn "edgess" @edges)
   [:div
    (for [edge (concat @in-edges @out-edges)
          :let [edge-name (get edge "name")]
@@ -19,7 +18,6 @@
 (defn nodess [nodes edges]
   (reagent/with-let [out-edges (reagent/atom nil)
                      in-edges (reagent/atom nil)]
-    (prn "nodess" @nodes)
     [:div
      (for [[k node] @nodes
            :let [node-name (get node "name")]
@@ -72,12 +70,10 @@
      [nodess nodes edges]]))
 
 (defn replace-edges [source outs ins type]
-  (prn "ZUP" source outs ins)
   (when (seq source)
     (firebase/db-set ["entities" source] #js {:name source
                                               :created firebase/timestamp})
     (firebase/db-set ["entities" (str source "member")]
                      #js {:name (str source "member")
                           :from source
-                          :to "beach-ball"}))
-  )
+                          :to "beach-ball"})))
