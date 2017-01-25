@@ -1,37 +1,40 @@
 (ns algopop.leaderboardx.app.routes
-  (:require [algopop.leaderboardx.app.views.about :as about]
-            [algopop.leaderboardx.app.views.assess :as assess]
-            [algopop.leaderboardx.app.views.coach :as coach]
-            [algopop.leaderboardx.app.views.coach-player :as coach-player]
-            [algopop.leaderboardx.app.views.details :as details]
-            [algopop.leaderboardx.app.views.endorse :as endorse]
-            [algopop.leaderboardx.app.views.graph-editor :as graph-editor]
-            [algopop.leaderboardx.app.views.graph-table :as graph-table]
-            [algopop.leaderboardx.app.views.settings :as settings]
-            [bidi.bidi :as bidi]))
+  (:require
+    [algopop.leaderboardx.app.views.about :as about]
+    [algopop.leaderboardx.app.views.assess :as assess]
+    [algopop.leaderboardx.app.views.coach :as coach]
+    [algopop.leaderboardx.app.views.coach-player :as coach-player]
+    [algopop.leaderboardx.app.views.details :as details]
+    [algopop.leaderboardx.app.views.endorse :as endorse]
+    [algopop.leaderboardx.app.views.entities :as entities]
+    [algopop.leaderboardx.app.views.graph-editor :as graph-editor]
+    [algopop.leaderboardx.app.views.graph-table :as graph-table]
+    [algopop.leaderboardx.app.views.graph-list :as graph-list]
+    [algopop.leaderboardx.app.views.settings :as settings]
+    [algopop.leaderboardx.app.views.schema :as schema]
+    [bidi.bidi :as bidi]
+    [reagent.session :as session]))
 
-(def view
-  {:about #'about/about-page
-   :graph-editor #'graph-editor/graph-editor-page
-   :details #'details/details-view
-   :settings #'settings/settings-view
-   :coach-dashboard #'coach/coach-view
-   :coach-player #'coach-player/coach-player-view
-   :assessments #'assess/assessments-view
-   :assess #'assess/assess-view
-   :table #'graph-table/table-view
-   :endorse #'endorse/endorse-page
-   })
-
-;; TODO: can routes just be functions?
 (def routes
-  (let [ks (keys view)]
-    ["/" (conj
-          (mapv vector (map name ks) ks)
-          ["assess/" {[:assessee "/" [keyword :type] "/" :date] :assess}])]))
+  ["/"
+   [["about" about/about-page]
+    ["schema" schema/schema-view]
+    ["entities" entities/entities-view]
+    ["graphs" {"" graph-list/graph-list-view
+               ["/" :id] graph-editor/graph-editor-page}]
+    ["assessments" {"" assess/assessments-view
+                    ["/" :assessee "/" [keyword :type] "/" :date] assess/assess-view}]
+    ["coach" coach/coach-view]]])
+
+(def links
+  (mapv first (second routes)))
 
 (defn match [s]
   (bidi/match-route routes s))
 
-(defn page [{:keys [handler route-params]}]
-  [(view handler about/about-page) route-params])
+(defn navigate [event]
+  (session/assoc-in! [:viewpoint :route] (.-token event)))
+
+(defn current-page []
+  (let [{:keys [handler route-params]} (match (session/get-in [:viewpoint :route]))]
+    [(or handler about/about-page) route-params]))

@@ -15,7 +15,7 @@
 
 (defn update-simulation [simulation node-types edge-types nodes edges]
   (let [particles (concat nodes edges)
-        particles-by-id (into {} (for [p particles] [(:db/id p) p]))
+        particles-by-id (into {} (for [[id p] particles] [id p]))
         simulation-particles (.nodes simulation)
         kept-particles (clj->js
                          (for [p simulation-particles
@@ -23,9 +23,9 @@
                                :when found]
                            (merge (js->clj p) found)))
         existing-ids (set (keys (.-idxs simulation)))
-        added-particles (clj->js (remove #(contains? existing-ids (:db/id %)) particles))
+        added-particles (clj->js (remove #(contains? existing-ids (get % "name")) particles))
         final-particles (concat kept-particles added-particles)
-        idxs (zipmap (map #(.-id %) final-particles) (range))]
+        idxs (zipmap (map #(.-name %) final-particles) (range))]
     (.nodes
       simulation
       (clj->js
@@ -163,7 +163,8 @@
 
 (defn draw-node
   [node-types
-   {:keys [db/id node/name pagerank shape uid]}
+   ;; TODO: yikes
+   [id {:strs [name pagerank shape uid] :as node}]
    node-count
    max-pagerank
    simulation
@@ -171,43 +172,44 @@
    selected-id
    {:keys [shift-click-node]}
    editing]
+  (prn "ZUP " id name node)
   (when-let [idxs (.-idxs simulation)]
-    (let [particle (aget (.nodes simulation) (idxs id))
-          x (.-x particle)
-          y (.-y particle)
-          selected? (= id @selected-id)
-          rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
-          r (scale-dist node-count rank-scale)]
-      ^{:key id}
-      [:g
-       {:transform (str "translate(" x "," y ")"
-                        (when selected?
-                          " scale(1.25,1.25)"))
-        :on-double-click
-        (fn node-double-click [e]
-          (reset! selected-id nil)
-          (js-delete particle "fx")
-          (js-delete particle "fy")
-          (restart-simulation simulation))
-        :on-mouse-down
-        (fn node-mouse-down [e]
-          (.stopPropagation e)
-          (.preventDefault e)
-          (let [new-selected-id id]
-            (when (and shift-click-node (.-shiftKey e) @selected-id new-selected-id)
-              (shift-click-node @selected-id new-selected-id))
-            (reset! selected-id new-selected-id)
-            (reset! editing nil))
-          (reset! mouse-down? true))}
-       (if (email? name)
-         [gravatar-background id r name]
-         [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
-       [:text.unselectable
-        {:text-anchor "middle"
-         :font-size (min (max node-count 8) 22)
-         :style {:pointer-events "none"
-                 :dominant-baseline "central"}}
-        name]])))
+    (when-let [particle (aget (.nodes simulation) (idxs id))]
+      (let [x (.-x particle)
+            y (.-y particle)
+            selected? (= id @selected-id)
+            rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
+            r (scale-dist node-count rank-scale)]
+        ^{:key id}
+        [:g
+         {:transform (str "translate(" x "," y ")"
+                          (when selected?
+                            " scale(1.25,1.25)"))
+          :on-double-click
+          (fn node-double-click [e]
+            (reset! selected-id nil)
+            (js-delete particle "fx")
+            (js-delete particle "fy")
+            (restart-simulation simulation))
+          :on-mouse-down
+          (fn node-mouse-down [e]
+            (.stopPropagation e)
+            (.preventDefault e)
+            (let [new-selected-id id]
+              (when (and shift-click-node (.-shiftKey e) @selected-id new-selected-id)
+                (shift-click-node @selected-id new-selected-id))
+              (reset! selected-id new-selected-id)
+              (reset! editing nil))
+            (reset! mouse-down? true))}
+         (if (email? name)
+           [gravatar-background id r name]
+           [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
+         [:text.unselectable
+          {:text-anchor "middle"
+           :font-size (min (max node-count 8) 22)
+           :style {:pointer-events "none"
+                   :dominant-baseline "central"}}
+          name]]))))
 
 (defn average [& args]
   (/ (apply + args) (count args)))

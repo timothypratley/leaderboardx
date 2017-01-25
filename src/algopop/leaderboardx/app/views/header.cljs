@@ -1,6 +1,8 @@
 (ns algopop.leaderboardx.app.views.header
-  (:require [algopop.leaderboardx.app.routes :as routes]
-            [reagent.session :as session]))
+  (:require
+    [algopop.leaderboardx.app.routes :as routes]
+    [algopop.leaderboardx.app.views.login :as login]
+    [reagent.session :as session]))
 
 ;; TODO: what if empty?
 (defn notifications []
@@ -12,18 +14,15 @@
       (str " " (first e))]]))
 
 (defn user-menu []
-  (let [username "tim"]
-    (when username
-      [:li.dropdown
-       [:a.dropdown-toggle {:href "#"
-                            :data-toggle "dropdown"}
-        [:kbd
-         [:span.glyphicon.glyphicon-user]
-         (str " " username)
-         [:span.caret]]]
-       [:ul.dropdown-menu {:role "menu"}
-        [:li [:a {:href "#"} "preferences"]]
-        [:li [:a {:href "#"} "logout"]]]])))
+  [:li.dropdown
+   [:a.dropdown-toggle {:href "#"
+                        :data-toggle "dropdown"}
+    [:kbd
+     [login/login-view]
+     [:span.caret]]]
+   [:ul.dropdown-menu {:role "menu"}
+    [:li [:a {:href "#"} "preferences"]]
+    [:li [:a {:href "#"} "logout"]]]])
 
 (defn header []
   [:header
@@ -45,10 +44,9 @@
         "  Leaderboard"
         [:span {:style {:font-family "cursive"}} "X"]]]]
      [:div.collapse.navbar-collapse {:id "navbar-collapse"}
-      (into
-       [:ul.nav.navbar-nav.navbar-right]
-       (concat
-        [[notifications]]
-        (for [[k v] (sort-by key routes/view)]
-          [:li [:a {:href (str "#/" (name k))} [:kbd (name k)]]])
-        #_[[user-menu]]))]]]])
+      [:ul.nav.navbar-nav.navbar-right
+       [notifications]
+       (for [link routes/links]
+         ^{:key link}
+         [:li [:a {:href (str "#/" link)} [:kbd link]]])
+       [user-menu]]]]]])

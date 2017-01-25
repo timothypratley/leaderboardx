@@ -56,7 +56,7 @@
               nil))}]
         [:span.editable
          {:style {:width "100%"
-                  :cursor "pointer"}
+                  :cursor "text"}
           :on-click
           (fn editable-string-click [e]
             (reset! editing id))}
@@ -124,17 +124,21 @@
   (let [show? (reagent/atom false)]
     (fn an-add [write]
       (if @show?
-        [:input
+        [focus-append-input
          {:style {:width "100%"}
           :on-blur
           (fn editable-string-blur [e]
-            (write (.. e -target -value)))
+            (let [v (.. e -target -value)]
+              (when (seq v)
+                (write v))))
           :on-key-down
           (fn editable-string-key-down [e]
             (case (key-code-name (.-keyCode e))
               "ESC" (swap! show? not)
               "ENTER" (do
-                        (write (.. e -target -value))
+                        (let [v (.. e -target -value)]
+                          (when (seq v)
+                            (write v)))
                         (swap! show? not))
               nil))}]
         [:button
@@ -142,3 +146,52 @@
           (fn add-click [e]
             (swap! show? not))}
          "Add"]))))
+
+;; TODO: get rid of "editing"
+(defn entity-editor
+  [heading entities editing add-entity remove-entity
+   add-attribute remove-attribute]
+  [:div
+   [:h3 heading]
+   [:ul.list-unstyled
+    (for [[entity-name entity] (sort entities)]
+      ^{:key entity-name}
+      [:li.row
+       {:style {:padding "10px"}}
+       [:div.col-xs-2
+        {:style {:text-align "right"}}
+        [:h4 entity-name [:a {:href (str "/#/graphs/" entity-name)} "π"]]
+        [:button.remove
+         {:on-click
+          (fn [e]
+            (remove-entity entity-name))}
+         "x"]]
+       [:div.col-xs-10
+        [:div
+         [:ul.list-unstyled
+          (for [[attribute value] (sort entity)]
+            ^{:key attribute}
+            [:li.row
+             [:div.col-xs-2
+              {:style {:font-weight "bold"
+                       :text-align "right"}}
+              [editable-string attribute editing
+               (fn [x]
+                 ;; TODO: might combine into one update?
+                 (add-attribute entity-name x value)
+                 (remove-attribute entity-name attribute))]
+              [:button.remove
+               {:on-click
+                (fn [e]
+                  (remove-attribute entity-name attribute))}
+               "x"]]
+             [:div.col-xs-10
+              [editable-string value editing #(add-attribute entity-name attribute %)]]])
+          [:li.row
+           [:div.col-xs-2
+            {:style {:text-align "right"}}
+            [add #(add-attribute entity-name % "")]]]]]]])
+    [:li.row
+     [:div.col-xs-2
+      {:style {:text-align "right"}}
+      [add add-entity]]]]])

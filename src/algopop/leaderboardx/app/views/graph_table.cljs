@@ -1,11 +1,12 @@
 (ns algopop.leaderboardx.app.views.graph-table
   (:require
-   [algopop.leaderboardx.app.db :as db]
-   [algopop.leaderboardx.app.graph :as graph]
-   [algopop.leaderboardx.app.views.common :as common]
-   [goog.string :as gstring]
-   [clojure.string :as string]
-   [reagent.core :as reagent]))
+    [algopop.leaderboardx.app.db :as db]
+    [algopop.leaderboardx.app.db-firebase :as db-firebase]
+    [algopop.leaderboardx.app.graph :as graph]
+    [algopop.leaderboardx.app.views.common :as common]
+    [goog.string :as gstring]
+    [clojure.string :as string]
+    [reagent.core :as reagent]))
 
 (def delimiter #"[,;]")
 
@@ -17,7 +18,7 @@
               ins (map string/trim (string/split ins delimiter))]
           ;; TODO: use the edge type, not "likes"
           ;; TODO: only show video and discuss on about and discuss tabs
-          (db/replace-edges source outs ins "likes")
+          (db-firebase/replace-edges source outs ins "likes")
           (reset! selected-id source))))))
 
 (defn list-edges [edges]

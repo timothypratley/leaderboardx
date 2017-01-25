@@ -2,6 +2,7 @@
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require
     [algopop.leaderboardx.app.db :as db]
+    [algopop.leaderboardx.app.db-firebase :as db-firebase]
     [algopop.leaderboardx.app.graph :as graph]
     [algopop.leaderboardx.app.views.common :as common]
     [algopop.leaderboardx.app.views.d3 :as d3]
@@ -68,9 +69,9 @@
     (.-firstChild)
     (.-innerHTML)))
 
-(defn graph-editor-page []
-  (let [nodes (db/watch-nodes)
-        edges (db/watch-edges)
+(defn graph-editor-page [{:keys [id]}]
+  (let [nodes (reagent/atom nil)
+        edges (reagent/atom nil)
         g (reagent/atom {})
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
@@ -107,6 +108,7 @@
        :reagent-render
        (fn graph-editor []
          [:div
+          [db-firebase/watch-graph nodes edges id]
           [toolbar/toolbar g get-svg show-settings?]
           (when @show-settings?
             [:div.panel.panel-default

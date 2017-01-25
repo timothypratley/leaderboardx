@@ -325,3 +325,11 @@
 
 (defn insert! [e]
   (transact! conn [e]))
+
+(defn add-node-type [v])
+(defn add-edge-type [v]
+  {:edge/types #{{:edge/type v
+                  :edge/color "blue"
+                  :edge/distance "30"}}})
+(defn remove-node-type [])
+(defn remove-edge-type [])
