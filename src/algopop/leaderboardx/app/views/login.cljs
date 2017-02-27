@@ -7,7 +7,7 @@
    {:style {:float "right"}}
    (if-let [{:keys [photo-url display-name]} @firebase/user]
      [:span
-      [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-button--colored
+      [:button.btn.btn-default
        {:on-click
         (fn logout-click [e]
           (firebase/sign-out))
@@ -17,8 +17,8 @@
                 :background-image (str "url(" photo-url ")")
                 :background-size "cover"
                 :background-repeat "no-repeat"}}]]
-     [:button.mdl-button.mdl-button--raised.mdl-button--colored
+     [:button.btn.btn-primary
       {:on-click
        (fn login-click [e]
          (firebase/sign-in))}
-      "Login with Google"])])
+      "Login"])])

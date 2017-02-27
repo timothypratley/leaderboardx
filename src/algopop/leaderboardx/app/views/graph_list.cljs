@@ -7,14 +7,14 @@
 (def editing
   (reagent/atom nil))
 
-#_(defn graph-list-view []
+#_(defn graph-list-view [])
   [firebase/on ["graphs"]
    (fn [graphs r]
      [:div
       [common/entity-editor "Graphs" @graphs
        editing
        (fn [])
-       (fn [])]])])
+       (fn [])]])]
 
 (defn graph-list-view []
   [firebase/on ["entities"]

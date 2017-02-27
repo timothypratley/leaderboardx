@@ -70,8 +70,8 @@
     (.-innerHTML)))
 
 (defn graph-editor-page [{:keys [id]}]
-  (let [nodes (db/watch-nodes)
-        edges (db/watch-edges)
+  (let [nodes (reagent/atom {}) #_(db/watch-nodes)
+        edges (reagent/atom {}) #_(db/watch-edges)
         g (reagent/atom {})
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
@@ -108,7 +108,7 @@
        :reagent-render
        (fn graph-editor []
          [:div
-          ;;[db-firebase/watch-graph nodes edges id]
+          [db-firebase/watch-graph id nodes edges]
           [toolbar/toolbar g get-svg show-settings?]
           (when @show-settings?
             [:div.panel.panel-default

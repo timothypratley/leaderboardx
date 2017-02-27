@@ -119,15 +119,25 @@
     (finally
       (.off r))))
 
+(defn in [ratom path query]
+  (reagent/with-let
+    [r (db-ref path)]
+    (-> r
+        (cond-> query query)
+        ;; should be child?
+        (.on "value" (fn [x]
+                       (reset! ratom (s/firebase->clj (.val x))))))
+    (finally (.off r))))
+
 (defn aeon
   "Given an atom a,
   will update that atom from querying path (which may change)."
   [a path query]
   (reagent/with-let [r (reagent/atom nil)]
     #_(when @a
-      (reset! a nil))
+       (reset! a nil))
     #_(when @r
-      (.off @r))
+       (.off @r))
     (reset!
       r
       (doto (db-ref path)
