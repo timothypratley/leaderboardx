@@ -3,25 +3,25 @@
   :url "http://timothypratley.blogspot.com"
 
   :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
-                 [org.clojure/clojurescript "1.9.293" :scope "provided"]
-                 [bidi "2.0.14"]
+                 [org.clojure/clojurescript "1.9.495" :scope "provided"]
+                 [bidi "2.0.16"]
                  [cljsjs/bootstrap "3.3.6-1"]
-                 [cljsjs/d3 "4.3.0-2"]
-                 [cljsjs/firebase "3.3.0-0"]
+                 [cljsjs/d3 "4.3.0-4"]
+                 [cljsjs/firebase "3.5.3-0"]
                  [cljsjs/google-platformjs-extern "1.0.0-0"]
-                 [compojure "1.5.1"]
+                 [compojure "1.5.2"]
                  ;; TODO: don't need it
                  [com.lucasbradstreet/instaparse-cljs "1.4.1.2"]
-                 [com.taoensso/encore "2.87.0"]
+                 [com.taoensso/encore "2.90.1"]
                  [datascript "0.15.5"]
                  [devcards "0.2.2"]
-                 [posh "0.5.4"]
-                 [reagent "0.6.0"]
-                 [reagent-utils "0.2.0"]
+                 [posh "0.5.6"]
+                 [reagent "0.6.1"]
+                 [reagent-utils "0.2.1"]
                  [recalcitrant "0.1.0"]]
 
-  :plugins [[lein-cljsbuild "1.1.4"]
-            [lein-asset-minifier "0.3.0"]]
+  :plugins [[lein-cljsbuild "1.1.5"]
+            [lein-asset-minifier "0.3.2"]]
 
   :min-lein-version "2.5.0"
 
@@ -43,7 +43,7 @@
   :profiles
   {:dev
    {:env {:dev? true}
-    :plugins [[lein-figwheel "0.5.8"]]
+    :plugins [[lein-figwheel "0.5.9"]]
     :figwheel {:http-server-root "public"
                :css-dirs ["resources/public/css"]}
     :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs" "src"]

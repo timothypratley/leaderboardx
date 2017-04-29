@@ -3,7 +3,6 @@
     [algopop.leaderboardx.app.pagerank :as pagerank]
     [datascript.core :as d]
     [devcards.core :as dc :refer-macros [defcard deftest]]
-    [posh.reagent :refer [q posh! transact!] :as posh]
     [reagent.ratom :as ratom :include-macros]
     [datascript.db :as db]))
 
@@ -50,19 +49,19 @@
    :from {:db/valueType :db.type/ref}
    :to {:db/valueType :db.type/ref}})
 
-(defonce conn
+#_(defonce conn
   (doto
     (d/create-conn schema)
     (posh!)))
 
-(defn add-assessment [coach player attrs]
+#_(defn add-assessment [coach player attrs]
   (transact!
     conn
     [{:coach coach
       :player player
       :attrs attrs}]))
 
-(defonce seed
+#_(defonce seed
   (do
     ;; TODO: just make one map?
     (transact!
@@ -91,7 +90,7 @@
     [?e :name "William"]
     [?e :somedata ?s]])
 
-(defn player []
+#_(defn player []
   (q q-player conn))
 
 (def q-ac
@@ -100,7 +99,7 @@
     :where
     [$ ?e :assessment-template/name ?template]])
 
-(defn assessment-components [name]
+#_(defn assessment-components [name]
   (q q-ac conn name))
 
 (def q-ac2
@@ -110,10 +109,10 @@
     [$ ?e :dom/value ?template]
     [$ ?e :dom/tag "template"]])
 
-(defn ac2 [template]
+#_(defn ac2 [template]
   (q q-ac2 conn template))
 
-(defcard ac2
+#_(defcard ac2
   @(ac2 "player-assessment"))
 
 (defn assess [ol]
@@ -132,13 +131,13 @@
     :in $ ?name
     :where [?e :node/name ?name]])
 
-(defn get-node-by-name
+#_(defn get-node-by-name
   ([node-name]
    (first (d/q node-q @conn node-name)))
   ([node-name default]
    (or (get-node-by-name node-name) default)))
 
-(defn p [id]
+#_(defn p [id]
   (posh/pull conn '[*] id))
 
 (def nodes-q
@@ -152,20 +151,20 @@
     [?e :from ?from]
     [?e :to ?to]])
 
-(defn set-ranks! []
+#_(defn set-ranks! []
   (let [node-ids (d/q nodes-q @conn)
         es (d/pull-many @conn '[*] (d/q edges-q @conn))]
     (transact!
       conn
       (rank-entities (pagerank/ranks node-ids es)))))
 
-(defn add-node [name]
+#_(defn add-node [name]
   (transact!
     conn
     [{:node/name name}])
   (set-ranks!))
 
-(defn pull-q
+#_(defn pull-q
   ([conn query]
    (pull-q conn '[*] query))
   ([conn pattern query & args]
@@ -174,56 +173,57 @@
        (for [e @(apply q query conn args)]
          @(posh/pull conn pattern e))))))
 
-(defn watch-nodes []
+#_(defn watch-nodes []
   (pull-q conn nodes-q))
 
-(defn watch-edges []
+#_(defn watch-edges []
   (pull-q conn edges-q))
 
-(defn update-nodes [nodes]
+#_(defn update-nodes [nodes]
   (transact! conn nodes))
 
-(defn get-out-edges [id]
+#_(defn get-out-edges [id]
   @(q '[:find ?edge
         :in $ ?node
         :where [?edge :from ?node]]
       conn
       id))
 
-(defn get-in-edges [id]
+#_(defn get-in-edges [id]
   @(q '[:find ?edge
         :in $ ?node
         :where [?edge :to ?node]]
       conn
       id))
 
-(defn rename-node [id new-name]
-  (let [{:keys [node/name] :as node} (p id)]
+(defn merge-node [id node existing]
+  (let [outs (get-out-edges id)
+        ins (get-in-edges id)]
+    (update-nodes
+      (concat
+        [[:db.fn/retractEntity id]
+         (assoc node :db/id existing)]
+        (for [[out] outs]
+          {:db/id out
+           :from existing})
+        (for [[in] ins]
+          {:db/id in
+           :to existing})))))
+
+(defn name-node [id new-name]
+  (let [{:keys [node/name] :as node} (get-node-by-id id)]
     (when (not= new-name name)
       (if-let [existing (get-node-by-name new-name)]
-        (let [outs (get-out-edges id)
-              ins (get-in-edges id)]
-          (update-nodes
-            (concat
-              [[:db.fn/retractEntity id]
-               (assoc node :db/id existing)]
-              (for [[out] outs]
-                {:db/id out
-                 :from existing})
-              (for [[in] ins]
-                {:db/id in
-                 :to existing}))))
-        (update-nodes
-          [{:db/id id
-            :node/name new-name}])))))
+        (merge-node id node existing)
+        (add-node id new-name)))))
 
-(defn edge-tx [edge-id from to]
+#_(defn edge-tx [edge-id from to]
   {:db/id edge-id
    :edge/name (str (d/pull @conn [:name/name] from) " to " (d/pull @conn [:name/name] to))
    :from from
    :to to})
 
-(defn add-edge [from to]
+#_(defn add-edge [from to]
   (transact! conn [(edge-tx -1 from to)])
   (set-ranks!))
 
@@ -266,11 +266,11 @@
            :from in-id
            :to node-id})))))
 
-(defn replace-edges [k outs ins edge-type]
+#_(defn replace-edges [k outs ins edge-type]
   (transact! conn (replace-edges-entities k outs ins edge-type))
   (set-ranks!))
 
-(defn replace-many-edges [xs edge-type]
+#_(defn replace-many-edges [xs edge-type]
   (doseq [[k outs ins] xs]
     (transact! conn (replace-edges-entities k outs ins edge-type)))
   (set-ranks!))
@@ -286,7 +286,7 @@
     [?edge :to ?out]
     [?out :node/name ?name]])
 
-(defn outs [id]
+#_(defn outs [id]
   (q outs-q conn id))
 
 (def ins-q
@@ -297,7 +297,7 @@
     [?edge :from ?in]
     [?in :node/name ?name]])
 
-(defn ins [id]
+#_(defn ins [id]
   (q ins-q conn id))
 
 (defn values [attribute]
@@ -317,13 +317,13 @@
     [?e :edge/types ?type]
     [?type :edge/type ?t]])
 
-(defn node-types []
+#_(defn node-types []
   (pull-q conn node-types-q))
 
-(defn edge-types []
+#_(defn edge-types []
   (pull-q conn edge-types-q))
 
-(defn insert! [e]
+#_(defn insert! [e]
   (transact! conn [e]))
 
 (defn add-node-type [v])

@@ -86,7 +86,7 @@
             [:td rank]
             [:td [common/editable-string name editing
                   (fn update-node-name [m p v]
-                    (db/rename-node id v))]]
+                    (db/name-node id v))]]
             [:td [common/editable-string outs editing
                   (fn update-out-edges [m p v]
                     (replace-edges selected-id name v ins))]]

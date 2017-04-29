@@ -127,7 +127,7 @@
   (when (seq source)
     (let [s (s/clj->firebase source)]
       (firebase/db-set ["entities" s] #js {:name (s/clj->firebase s)
-                                                :created firebase/timestamp})
+                                           :created firebase/timestamp})
       (firebase/db-set ["entities" (str s "member")]
                        #js {:name (str s "member")
                             :from s
