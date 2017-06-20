@@ -80,11 +80,11 @@
         ;; TODO: find a way to get a map from datascript
         node-types (into
                      {}
-                     (for [t @(db/node-types)]
+                     (for [t [] #_@(db/node-types)]
                        [(:node/type t) t]))
         edge-types (into
                      {}
-                     (for [t @(db/edge-types)]
+                     (for [t [] #_@(db/edge-types)]
                        [(:edge/type t) t]))
         next-edge-type (zipmap (keys edge-types)
                                (rest (cycle (keys edge-types))))
@@ -97,18 +97,18 @@
         callbacks
         {:shift-click-edge
          (fn shift-click-edge [{:keys [db/id edge/type]}]
-           (db/insert!
+           #_(db/insert!
              {:db/id id
               :edge/type (next-edge-type type)}))
          :shift-click-node
          (fn shift-click-node [a b]
-           (db/add-edge a b))}]
+           #_(db/add-edge a b))}]
     (reagent/create-class
       {:display-name "graph-editor"
        :reagent-render
        (fn graph-editor []
          [:div
-          [db-firebase/watch-graph id nodes edges]
+          [db-firebase/watch-graph id g]
           [toolbar/toolbar g get-svg show-settings?]
           (when @show-settings?
             [:div.panel.panel-default
@@ -118,7 +118,7 @@
           [:div#d3g [d3/graph node-types edge-types nodes edges selected-id editing callbacks]]
           [:div.panel.panel-default
            [:div.panel-body
-            [table/table selected-id editing node-types edge-types selected-node-type selected-edge-type]]]])
+            [table/table id g selected-id editing node-types edge-types selected-node-type selected-edge-type]]]])
        :component-did-mount
        (fn graph-editor-did-mount [this]
          (.addEventListener js/document "keydown" keydown-handler))

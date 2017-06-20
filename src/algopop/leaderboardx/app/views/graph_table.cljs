@@ -1,6 +1,7 @@
 (ns algopop.leaderboardx.app.views.graph-table
   (:require
     [algopop.leaderboardx.app.db :as db]
+    [algopop.leaderboardx.app.db-firebase :as db-firebase]
     [algopop.leaderboardx.app.graph :as graph]
     [algopop.leaderboardx.app.views.common :as common]
     [goog.string :as gstring]
@@ -9,7 +10,7 @@
 
 (def delimiter #"[,;]")
 
-(defn replace-edges [selected-id source outs ins]
+(defn replace-edges [id selected-id source outs ins]
   (when-let [node-name (first (string/split source delimiter))]
     (let [source (string/trim node-name)]
       (when (seq source)
@@ -17,19 +18,19 @@
               ins (map string/trim (string/split ins delimiter))]
           ;; TODO: use the edge type, not "likes"
           ;; TODO: only show video and discuss on about and discuss tabs
-          (db/replace-edges source outs ins "likes")
+          (db-firebase/replace-edges id source outs ins "likes")
           (reset! selected-id source))))))
 
 (defn list-edges [edges]
   (string/join ", " (sort @edges)))
 
-(defn add-node []
+(defn add-node [id]
   [:form.form-inline
    {:on-submit
     (fn submit-add [e]
       (.preventDefault e)
       (let [{:keys [name outs ins]} (common/form-data e)]
-        (replace-edges (atom nil) name outs ins)))}
+        (replace-edges id (atom nil) name outs ins)))}
    [:input.form-control {:name "name"}]
    [:input.form-control {:name "outs"}]
    [:input.form-control {:name "ins"}]
@@ -39,7 +40,7 @@
 
 ;; TODO: use re-com
 (defn select-type [types editing]
-  (let [current-type (reagent/atom (ffirst types))]
+  (let [current-type (reagent/atom "likes" #_(ffirst types))]
     (fn a-select-type [types editing]
       [:th
        (into
@@ -49,18 +50,18 @@
              (when-let [v (.. e -target -value)]
                (reset! current-type v)
                (reset! editing nil)))}]
-         (for [type (keys types)]
+         (for [type ["likes"] #_(keys types)]
            [:option type]))])))
 
-(defn table [selected-id editing node-types edge-types selected-node-type selected-edge-type]
+(defn table [id g selected-id editing node-types edge-types selected-node-type selected-edge-type]
   (let [search-term (reagent/atom "")
-        nodes-by-rank (db/nodes-for-table)]
-    (fn a-table [selected-id editing node-types edge-types selected-node-type selected-edge-type]
+        nodes-by-rank (reagent/atom []) #_(db/nodes-for-table)]
+    (fn a-table [g selected-id editing node-types edge-types selected-node-type selected-edge-type]
       [:div
        [common/editable-string "search" editing
         (fn [v]
           (reset! search-term v))]
-       [add-node]
+       [add-node id]
        [:table.table.table-responsive
         [:thead
          [:tr
@@ -74,8 +75,8 @@
                :let [selected? (= id @selected-id)
                      match? (and (seq @search-term)
                                  (gstring/startsWith name @search-term))
-                     outs (list-edges (db/outs id))
-                     ins (list-edges (db/ins id))]]
+                     outs ["todo"]
+                     ins ["todo"]]]
            [:tr
             {:class (cond selected? "info"
                           match? "warning")
@@ -89,12 +90,12 @@
                     (db/name-node id v))]]
             [:td [common/editable-string outs editing
                   (fn update-out-edges [m p v]
-                    (replace-edges selected-id name v ins))]]
+                    (replace-edges id selected-id name v ins))]]
             [:td [common/editable-string ins editing
                   (fn update-in-edges [m p v]
-                    (replace-edges selected-id name outs v))]]]))]])))
+                    (replace-edges id selected-id name outs v))]]]))]])))
 
-(defn table-view []
+(defn table-view [g]
   (let [selected-id (reagent/atom nil)
         editing (reagent/atom nil)]
-    [table selected-id editing]))
+    [table g selected-id editing]))

@@ -3,7 +3,7 @@
             [algopop.leaderboardx.app.views.common :as common]))
 
 (defn attributes-view []
-  [firebase/on ["entities"]
+  [firebase/on (firebase/user-entities-path)
    (fn [entities r]
      (prn "E" @entities)
      [:div
@@ -21,5 +21,4 @@
          (prn "hi" id k)
          (.set (.child (.child r id) k) "hello"))
        (fn [id k]
-         (.remove (.child (.child r id) k)))
-       ]])])
+         (.remove (.child (.child r id) k)))]])])

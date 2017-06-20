@@ -32,6 +32,12 @@
   ([path]
    (.ref (js/firebase.database) (db-path path))))
 
+(defn user-entities-path []
+  ["users" (uid) "entities"])
+
+(defn user-entities []
+  (db-ref (user-entities-path)))
+
 (defn ref-set [r value]
   (.set r (s/clj->firebase value)))
 

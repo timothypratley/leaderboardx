@@ -29,7 +29,9 @@
   (js/RegExp. (string/join "|" special-codes) "g"))
 
 (defn unescape [s]
-  (.replace s unescape-regex #(codeToChar %)))
+  (if (string? s)
+    (.replace s unescape-regex #(codeToChar %))
+    s))
 
 (defn clj->firebase [m]
   (clj->js

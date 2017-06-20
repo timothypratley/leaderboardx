@@ -9,7 +9,7 @@
 
 ;; TODO: created/modified aren't quite right
 (defn entities-view []
-  [firebase/on ["entities"]
+  [firebase/on (firebase/user-entities-path)
    (fn [entities r]
      [:div
       [common/entity-editor

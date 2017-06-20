@@ -7,17 +7,8 @@
 (def editing
   (reagent/atom nil))
 
-#_(defn graph-list-view [])
-  [firebase/on ["graphs"]
-   (fn [graphs r]
-     [:div
-      [common/entity-editor "Graphs" @graphs
-       editing
-       (fn [])
-       (fn [])]])]
-
 (defn graph-list-view []
-  [firebase/on ["entities"]
+  [firebase/on (firebase/user-entities-path)
    (fn [sets r]
      [:div
       [common/entity-editor
