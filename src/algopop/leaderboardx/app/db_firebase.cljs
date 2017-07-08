@@ -6,11 +6,12 @@
 
 (defn unlisten
   "Stops listening to a query tree."
-  [t]
+  [a t]
   (.off (:ref @t))
   (when-let [children (:children @t)]
     (doseq [[k child] children]
-      (unlisten child))))
+      (swap! a dissoc k)
+      (unlisten a child))))
 
 (defn listen
   "The input atom a will be modified to contain entities found by applying queries.
@@ -30,21 +31,23 @@
              (let [v (s/firebase->clj (.val snapshot))
                    k (s/firebase->clj (.-key snapshot))]
                (when (seq qs)
-                 (swap! query-node assoc-in [:children k] (apply listen a k v qs)))
+                 (swap! query-node assoc-in [:children k]
+                        (apply listen a k v qs)))
                (swap! a assoc k v))))
       (.on "child_changed"
            (fn child-changed [snapshot]
-             (swap! a merge (s/firebase->clj (.val snapshot)))))
+             (swap! a update (.-key snapshot) merge (s/firebase->clj (.val snapshot)))))
       (.on "child_removed"
            (fn child-removed [snapshot]
              (let [k (s/firebase->clj (.-key snapshot))
                    children (:children @query-node)
                    child (get children k)]
-               (unlisten child)
-               (swap! a dissoc k)))))
+               (swap! a dissoc k)
+               (when child
+                 (unlisten a child))))))
     query-node))
 
-(defn watch-graph [parent-k a]
+(defn watch-entities [parent-k a]
   (reagent/with-let
     [reference-tree
      (listen
@@ -61,10 +64,10 @@
              (.equalTo (get v "from"))))
        (fn get-the-from-nodes [r k v]
          (-> r
-             (.child (get v "from")))))]
-    [:h1 (pr-str @a)]
+             (.orderByKey)
+             (.equalTo (get v "from")))))]
     (finally
-      (unlisten reference-tree))))
+      (unlisten a reference-tree))))
 
 (defn membership [obj graph-name from to edge-name]
   (doto obj

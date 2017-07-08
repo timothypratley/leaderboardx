@@ -42,18 +42,20 @@
             (assoc x :index idx))
           (apply
             concat
-            (for [{:keys [db/id edge/type]
-                   {from :db/id} :from
-                   {to :db/id} :to} edges
-                  :let [distance (:edge/distance (get edge-types type))]]
+            (for [{:keys [db/id edge/type edge/from edge/to]} edges
+                  :let [idx (idxs id)
+                        from-idx (idxs from)
+                        to-idx (idxs to)
+                        distance (:edge/distance (get edge-types type))]
+                  :when (and idx from-idx to-idx)]
               (cond->
                 [{:link [from id]
-                  :source (idxs from)
-                  :target (idxs id)
+                  :source from-idx
+                  :target idx
                   :distance distance}
                  {:link [id to]
-                  :source (idxs id)
-                  :target (idxs to)
+                  :source idx
+                  :target to-idx
                   :distance distance}]
                 distance
                 (conj {:link [from to]
@@ -221,77 +223,79 @@
 
 (defn draw-edge [edge-types edge simulation mouse-down? selected-id {:keys [shift-click-edge]} editing]
   (when-let [idxs (.-idxs simulation)]
-    (let [{{from :db/id} :from
-           {to :db/id} :to
-           :keys [db/id edge/type]} edge
-          {:keys [edge/color edge/dasharray weight negate]} (get edge-types type)
+    (let [{:keys [db/id edge/type edge/from edge/to]} edge
           idx (idxs id)
-          particle (aget (.nodes simulation) idx)
-          x2 (.-x particle)
-          y2 (.-y particle)
-          from-particle (aget (.nodes simulation) (idxs from))
-          x1 (.-x from-particle)
-          y1 (.-y from-particle)
-          to-particle (aget (.nodes simulation) (idxs to))
-          x3 (.-x to-particle)
-          y3 (.-y to-particle)
-          phi (+ (js/Math.atan2 (- y3 y1) (- x3 x1)) (/ js/Math.PI 2))
-          xo (* 5 (js/Math.cos phi))
-          yo (* 5 (js/Math.sin phi))
-          xo2 (* xo 3)
-          yo2 (* yo 3)
-          midx (/ (+ x1 x2 x2 x3) 4)
-          midy (/ (+ y1 y2 y2 y3) 4)
-          selected? (= id @selected-id)]
-      ^{:key id}
-      [:g
-       {:on-double-click
-        (fn link-double-click [e]
-          (reset! selected-id nil)
-          (let [particle (aget (.nodes simulation) idx)]
-            (js-delete particle "fx")
-            (js-delete particle "fy"))
-          (restart-simulation simulation))
-        :on-mouse-down
-        (fn link-mouse-down [e]
-          (.stopPropagation e)
-          (.preventDefault e)
-          (reset! mouse-down? true)
-          (reset! selected-id id)
-          (reset! editing nil)
-          (when (and shift-click-edge (.-shiftKey e))
-            (shift-click-edge edge)))
-        ;; TODO: negate color should be paramatarizable
-        :stroke (cond-> (or (when negate "#ff0000") color "#9ecae1")
-                  selected? (darken))}
-       (when (not= 3 weight)
-         [:path
-          {:fill "none"
-           :stroke-dasharray dasharray
-           :d (str "M " x1 "," y1 " Q " x2 "," y2 " " x3 "," y3)}])
-       (when (#{3 2} weight)
-         [:path
-          {:fill "none"
-           :stroke-dasharray dasharray
-           :d (str "M " (+ x1 xo) "," (+ y1 yo) " Q " (+ x2 xo) "," (+ y2 yo) " " (+ x3 xo) "," (+ y3 yo))}])
-       (when (#{3 2} weight)
-         [:path
-          {:fill "none"
-           :stroke-dasharray dasharray
-           :d (str "M " (- x1 xo) "," (- y1 yo) " Q " (- x2 xo) "," (- y2 yo) " " (- x3 xo) "," (- y3 yo))}])
-       (when negate
-         [:path
-          {:fill "none"
-           :d (str "M " (- midx xo2) "," (- midy yo2) " L " (+ midx xo2) "," (+ midy yo2))}])
-       [:polygon
-        {:points "0,-5 0,5 12,0"
-         :fill (cond-> (or color "#9ecae1")
-                 selected? (darken))
-         :transform (str "translate(" midx "," midy
-                         ") rotate(" (rise-over-run (- y3 y1) (- x3 x1)) ")"
-                         (when selected?
-                           " scale(1.25,1.25)"))
-         :style {:cursor "pointer"}}]])))
+          from-idx (idxs from)
+          to-idx (idxs to)]
+      ;; TODO: isolate data specific stuff here
+      (when (and idx from-idx to-idx)
+        (let [{:keys [edge/color edge/dasharray weight negate]} (get edge-types type)
+              particle (aget (.nodes simulation) idx)
+              x2 (.-x particle)
+              from-particle (aget (.nodes simulation) from-idx)
+              y2 (.-y particle)
+              x1 (.-x from-particle)
+              y1 (.-y from-particle)
+              to-particle (aget (.nodes simulation) to-idx)
+              x3 (.-x to-particle)
+              y3 (.-y to-particle)
+              phi (+ (js/Math.atan2 (- y3 y1) (- x3 x1)) (/ js/Math.PI 2))
+              xo (* 5 (js/Math.cos phi))
+              yo (* 5 (js/Math.sin phi))
+              xo2 (* xo 3)
+              yo2 (* yo 3)
+              midx (/ (+ x1 x2 x2 x3) 4)
+              midy (/ (+ y1 y2 y2 y3) 4)
+              selected? (= id @selected-id)]
+          ^{:key id}
+          [:g
+           {:on-double-click
+            (fn link-double-click [e]
+              (reset! selected-id nil)
+              (let [particle (aget (.nodes simulation) idx)]
+                (js-delete particle "fx")
+                (js-delete particle "fy"))
+              (restart-simulation simulation))
+            :on-mouse-down
+            (fn link-mouse-down [e]
+              (.stopPropagation e)
+              (.preventDefault e)
+              (reset! mouse-down? true)
+              (reset! selected-id id)
+              (reset! editing nil)
+              (when (and shift-click-edge (.-shiftKey e))
+                (shift-click-edge edge)))
+            ;; TODO: negate color should be paramatarizable
+            :stroke (cond-> (or (when negate "#ff0000") color "#9ecae1")
+                            selected? (darken))}
+           (when (not= 3 weight)
+             [:path
+              {:fill "none"
+               :stroke-dasharray dasharray
+               :d (str "M " x1 "," y1 " Q " x2 "," y2 " " x3 "," y3)}])
+           (when (#{3 2} weight)
+             [:path
+              {:fill "none"
+               :stroke-dasharray dasharray
+               :d (str "M " (+ x1 xo) "," (+ y1 yo) " Q " (+ x2 xo) "," (+ y2 yo) " " (+ x3 xo) "," (+ y3 yo))}])
+           (when (#{3 2} weight)
+             [:path
+              {:fill "none"
+               :stroke-dasharray dasharray
+               :d (str "M " (- x1 xo) "," (- y1 yo) " Q " (- x2 xo) "," (- y2 yo) " " (- x3 xo) "," (- y3 yo))}])
+           (when negate
+             [:path
+              {:fill "none"
+               :d (str "M " (- midx xo2) "," (- midy yo2) " L " (+ midx xo2) "," (+ midy yo2))}])
+           [:polygon
+            {:points "0,-5 0,5 12,0"
+             :fill (cond-> (or color "#9ecae1")
+                           selected? (darken))
+             :transform (str "translate(" midx "," midy
+                             ") rotate(" (rise-over-run (- y3 y1) (- x3 x1)) ")"
+                             (when selected?
+                               " scale(1.25,1.25)"))
+             :style {:cursor "pointer"}}]])))))
 
 (defn bounds [[minx miny maxx maxy] simulation-node]
   [(min minx (.-x simulation-node))

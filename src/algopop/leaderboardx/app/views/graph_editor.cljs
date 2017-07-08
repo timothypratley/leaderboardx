@@ -9,8 +9,10 @@
     [algopop.leaderboardx.app.views.graph-table :as table]
     [algopop.leaderboardx.app.views.graph-settings :as graph-settings]
     [algopop.leaderboardx.app.views.toolbar :as toolbar]
+    [clojure.walk :as walk]
     [reagent.core :as reagent]
-    [reagent.session :as session]))
+    [reagent.session :as session]
+    [clojure.set :as set]))
 
 (defn title-input [title]
   (reagent/create-class
@@ -70,9 +72,32 @@
     (.-innerHTML)))
 
 (defn graph-editor-page [{:keys [id]}]
-  (let [nodes (reagent/atom {}) #_(db/watch-nodes)
-        edges (reagent/atom {}) #_(db/watch-edges)
-        g (reagent/atom {})
+  (let [
+        ;; isolate
+        entities (reagent/atom {}) #_(db/watch-nodes)
+        nodes (reaction
+                (doto
+                  (for [[k v] @entities
+                        :let [v (set/rename-keys
+                                  (walk/keywordize-keys v)
+                                  {:edge-type :edge/type})]
+                        :when (not (:edge/type v))]
+                    (assoc v :db/id k
+                             :node/name k))))
+        edges (reaction
+                (for [[k v] @entities
+                      :let [v (set/rename-keys
+                                (walk/keywordize-keys v)
+                                {:edge-type :edge/type
+                                 :from :edge/from
+                                 :to :edge/to})]
+                      :when (:edge/type v)]
+                  (assoc v :db/id k
+                           :edge/name k)))
+        g (reaction
+            {:nodes @nodes
+             :edges @edges}) #_(db/watch-edges)
+
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         editing (or (session/get :editing)
@@ -82,7 +107,15 @@
                      {}
                      (for [t [] #_@(db/node-types)]
                        [(:node/type t) t]))
-        edge-types (into
+        edge-types
+        {"likes" {
+                  ;;:edge/color "blue"
+                  ;;:edge/dasharray "1"
+                  ;;:edge/distance 100
+                  ;;:weight 1
+                  ;;:negate false
+                  }}
+        #_(into
                      {}
                      (for [t [] #_@(db/edge-types)]
                        [(:edge/type t) t]))
@@ -108,14 +141,15 @@
        :reagent-render
        (fn graph-editor []
          [:div
-          [db-firebase/watch-graph id g]
+          [db-firebase/watch-entities id entities]
           [toolbar/toolbar g get-svg show-settings?]
           (when @show-settings?
             [:div.panel.panel-default
              [:div.panel-body
               [graph-settings/graph-settings node-types edge-types editing]]])
           [title-editor g editing]
-          [:div#d3g [d3/graph node-types edge-types nodes edges selected-id editing callbacks]]
+          [:div#d3g
+           [d3/graph node-types edge-types nodes edges selected-id editing callbacks]]
           [:div.panel.panel-default
            [:div.panel-body
             [table/table id g selected-id editing node-types edge-types selected-node-type selected-edge-type]]]])

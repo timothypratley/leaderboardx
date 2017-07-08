@@ -10,16 +10,17 @@
 
 (def delimiter #"[,;]")
 
+(defn split [s]
+  (filter seq (map string/trim (string/split s delimiter))))
+
 (defn replace-edges [id selected-id source outs ins]
   (when-let [node-name (first (string/split source delimiter))]
     (let [source (string/trim node-name)]
       (when (seq source)
-        (let [outs (map string/trim (string/split outs delimiter))
-              ins (map string/trim (string/split ins delimiter))]
-          ;; TODO: use the edge type, not "likes"
-          ;; TODO: only show video and discuss on about and discuss tabs
-          (db-firebase/replace-edges id source outs ins "likes")
-          (reset! selected-id source))))))
+        ;; TODO: use the edge type, not "likes"
+        ;; TODO: only show video and discuss on about and discuss tabs
+        (db-firebase/replace-edges id source (split outs) (split ins) "likes")
+        (reset! selected-id source)))))
 
 (defn list-edges [edges]
   (string/join ", " (sort @edges)))
