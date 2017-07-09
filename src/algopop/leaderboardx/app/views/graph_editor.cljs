@@ -74,7 +74,7 @@
 (defn graph-editor-page [{:keys [id]}]
   (let [
         ;; isolate
-        entities (reagent/atom {}) #_(db/watch-nodes)
+        entities (reagent/atom {})
         nodes (reaction
                 (doto
                   (for [[k v] @entities
@@ -94,35 +94,29 @@
                       :when (:edge/type v)]
                   (assoc v :db/id k
                            :edge/name k)))
+        ;; TODO: downstream users want to modify
         g (reaction
             {:nodes @nodes
-             :edges @edges}) #_(db/watch-edges)
+             :edges @edges})
 
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         editing (or (session/get :editing)
                     (:editing (session/put! :editing (reagent/atom nil))))
         ;; TODO: find a way to get a map from datascript
-        node-types (into
-                     {}
-                     (for [t [] #_@(db/node-types)]
-                       [(:node/type t) t]))
-        edge-types
-        {"likes" {
-                  ;;:edge/color "blue"
-                  ;;:edge/dasharray "1"
-                  ;;:edge/distance 100
-                  ;;:weight 1
-                  ;;:negate false
-                  }}
-        #_(into
-                     {}
-                     (for [t [] #_@(db/edge-types)]
-                       [(:edge/type t) t]))
-        next-edge-type (zipmap (keys edge-types)
-                               (rest (cycle (keys edge-types))))
-        selected-node-type (reagent/atom (ffirst node-types))
-        selected-edge-type (reagent/atom (ffirst edge-types))
+        node-types (reagent/atom {"person" {}})
+        edge-types (reagent/atom {"likes" {
+                                           ;;:edge/color "blue"
+                                           ;;:edge/dasharray "1"
+                                           ;;:edge/distance 100
+                                           ;;:weight 1
+                                           ;;:negate false
+                                           }})
+        next-edge-type (reaction
+                         (zipmap (keys @edge-types)
+                                 (rest (cycle (keys @edge-types)))))
+        selected-node-type (reagent/atom (ffirst @node-types))
+        selected-edge-type (reagent/atom (ffirst @edge-types))
         show-settings? (reagent/atom false)
         keydown-handler
         (fn a-keydown-handler [e]
@@ -152,7 +146,7 @@
            [d3/graph node-types edge-types nodes edges selected-id editing callbacks]]
           [:div.panel.panel-default
            [:div.panel-body
-            [table/table id g selected-id editing node-types edge-types selected-node-type selected-edge-type]]]])
+            [table/table id nodes edges selected-id editing node-types edge-types selected-node-type selected-edge-type]]]])
        :component-did-mount
        (fn graph-editor-did-mount [this]
          (.addEventListener js/document "keydown" keydown-handler))

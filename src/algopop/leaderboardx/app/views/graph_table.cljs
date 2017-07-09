@@ -6,7 +6,8 @@
     [algopop.leaderboardx.app.views.common :as common]
     [goog.string :as gstring]
     [clojure.string :as string]
-    [reagent.core :as reagent]))
+    [reagent.core :as reagent]
+    [reagent.ratom :as ratom :refer-macros [reaction]]))
 
 (def delimiter #"[,;]")
 
@@ -41,7 +42,7 @@
 
 ;; TODO: use re-com
 (defn select-type [types editing]
-  (let [current-type (reagent/atom "likes" #_(ffirst types))]
+  (let [current-type (reagent/atom (ffirst types))]
     (fn a-select-type [types editing]
       [:th
        (into
@@ -51,13 +52,26 @@
              (when-let [v (.. e -target -value)]
                (reset! current-type v)
                (reset! editing nil)))}]
-         (for [type ["likes"] #_(keys types)]
+         (for [type (keys types)]
            [:option type]))])))
 
-(defn table [id g selected-id editing node-types edge-types selected-node-type selected-edge-type]
+(def conjs
+  (fnil conj #{}))
+
+(defn collect-by [xs k1 k2]
+  (reduce
+    (fn [acc x]
+      (update acc (get x k1) conjs (get x k2)))
+    {}
+    xs))
+
+(defn table [id nodes edges selected-id editing node-types edge-types selected-node-type selected-edge-type]
   (let [search-term (reagent/atom "")
-        nodes-by-rank (reagent/atom []) #_(db/nodes-for-table)]
-    (fn a-table [g selected-id editing node-types edge-types selected-node-type selected-edge-type]
+        nodes-by-rank (reaction
+                        (sort-by :rank @nodes))
+        outs (reaction (collect-by (filter #(= @selected-edge-type (:edge/type %)) @edges) :edge/from :edge/to))
+        ins (reaction (collect-by (filter #(= @selected-edge-type (:edge/type %)) @edges) :edge/to :edge/from))]
+    (fn a-table [id nodes edges selected-id editing node-types edge-types selected-node-type selected-edge-type]
       [:div
        [common/editable-string "search" editing
         (fn [v]
@@ -67,8 +81,8 @@
         [:thead
          [:tr
           [:th "Rank"]
-          [select-type node-types editing]
-          [select-type edge-types editing]
+          [select-type @node-types editing]
+          [select-type @edge-types editing]
           [:th "From"]]]
         (into
          [:tbody]
@@ -76,8 +90,8 @@
                :let [selected? (= id @selected-id)
                      match? (and (seq @search-term)
                                  (gstring/startsWith name @search-term))
-                     outs ["todo"]
-                     ins ["todo"]]]
+                     outs-string (string/join "," (@outs id))
+                     ins-string (string/join "," (@ins id))]]
            [:tr
             {:class (cond selected? "info"
                           match? "warning")
@@ -89,14 +103,14 @@
             [:td [common/editable-string name editing
                   (fn update-node-name [m p v]
                     (db/name-node id v))]]
-            [:td [common/editable-string outs editing
+            [:td [common/editable-string outs-string editing
                   (fn update-out-edges [m p v]
-                    (replace-edges id selected-id name v ins))]]
-            [:td [common/editable-string ins editing
+                    (replace-edges id selected-id name v ins-string))]]
+            [:td [common/editable-string ins-string editing
                   (fn update-in-edges [m p v]
-                    (replace-edges id selected-id name outs v))]]]))]])))
+                    (replace-edges id selected-id name outs-string v))]]]))]])))
 
-(defn table-view [g]
+(defn table-view [nodes edges]
   (let [selected-id (reagent/atom nil)
         editing (reagent/atom nil)]
-    [table g selected-id editing]))
+    [table nodes edges selected-id editing]))
