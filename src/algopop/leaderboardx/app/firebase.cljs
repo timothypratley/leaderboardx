@@ -13,7 +13,7 @@
   js/firebase.database.ServerValue.TIMESTAMP)
 
 (defn uid []
-  (:uid @user "anonymous"))
+  (:uid @user))
 
 (defn is-user-equal [google-user firebase-user]
   (and

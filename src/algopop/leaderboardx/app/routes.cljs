@@ -13,7 +13,8 @@
     [algopop.leaderboardx.app.views.settings :as settings]
     [algopop.leaderboardx.app.views.schema :as schema]
     [bidi.bidi :as bidi]
-    [reagent.session :as session]))
+    [reagent.session :as session]
+    [algopop.leaderboardx.app.firebase :as firebase]))
 
 (def routes
   ["/"
@@ -36,5 +37,9 @@
   (session/assoc-in! [:viewpoint :route] (.-token event)))
 
 (defn current-page []
-  (let [{:keys [handler route-params]} (match (session/get-in [:viewpoint :route]))]
-    [(or handler about/about-page) route-params]))
+  (if (firebase/uid)
+    ;; TODO: include userid in graph routes so they are not login specific
+    (let [{:keys [handler route-params]} (match (session/get-in [:viewpoint :route]))]
+      [(or handler about/about-page) route-params])
+    ;; TODO: don't force people to log in
+    [:h1 "Please log in"]))
