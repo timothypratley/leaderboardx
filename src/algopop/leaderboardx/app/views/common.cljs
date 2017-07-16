@@ -3,7 +3,8 @@
             [reagent.core :as reagent]
             [reagent.dom :as dom]
             [cljs.test :as t :include-macros true :refer-macros [testing is]]
-            [devcards.core :as dc :refer-macros [defcard deftest]]))
+            [devcards.core :as dc :refer-macros [defcard deftest]]
+            [clojure.string :as string]))
 
 ;; TODO: doesn't belong here
 
@@ -42,6 +43,7 @@
   [current-value editing write]
   (let [id (random-uuid)]
     (fn render-editable-string [current-value editing write]
+      ;; TODO: why do I need this?
       (if (= id @editing)
         [focus-append-input
          {:default-value current-value

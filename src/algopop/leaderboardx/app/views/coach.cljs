@@ -68,7 +68,9 @@
             [:a {:href "#"} k])))])
 
 (defn coach-view []
-  (let [nodes (db/watch-nodes)]
+  (let [nodes
+        (reagent/atom {})
+        #_(db/watch-nodes)]
     [:div
      [:h2 "Team goals:"]
      [team-goals]

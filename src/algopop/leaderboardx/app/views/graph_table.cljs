@@ -9,30 +9,27 @@
     [reagent.core :as reagent]
     [reagent.ratom :as ratom :refer-macros [reaction]]))
 
+;; TODO: only show video and discuss on about and discuss tabs
+
 (def delimiter #"[,;]")
 
 (defn split [s]
   (filter seq (map string/trim (string/split s delimiter))))
 
-(defn replace-edges [id selected-id source outs ins]
+(defn replace-edges [graph-name selected-id source node-type edge-type outs ins]
   (when-let [node-name (first (string/split source delimiter))]
     (let [source (string/trim node-name)]
       (when (seq source)
-        ;; TODO: use the edge type, not "likes"
-        ;; TODO: only show video and discuss on about and discuss tabs
-        (db-firebase/replace-edges id source (split outs) (split ins) "likes")
+        (db-firebase/replace-edges graph-name source node-type edge-type (split outs) (split ins))
         (reset! selected-id source)))))
 
-(defn list-edges [edges]
-  (string/join ", " (sort @edges)))
-
-(defn add-node [id]
+(defn add-node [graph-name selected-node-type selected-edge-type]
   [:form.form-inline
    {:on-submit
     (fn submit-add [e]
       (.preventDefault e)
       (let [{:keys [name outs ins]} (common/form-data e)]
-        (replace-edges id (atom nil) name outs ins)))}
+        (replace-edges graph-name (atom nil) name @selected-node-type @selected-edge-type outs ins)))}
    [:input.form-control {:name "name"}]
    [:input.form-control {:name "outs"}]
    [:input.form-control {:name "ins"}]
@@ -65,18 +62,18 @@
     {}
     xs))
 
-(defn table [id nodes edges selected-id editing node-types edge-types selected-node-type selected-edge-type]
+(defn table [graph-name nodes edges selected-id editing node-types edge-types selected-node-type selected-edge-type]
   (let [search-term (reagent/atom "")
         nodes-by-rank (reaction
                         (sort-by :rank @nodes))
         outs (reaction (collect-by (filter #(= @selected-edge-type (:edge/type %)) @edges) :edge/from :edge/to))
         ins (reaction (collect-by (filter #(= @selected-edge-type (:edge/type %)) @edges) :edge/to :edge/from))]
-    (fn a-table [id nodes edges selected-id editing node-types edge-types selected-node-type selected-edge-type]
+    (fn a-table [graph-name nodes edges selected-id editing node-types edge-types selected-node-type selected-edge-type]
       [:div
        [common/editable-string "search" editing
         (fn [v]
           (reset! search-term v))]
-       [add-node id]
+       [add-node graph-name selected-node-type selected-edge-type]
        [:table.table.table-responsive
         [:thead
          [:tr
@@ -101,16 +98,17 @@
                (reset! selected-id id))}
             [:td rank]
             [:td [common/editable-string name editing
-                  (fn update-node-name [m p v]
-                    (db/name-node id v))]]
+                  (fn update-node-name [v]
+                    ()
+                    #_(db/name-node id v))]]
             [:td [common/editable-string outs-string editing
-                  (fn update-out-edges [m p v]
-                    (replace-edges id selected-id name v ins-string))]]
+                  (fn update-out-edges [v]
+                    (replace-edges graph-name selected-id name @selected-node-type @selected-edge-type v ins-string))]]
             [:td [common/editable-string ins-string editing
-                  (fn update-in-edges [m p v]
-                    (replace-edges id selected-id name outs-string v))]]]))]])))
+                  (fn update-in-edges [v]
+                    (replace-edges graph-name selected-id name @selected-node-type @selected-edge-type outs-string v))]]]))]])))
 
-(defn table-view [nodes edges]
+(defn table-view [graph-name nodes edges]
   (let [selected-id (reagent/atom nil)
         editing (reagent/atom nil)]
-    [table nodes edges selected-id editing]))
+    [table graph-name nodes edges selected-id editing]))

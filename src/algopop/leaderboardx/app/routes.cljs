@@ -18,14 +18,14 @@
 
 (def routes
   ["/"
-   [["about" about/about-page]
-    ["schema" schema/schema-view]
-    ["entities" entities/entities-view]
-    ["graphs" {"" graph-list/graph-list-view
-               ["/" :id] graph-editor/graph-editor-page}]
-    ["assessments" {"" assess/assessments-view
-                    ["/" :assessee "/" [keyword :type] "/" :date] assess/assess-view}]
-    ["coach" coach/coach-view]]])
+   [["about" #'about/about-page]
+    ["schema" #'schema/schema-view]
+    ["entities" #'entities/entities-view]
+    ["graphs" {"" #'graph-list/graph-list-view
+               ["/" :id] #'graph-editor/graph-editor-page}]
+    ["assessments" {"" #'assess/assessments-view
+                    ["/" :assessee "/" [keyword :type] "/" :date] #'assess/assess-view}]
+    ["coach" #'coach/coach-view]]])
 
 (def links
   (mapv first (second routes)))

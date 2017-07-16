@@ -85,44 +85,53 @@
                :edge-type "member-of"})))
 
 ;; TODO: created vs modified
-(defn with-edge [obj graph-name from to edge-type]
+(defn with-edge [obj graph-name from to node-type edge-type]
   (let [edge-name (str from "-" edge-type "-" to)]
     (doto obj
       (aset (s/clj->firebase from)
-            #js {:created firebase/timestamp})
+            #js {:created firebase/timestamp
+                 :node-type node-type})
       (aset (s/clj->firebase to)
-            #js {:created firebase/timestamp})
+            #js {:created firebase/timestamp
+                 :node-type node-type})
       (aset (s/clj->firebase edge-name)
             #js {:from from
                  :to to
                  :edge-type edge-type})
       (membership graph-name from to edge-name))))
 
-(defn build-update [obj graph-name entity-name [out & more-outs :as outs] [in & more-ins :as ins]]
+(defn build-update [obj graph-name entity-name node-type edge-type [out & more-outs :as outs] [in & more-ins :as ins]]
   (cond
     in (recur
-         (with-edge obj graph-name in entity-name "likes")
+         (with-edge obj graph-name in entity-name node-type edge-type)
          graph-name
          entity-name
+         node-type
+         edge-type
          outs
          more-ins)
     out (recur
-          (with-edge obj graph-name entity-name out "likes")
+          (with-edge obj graph-name entity-name out node-type edge-type)
           graph-name
           entity-name
+          node-type
+          edge-type
           more-outs
           ins)
     :else obj))
 
-(defn replace-edges [graph-name entity-name outs ins type]
+(defn replace-edges [graph-name entity-name node-type edge-type outs ins]
+  ;; TODO: delete old edges!
   (when (seq entity-name)
     (let [entity-name (s/clj->firebase entity-name)]
       (firebase/ref-update
         [(firebase/user-entities)]
         (build-update
-          ;; TODO: what about just entity??
-          #js {}
+          (clj->js {(s/clj->firebase entity-name) {:created firebase/timestamp
+                                                   :node-type node-type}})
           graph-name
           entity-name
+          node-type
+          edge-type
           outs
           ins)))))
