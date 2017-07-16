@@ -4,9 +4,6 @@
     [algopop.leaderboardx.app.views.common :as common]
     [reagent.core :as reagent]))
 
-(def editing
-  (reagent/atom nil))
-
 (defn graph-list-view []
   [firebase/on (firebase/user-entities-path)
    (fn [sets r]
@@ -14,7 +11,6 @@
       [common/entity-editor
        "Sets"
        @sets
-       editing
        (fn add-entity [id]
          (firebase/ref-update
            [r id]

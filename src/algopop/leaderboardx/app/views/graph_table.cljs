@@ -38,9 +38,9 @@
      :value "Add"}]])
 
 ;; TODO: use re-com
-(defn select-type [types editing]
+(defn select-type [types]
   (let [current-type (reagent/atom (ffirst types))]
-    (fn a-select-type [types editing]
+    (fn a-select-type [types]
       [:th
        (into
          [:select
@@ -48,7 +48,7 @@
            (fn selection [e]
              (when-let [v (.. e -target -value)]
                (reset! current-type v)
-               (reset! editing nil)))}]
+               (common/blur-active-input)))}]
          (for [type (keys types)]
            [:option type]))])))
 
@@ -62,15 +62,15 @@
     {}
     xs))
 
-(defn table [graph-name nodes edges selected-id editing node-types edge-types selected-node-type selected-edge-type]
+(defn table [graph-name nodes edges selected-id node-types edge-types selected-node-type selected-edge-type]
   (let [search-term (reagent/atom "")
         nodes-by-rank (reaction
                         (sort-by :rank @nodes))
         outs (reaction (collect-by (filter #(= @selected-edge-type (:edge/type %)) @edges) :edge/from :edge/to))
         ins (reaction (collect-by (filter #(= @selected-edge-type (:edge/type %)) @edges) :edge/to :edge/from))]
-    (fn a-table [graph-name nodes edges selected-id editing node-types edge-types selected-node-type selected-edge-type]
+    (fn a-table [graph-name nodes edges selected-id node-types edge-types selected-node-type selected-edge-type]
       [:div
-       [common/editable-string "search" editing
+       [common/editable-string "search"
         (fn [v]
           (reset! search-term v))]
        [add-node graph-name selected-node-type selected-edge-type]
@@ -78,8 +78,8 @@
         [:thead
          [:tr
           [:th "Rank"]
-          [select-type @node-types editing]
-          [select-type @edge-types editing]
+          [select-type @node-types]
+          [select-type @edge-types]
           [:th "From"]]]
         (into
          [:tbody]
@@ -97,18 +97,17 @@
              (fn table-row-click [e]
                (reset! selected-id id))}
             [:td rank]
-            [:td [common/editable-string name editing
+            [:td [common/editable-string name
                   (fn update-node-name [v]
                     ()
                     #_(db/name-node id v))]]
-            [:td [common/editable-string outs-string editing
+            [:td [common/editable-string outs-string
                   (fn update-out-edges [v]
                     (replace-edges graph-name selected-id name @selected-node-type @selected-edge-type v ins-string))]]
-            [:td [common/editable-string ins-string editing
+            [:td [common/editable-string ins-string
                   (fn update-in-edges [v]
                     (replace-edges graph-name selected-id name @selected-node-type @selected-edge-type outs-string v))]]]))]])))
 
 (defn table-view [graph-name nodes edges]
-  (let [selected-id (reagent/atom nil)
-        editing (reagent/atom nil)]
-    [table graph-name nodes edges selected-id editing]))
+  (let [selected-id (reagent/atom nil)]
+    [table graph-name nodes edges selected-id]))

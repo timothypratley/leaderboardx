@@ -12,7 +12,6 @@
        @entities
        "name"
        "name"
-       (atom nil)
        (fn add-entity [v]
          (firebase/ref-push r {"name" v}))
        (fn remove-entity [id]

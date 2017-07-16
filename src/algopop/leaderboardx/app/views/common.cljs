@@ -33,62 +33,55 @@
    46 "DELETE"
    8 "BACKSPACE"})
 
-(defn save [editing write e]
-  (.preventDefault e)
-  (when write
-    (write (.. e -target -value)))
-  (reset! editing nil))
+(defn save [write a b]
+  (when (and write (not= a b))
+    (write b)))
 
-(defn editable-string
-  [current-value editing write]
-  (let [id (random-uuid)]
-    (fn render-editable-string [current-value editing write]
-      ;; TODO: why do I need this?
-      (if (= id @editing)
-        [focus-append-input
-         {:default-value current-value
-          :on-blur
-          (fn editable-string-blur [e]
-            (save editing write e))
-          :on-key-down
-          (fn editable-string-key-down [e]
-            (case (key-code-name (.-keyCode e))
-              "ESC" (reset! editing nil)
-              "ENTER" (save editing write e)
-              nil))}]
-        [:span.editable
-         {:style {:width "100%"
-                  :cursor "text"}
-          :on-click
-          (fn editable-string-click [e]
-            (reset! editing id))}
-         current-value
-         [:span.glyphicon.glyphicon-pencil.edit]]))))
+(defn blur-active-input []
+  (let [activeElement (.-activeElement js/document)]
+    (when (some-> activeElement (.-tagName) #{"INPUT" "TEXTAREA"})
+      (.blur activeElement))))
+
+(defn editable-string [default-value write]
+  (let [focused (reagent/atom false)
+        visible-value (reagent/atom default-value)]
+    (fn an-editable-string [default-value write]
+      (when (not @focused)
+        (reset! visible-value default-value))
+      [:input
+       {:type "text"
+        :style {:width "100%"}
+        :value @visible-value
+        :on-change
+        (fn editable-string-change [e]
+          (reset! visible-value (.. e -target -value)))
+        :on-focus
+        (fn editable-string-focus [e]
+          (reset! focused true))
+        :on-blur
+        (fn editable-string-blur [e]
+          (reset! focused false)
+          (save write default-value @visible-value))
+        :on-key-down
+        (fn editable-string-key-down [e]
+          (case (key-code-name (.-keyCode e))
+            "ESC" (do
+                    (reset! visible-value default-value)
+                    (blur-active-input))
+            "ENTER" (do
+                      (.preventDefault e)
+                      (save write default-value @visible-value))
+            nil))}])))
 
 (defcard editable-string-example
   "editable string"
-  (dc/reagent (editable-string (reagent/atom {:foo "bar"}) [:foo] (reagent/atom nil))))
+  (dc/reagent [editable-string "foo" (fn [x] x)]))
 
 (deftest some-test
   "blah blah blah"
   (testing "zzz"
     (is (= 1 2) "nah")
     (is (= 1 1) "obviously")))
-
-(defn bound-input
-  [model path editing write]
-  [:input
-   {:style {:width "100%"}
-    :default-value (get-in @model path)
-    :on-blur
-    (fn editable-string-blur [e]
-      (save editing write e))
-    :on-key-down
-    (fn editable-string-key-down [e]
-      (case (key-code-name (.-keyCode e))
-        "ESC" (reset! editing nil)
-        "ENTER" (save editing write e)
-        nil))}])
 
 (defn form-data
   "Returns a kewordized map of forms input name, value pairs."
@@ -100,6 +93,7 @@
                          (first v)
                          v)])))
 
+;; TODO: does this need editing?
 (defn selectable [path model editing options]
   (if (or (= @editing options)
           (not (get-in @model path)))
@@ -149,10 +143,7 @@
             (swap! show? not))}
          "Add"]))))
 
-;; TODO: get rid of "editing"
-(defn entity-editor
-  [heading entities editing add-entity remove-entity
-   add-attribute remove-attribute]
+(defn entity-editor [heading entities add-entity remove-entity add-attribute remove-attribute]
   [:div
    [:h3 heading]
    [:ul.list-unstyled
@@ -177,7 +168,7 @@
              [:div.col-xs-2
               {:style {:font-weight "bold"
                        :text-align "right"}}
-              [editable-string attribute editing
+              [editable-string attribute
                (fn [x]
                  ;; TODO: might combine into one update?
                  (add-attribute entity-name x value)
@@ -188,7 +179,7 @@
                   (remove-attribute entity-name attribute))}
                "x"]]
              [:div.col-xs-10
-              [editable-string value editing #(add-attribute entity-name attribute %)]]])
+              [editable-string value #(add-attribute entity-name attribute %)]]])
           [:li.row
            [:div.col-xs-2
             {:style {:text-align "right"}}

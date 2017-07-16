@@ -25,45 +25,35 @@
                 :style {:width "550px"}
                 :default-value title}])}))
 
-(defn title-editor [g editing]
+(defn title-editor [g]
   (let [title (:title @g)]
     [:div.btn-group
      [:h4
-      (if (= @editing :title)
-        [:form.form-inline
-         {:on-submit
-          (fn title-submit [e]
-            (let [{:keys [new-title]} (common/form-data e)]
-              (swap! g assoc :title new-title)
-              (reset! editing nil)))}
-         [title-input title]]
-        [:span
-         {:on-click
-          (fn rename-click [e]
-            (reset! editing :title))}
-         (or title "Untitled")])]]))
+      [common/editable-string (or title "Untitled") nil
+       (fn title-submit [v]
+         (swap! g assoc :title v))]]]))
 
-(defn unselect [selected-id editing]
+(defn unselect [selected-id]
   (reset! selected-id nil)
-  (reset! editing nil))
+  (common/blur-active-input))
 
-(defn delete-selected [selected-id editing g]
+(defn delete-selected [selected-id g]
   (when-let [id @selected-id]
     (if (string? id)
       (swap! g graph/without-node id)
       (swap! g graph/without-edge id))
-    (unselect selected-id editing)))
+    (unselect selected-id)))
 
-(defn maybe-delete [e selected-id editing g]
+(defn maybe-delete [e selected-id g]
   (when-not (instance? js/HTMLInputElement (.-target e))
     (.preventDefault e)
-    (delete-selected selected-id editing g)))
+    (delete-selected selected-id g)))
 
-(defn handle-keydown [e selected-id editing g]
+(defn handle-keydown [e selected-id g]
   (case (common/key-code-name (.-keyCode e))
-    "ESC" (unselect selected-id editing)
-    "DELETE" (maybe-delete e selected-id editing g)
-    "BACKSPACE" (maybe-delete e selected-id editing g)
+    "ESC" (unselect selected-id)
+    "DELETE" (maybe-delete e selected-id g)
+    "BACKSPACE" (maybe-delete e selected-id g)
     nil))
 
 (defn get-svg []
@@ -101,8 +91,6 @@
 
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
-        editing (or (session/get :editing)
-                    (:editing (session/put! :editing (reagent/atom nil))))
         ;; TODO: find a way to get a map from datascript
         node-types (reagent/atom {"person" {}})
         edge-types (reagent/atom {"likes" {
@@ -120,7 +108,7 @@
         show-settings? (reagent/atom false)
         keydown-handler
         (fn a-keydown-handler [e]
-          (handle-keydown e selected-id editing g))
+          (handle-keydown e selected-id g))
         callbacks
         {:shift-click-edge
          (fn shift-click-edge [{:keys [db/id edge/type]}]
@@ -140,13 +128,13 @@
           (when @show-settings?
             [:div.panel.panel-default
              [:div.panel-body
-              [graph-settings/graph-settings node-types edge-types editing]]])
-          [title-editor g editing]
+              [graph-settings/graph-settings node-types edge-types]]])
+          [title-editor g]
           [:div#d3g
-           [d3/graph node-types edge-types nodes edges selected-id editing callbacks]]
+           [d3/graph node-types edge-types nodes edges selected-id callbacks]]
           [:div.panel.panel-default
            [:div.panel-body
-            [table/table id nodes edges selected-id editing node-types edge-types selected-node-type selected-edge-type]]]])
+            [table/table id nodes edges selected-id node-types edge-types selected-node-type selected-edge-type]]]])
        :component-did-mount
        (fn graph-editor-did-mount [this]
          (.addEventListener js/document "keydown" keydown-handler))

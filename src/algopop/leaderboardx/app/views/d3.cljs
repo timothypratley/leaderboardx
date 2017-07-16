@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.views.d3
   (:require
+    [algopop.leaderboardx.app.views.common :as common]
     [cljsjs.d3]
     [cljs.test]
     [clojure.string :as string]
@@ -171,8 +172,7 @@
    simulation
    mouse-down?
    selected-id
-   {:keys [shift-click-node]}
-   editing]
+   {:keys [shift-click-node]}]
   (when-let [idxs (.-idxs simulation)]
     (let [particle (aget (.nodes simulation) (idxs id))
           x (.-x particle)
@@ -185,6 +185,7 @@
        {:transform (str "translate(" x "," y ")"
                         (when selected?
                           " scale(1.25,1.25)"))
+        :tab-index "1"
         :on-double-click
         (fn node-double-click [e]
           (reset! selected-id nil)
@@ -198,8 +199,8 @@
           (let [new-selected-id id]
             (when (and shift-click-node (.-shiftKey e) @selected-id new-selected-id)
               (shift-click-node @selected-id new-selected-id))
-            (reset! selected-id new-selected-id)
-            (reset! editing nil))
+            (common/blur-active-input)
+            (reset! selected-id new-selected-id))
           (reset! mouse-down? true))}
        (if (email? name)
          [gravatar-background id r name]
@@ -221,7 +222,7 @@
   ;; TODO: implement
   color)
 
-(defn draw-edge [edge-types edge simulation mouse-down? selected-id {:keys [shift-click-edge]} editing]
+(defn draw-edge [edge-types edge simulation mouse-down? selected-id {:keys [shift-click-edge]}]
   (when-let [idxs (.-idxs simulation)]
     (let [{:keys [db/id edge/type edge/from edge/to]} edge
           idx (idxs id)
@@ -262,7 +263,7 @@
               (.preventDefault e)
               (reset! mouse-down? true)
               (reset! selected-id id)
-              (reset! editing nil)
+              (common/blur-active-input)
               (when (and shift-click-edge (.-shiftKey e))
                 (shift-click-edge edge)))
             ;; TODO: negate color should be paramatarizable
@@ -323,7 +324,7 @@
 (defn update-bounds [g simulation-nodes]
   (assoc g :bounds (normalize-bounds (reduce bounds (initial-bounds (first simulation-nodes)) simulation-nodes))))
 
-(defn draw-svg [node-types edge-types nodes edges snapshot simulation mouse-down? selected-id callbacks editing]
+(defn draw-svg [node-types edge-types nodes edges snapshot simulation mouse-down? selected-id callbacks]
   (let [{:keys [bounds]} @snapshot
         max-pagerank (reduce max (map :pagerank @nodes))
         node-count (count @nodes)]
@@ -335,11 +336,11 @@
      (doall
        (concat
          (for [edge @edges]
-           (draw-edge edge-types edge simulation mouse-down? selected-id callbacks editing))
+           (draw-edge edge-types edge simulation mouse-down? selected-id callbacks))
          (for [node @nodes]
-           (draw-node node-types node node-count max-pagerank simulation mouse-down? selected-id callbacks editing))))]))
+           (draw-node node-types node node-count max-pagerank simulation mouse-down? selected-id callbacks))))]))
 
-(defn draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id editing root]
+(defn draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root]
   [:div
    {:style {:height "60vh"}
     :on-mouse-down
@@ -347,7 +348,7 @@
       (.preventDefault e)
       (reset! mouse-down? true)
       (reset! selected-id nil)
-      (reset! editing nil))
+      (common/blur-active-input))
     :on-mouse-up
     (fn graph-mouse-up [e]
       (reset! mouse-down? nil))
@@ -376,7 +377,7 @@
                 (set! (.-fx particle) x)
                 (set! (.-fy particle) y)
                 (restart-simulation simulation)))))))}
-   [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root editing]])
+   [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root]])
 
 ;; TODO: nodes should have a stronger charge than links
 (defn create-simulation []
@@ -393,7 +394,7 @@
             (fn [link idx]
               (or (.-distance link) 30)))))))
 
-(defn graph [node-types edge-types nodes edges selected-id editing callbacks]
+(defn graph [node-types edge-types nodes edges selected-id callbacks]
   (reagent/with-let
     [snapshot (reagent/atom {:bounds [0 0 0 0]
                              :partilces @nodes})
@@ -406,7 +407,7 @@
     (.on simulation "tick"
          (fn simulation-tick []
            (swap! snapshot update-bounds (.nodes simulation))))
-    [draw-graph (reagent/current-component) node-types edge-types nodes edges snapshot simulation mouse-down? selected-id editing callbacks]
+    [draw-graph (reagent/current-component) node-types edge-types nodes edges snapshot simulation mouse-down? selected-id callbacks]
     (finally
       (reagent/dispose! watch)
       (.stop simulation))))
@@ -417,9 +418,8 @@
                                {:index 1 :db/id 1 :name "bar" :uid "zz"}])
           edges (reagent/atom [{:from 0 :to 1}])
           selected-id (reagent/atom nil)
-          editing (reagent/atom nil)
           callbacks {}]
       (fn []
         [:div
          {:style {:border "1px solid black"}}
-         [graph nodes edges selected-id editing callbacks]]))))
+         [graph nodes edges selected-id callbacks]]))))
