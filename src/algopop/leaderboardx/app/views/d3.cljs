@@ -392,7 +392,7 @@
 (defn graph [node-types edge-types nodes edges selected-id editing callbacks]
   (reagent/with-let
     [snapshot (reagent/atom {:bounds [0 0 0 0]
-                             :partilces @nodes})
+                             :particles @nodes})
      simulation (create-simulation)
      mouse-down? (reagent/atom nil)
      watch (reagent/track!

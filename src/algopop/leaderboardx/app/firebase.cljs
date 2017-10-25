@@ -135,6 +135,42 @@
                        (reset! ratom (s/firebase->clj (.val x))))))
     (finally (.off r))))
 
+(defn watch-graph [a path]
+  (reagent/with-let [graph-ref (db-ref path)
+                     nodes-ref (db-ref (conj path "nodes"))
+                     edges-ref (db-ref (conj path "edges"))]
+    (.on graph-ref "value"
+         (fn [x]
+           (reset! a (s/firebase->clj (.val x)))))
+    (-> nodes-ref
+        (.on "child_added"
+             (fn [x]
+               (let [k (.-key x)
+                     v (.val x)]
+                 (let [r (user-entities k)]
+                   (.on r "value"
+                        ...)
+                   (swap! refs conj r)))
+               ))
+        (.on "child_changed"
+             (fn []
+               ))
+        (.on "child_removed"
+             (fn []
+               )))
+    (-> edges-ref
+        (.on "child_added"
+             (fn []
+               ))
+        (.on "child_changed"
+             (fn []
+               ))
+        (.on "child_removed"
+             (.off)))
+    nil
+    (finally
+      (.off @r))))
+
 (defn aeon
   "Given an atom a,
   will update that atom from querying path (which may change)."

@@ -70,9 +70,28 @@
     (.-innerHTML)))
 
 (defn graph-editor-page [{:keys [id]}]
-  (let [nodes (reagent/atom {}) #_(db/watch-nodes)
-        edges (reagent/atom {}) #_(db/watch-edges)
-        g (reagent/atom {})
+  (let [g (reagent/atom {})
+        nodes (reaction
+                (set
+                  (apply concat
+                         (for [[k {:strs [to from]}] @g]
+                           [{:db/id to
+                             :node/name to}
+                            {:db/id from
+                             :node/name from}])))
+                #_(for [[k v] @g
+                      :when (not (get v "from"))]
+                  (assoc v
+                         :db/id k
+                         :node/name k)))
+        edges (reaction
+                []
+                (for [[k v] @g
+                      :when (get v "from")]
+                  (assoc v
+                         :db/id k
+                         :edge/name k
+                         :edge/type (get v "edge-type"))))
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         editing (or (session/get :editing)
@@ -82,9 +101,17 @@
                      {}
                      (for [t [] #_@(db/node-types)]
                        [(:node/type t) t]))
-        edge-types (into
+        edge-types
+        {"likes" {:edge/type "likes"}
+         "member-of" {:edge/type "member-of"
+                      :edge/distance 100
+                      :edge/color "blue"
+                      :edge/dasharray "1"
+                      :edge/weight 1
+                      :edge/negate false}}
+        #_(into
                      {}
-                     (for [t [] #_@(db/edge-types)]
+                     (for [t [] @(db/edge-types)]
                        [(:edge/type t) t]))
         next-edge-type (zipmap (keys edge-types)
                                (rest (cycle (keys edge-types))))
@@ -115,7 +142,8 @@
              [:div.panel-body
               [graph-settings/graph-settings node-types edge-types editing]]])
           [title-editor g editing]
-          [:div#d3g [d3/graph node-types edge-types nodes edges selected-id editing callbacks]]
+          [:div#d3g
+           [d3/graph node-types edge-types nodes edges selected-id editing callbacks]]
           [:div.panel.panel-default
            [:div.panel-body
             [table/table id g selected-id editing node-types edge-types selected-node-type selected-edge-type]]]])

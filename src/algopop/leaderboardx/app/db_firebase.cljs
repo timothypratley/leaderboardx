@@ -1,5 +1,6 @@
 (ns algopop.leaderboardx.app.db-firebase
   (:require
+    [cljs.pprint :as pprint]
     [algopop.leaderboardx.app.firebase :as firebase]
     [reagent.core :as reagent]
     [algopop.leaderboardx.app.firebase-serialization :as s]))
@@ -27,14 +28,17 @@
     (doto r
       (.on "child_added"
            (fn child-added [snapshot]
-             (let [v (s/firebase->clj (.val snapshot))
-                   k (s/firebase->clj (.-key snapshot))]
+             (let [k (s/firebase->clj (.-key snapshot))
+                   v (s/firebase->clj (.val snapshot))]
                (when (seq qs)
-                 (swap! query-node assoc-in [:children k] (apply listen a k v qs)))
+                 (swap! query-node assoc-in [:children k]
+                        (apply listen a k v qs)))
                (swap! a assoc k v))))
       (.on "child_changed"
            (fn child-changed [snapshot]
-             (swap! a merge (s/firebase->clj (.val snapshot)))))
+             (swap! a assoc
+                    (s/firebase->clj (.-key snapshot))
+                    (s/firebase->clj (.val snapshot)))))
       (.on "child_removed"
            (fn child-removed [snapshot]
              (let [k (s/firebase->clj (.-key snapshot))
@@ -59,12 +63,20 @@
          (-> r
              (.orderByChild "from")
              (.equalTo (get v "from"))))
-       (fn get-the-from-nodes [r k v]
+       ;; TODO: not quite right (pollutes top level because child returned without key)
+       ;; Need it for information about the nodes
+       #_(fn get-the-from-nodes [r k v]
          (-> r
              (.child (get v "from")))))]
-    [:h1 (pr-str @a)]
+    [:pre
+     [:code
+      (with-out-str (pprint/pprint @a))]]
     (finally
       (unlisten reference-tree))))
+
+(defn watch-graph2 []
+  (firebase/db-ref []
+      ))
 
 (defn membership [obj graph-name from to edge-name]
   (doto obj
