@@ -78,14 +78,14 @@
       [render [] model editing])))
 
 (defn details-view []
-  (let [w (db/watch-nodes)]
+  (let [w (reagent/atom {}) #_(db/watch-nodes)]
     (fn a-details-view []
       [:div
        [:form.row
         {:on-submit
          (fn details-submit [e]
            (let [{:keys [k v]} (common/form-data e)]
-             (db/add-node v)))}
+             #_(db/add-node v)))}
         [:div.col-xs-4
          [:input.form-control
           {:type "text"

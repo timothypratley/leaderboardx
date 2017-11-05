@@ -5,8 +5,6 @@
     [algopop.leaderboardx.app.firebase :as firebase]
     [reagent.core :as reagent]))
 
-(def editing (reagent/atom nil))
-
 ;; TODO: created/modified aren't quite right
 (defn entities-view []
   [firebase/on (firebase/user-entities-path)
@@ -15,7 +13,6 @@
       [common/entity-editor
        "Entity"
        @entities
-       editing
        (fn add-entity [id]
          (firebase/ref-update
            [r id]

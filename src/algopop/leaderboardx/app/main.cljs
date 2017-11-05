@@ -23,8 +23,13 @@
     [:div.well
      [:div {:id "disqus_thread"}]]]])
 
+(defonce history
+  (History.))
+
+;; May be called multiple times due to code reloading
 (defn hook-browser-navigation! []
-  (doto (History.)
+  (doto history
+    (events/removeAll)
     (events/listen EventType/NAVIGATE routes/navigate)
     (.setEnabled true)))
 

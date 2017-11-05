@@ -3,7 +3,7 @@
     [algopop.leaderboardx.app.pagerank :as pagerank]
     [datascript.core :as d]
     [devcards.core :as dc :refer-macros [defcard deftest]]
-    [reagent.ratom :as ratom :include-macros]
+    [reagent.ratom :as ratom :refer-macros [reaction]]
     [datascript.db :as db]))
 
 (defonce schema
@@ -168,7 +168,7 @@
   ([conn query]
    (pull-q conn '[*] query))
   ([conn pattern query & args]
-   (ratom/reaction
+   (reaction
      (doall
        (for [e @(apply q query conn args)]
          @(posh/pull conn pattern e))))))
@@ -276,7 +276,7 @@
   (set-ranks!))
 
 (defn nodes-for-table []
-  (ratom/reaction (sort-by :rank @(watch-nodes))))
+  (reaction (sort-by :rank @(watch-nodes))))
 
 (def outs-q
   '[:find [?name ...]

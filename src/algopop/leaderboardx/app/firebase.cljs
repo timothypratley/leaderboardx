@@ -13,7 +13,7 @@
   js/firebase.database.ServerValue.TIMESTAMP)
 
 (defn uid []
-  (:uid @user "anonymous"))
+  (:uid @user))
 
 (defn is-user-equal [google-user firebase-user]
   (and
@@ -149,7 +149,9 @@
                      v (.val x)]
                  (let [r (user-entities k)]
                    (.on r "value"
-                        ...)
+                        (fn [z]
+                          ;;TODO
+                          ))
                    (swap! refs conj r)))
                ))
         (.on "child_changed"
@@ -166,7 +168,9 @@
              (fn []
                ))
         (.on "child_removed"
-             (.off)))
+             (fn []
+               ;; TODO
+               #_(.off))))
     nil
     (finally
       (.off @r))))

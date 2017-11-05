@@ -5,8 +5,8 @@
             [algopop.leaderboardx.app.seed :as seed]
             [reagent.core :as reagent]
             [reagent.session :as session]
-            [reagent.ratom :as ratom]
-            [cljs.test :as t :include-macros true :refer-macros [testing is]]
+            [reagent.ratom :as ratom :refer-macros [reaction]]
+            [cljs.test :as t :refer-macros [testing is]]
             [clojure.string :as string]
             [devcards.core :as dc :refer-macros [defcard defcard-rg deftest]]))
 
@@ -44,7 +44,9 @@
            :on-change
            (fn group-change [e]
              (swap! model assoc-in (conj path t)
-                    (.. e -target -value)))}]])))])
+                    (.. e -target -value)
+                    (.-value (.-target e))
+                    ))}]])))])
 
 (def conjv (fnil conj []))
 
@@ -117,13 +119,14 @@
      "Publish"]]])
 
 (defn assess-view [{:keys [name date]}]
-  (let [ac (db/assessment-components "player-assessment")
+  (let [
+        ;;ac (db/assessment-components "player-assessment")
         assess (or (session/get :assess)
                    (:assess (session/put! :assess (reagent/atom {:name "New"}))))
-        nodes (db/watch-nodes)
+        nodes (reagent/atom []) #_(db/watch-nodes)
         template (session/get :model)
         ;; TODO: should be a reaction
-        names (ratom/reaction {:names (mapv :node/name @nodes)})
+        names (reaction {:names (mapv :node/name @nodes)})
         ;; TODO: make a better session
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))

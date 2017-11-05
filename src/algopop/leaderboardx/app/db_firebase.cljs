@@ -7,11 +7,12 @@
 
 (defn unlisten
   "Stops listening to a query tree."
-  [t]
+  [a t]
   (.off (:ref @t))
   (when-let [children (:children @t)]
     (doseq [[k child] children]
-      (unlisten child))))
+      (swap! a dissoc k)
+      (unlisten a child))))
 
 (defn listen
   "The input atom a will be modified to contain entities found by applying queries.
@@ -36,19 +37,19 @@
                (swap! a assoc k v))))
       (.on "child_changed"
            (fn child-changed [snapshot]
-             (swap! a assoc
-                    (s/firebase->clj (.-key snapshot))
-                    (s/firebase->clj (.val snapshot)))))
+             (swap! a update (s/firebase->clj (.-key snapshot))
+                    merge (s/firebase->clj (.val snapshot)))))
       (.on "child_removed"
            (fn child-removed [snapshot]
              (let [k (s/firebase->clj (.-key snapshot))
                    children (:children @query-node)
                    child (get children k)]
-               (unlisten child)
-               (swap! a dissoc k)))))
+               (swap! a dissoc k)
+               (when child
+                 (unlisten a child))))))
     query-node))
 
-(defn watch-graph [parent-k a]
+(defn watch-entities [parent-k a]
   (reagent/with-let
     [reference-tree
      (listen
@@ -67,12 +68,10 @@
        ;; Need it for information about the nodes
        #_(fn get-the-from-nodes [r k v]
          (-> r
-             (.child (get v "from")))))]
-    [:pre
-     [:code
-      (with-out-str (pprint/pprint @a))]]
+)            (.orderByKey)
+             (.equalTo (get v "from"))))]
     (finally
-      (unlisten reference-tree))))
+      (unlisten a reference-tree))))
 
 (defn watch-graph2 []
   (firebase/db-ref []
@@ -94,44 +93,53 @@
                :edge-type "member-of"})))
 
 ;; TODO: created vs modified
-(defn with-edge [obj graph-name from to edge-type]
+(defn with-edge [obj graph-name from to node-type edge-type]
   (let [edge-name (str from "-" edge-type "-" to)]
     (doto obj
       (aset (s/clj->firebase from)
-            #js {:created firebase/timestamp})
+            #js {:created firebase/timestamp
+                 :node-type node-type})
       (aset (s/clj->firebase to)
-            #js {:created firebase/timestamp})
+            #js {:created firebase/timestamp
+                 :node-type node-type})
       (aset (s/clj->firebase edge-name)
             #js {:from from
                  :to to
                  :edge-type edge-type})
       (membership graph-name from to edge-name))))
 
-(defn build-update [obj graph-name entity-name [out & more-outs :as outs] [in & more-ins :as ins]]
+(defn build-update [obj graph-name entity-name node-type edge-type [out & more-outs :as outs] [in & more-ins :as ins]]
   (cond
     in (recur
-         (with-edge obj graph-name in entity-name "likes")
+         (with-edge obj graph-name in entity-name node-type edge-type)
          graph-name
          entity-name
+         node-type
+         edge-type
          outs
          more-ins)
     out (recur
-          (with-edge obj graph-name entity-name out "likes")
+          (with-edge obj graph-name entity-name out node-type edge-type)
           graph-name
           entity-name
+          node-type
+          edge-type
           more-outs
           ins)
     :else obj))
 
-(defn replace-edges [graph-name entity-name outs ins type]
+(defn replace-edges [graph-name entity-name node-type edge-type outs ins]
+  ;; TODO: delete old edges!
   (when (seq entity-name)
     (let [entity-name (s/clj->firebase entity-name)]
       (firebase/ref-update
         [(firebase/user-entities)]
         (build-update
-          ;; TODO: what about just entity??
-          #js {}
+          (clj->js {(s/clj->firebase entity-name) {:created firebase/timestamp
+                                                   :node-type node-type}})
           graph-name
           entity-name
+          node-type
+          edge-type
           outs
           ins)))))

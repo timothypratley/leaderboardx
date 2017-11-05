@@ -7,7 +7,7 @@
    (fn [schema r]
      [:div
       [common/entity-editor "Schema" @schema
-       :a :b (atom nil)
+       :a :b
       (fn add-attribute [v]
          (firebase/ref-push r {"name" v}))
        (fn remove-attribute [id]
