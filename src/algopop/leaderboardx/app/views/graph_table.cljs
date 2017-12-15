@@ -1,7 +1,5 @@
 (ns algopop.leaderboardx.app.views.graph-table
   (:require
-    [algopop.leaderboardx.app.db :as db]
-    [algopop.leaderboardx.app.db-firebase :as db-firebase]
     [algopop.leaderboardx.app.graph :as graph]
     [algopop.leaderboardx.app.views.common :as common]
     [goog.string :as gstring]
@@ -16,20 +14,24 @@
 (defn split [s]
   (filter seq (map string/trim (string/split s delimiter))))
 
-(defn replace-edges [graph-name selected-id source node-type edge-type outs ins]
+(defn replace-edges [graph selected-id source node-type edge-type outs ins]
   (when-let [node-name (first (string/split source delimiter))]
     (let [source (string/trim node-name)]
       (when (seq source)
-        (db-firebase/replace-edges graph-name source node-type edge-type (split outs) (split ins))
+        (swap! graph graph/replace-edges
+               source
+               {:node/type node-type}
+               (zipmap (split outs) (repeat {:edge/type edge-type}))
+               (zipmap (split ins) (repeat {:edge/type edge-type})))
         (reset! selected-id source)))))
 
-(defn add-node [graph-name selected-node-type selected-edge-type]
+(defn add-node [graph selected-node-type selected-edge-type]
   [:form.form-inline
    {:on-submit
     (fn submit-add [e]
       (.preventDefault e)
       (let [{:keys [name outs ins]} (common/form-data e)]
-        (replace-edges graph-name (atom nil) name @selected-node-type @selected-edge-type outs ins)))}
+        (replace-edges graph (atom nil) name @selected-node-type @selected-edge-type outs ins)))}
    [:input.form-control {:name "name"}]
    [:input.form-control {:name "outs"}]
    [:input.form-control {:name "ins"}]
@@ -55,25 +57,39 @@
 (def conjs
   (fnil conj #{}))
 
+;; TODO: remove if don't need
 (defn collect-by [xs k1 k2]
   (reduce
-    (fn [acc x]
+    (fn [acc [id x]]
       (update acc (get x k1) conjs (get x k2)))
     {}
     xs))
 
-(defn table [graph-name nodes edges selected-id node-types edge-types selected-node-type selected-edge-type]
+;; TODO: can transients support update?
+(defn collect [xs]
+  (reduce (fn [acc [k v]]
+            (update acc k conjs v))
+          {}
+          xs))
+
+(defn table [g selected-id node-types edge-types selected-node-type selected-edge-type]
   (let [search-term (reagent/atom "")
         nodes-by-rank (reaction
-                        (sort-by :rank @nodes))
-        outs (reaction (collect-by (filter #(= @selected-edge-type (:edge/type %)) @edges) :edge/from :edge/to))
-        ins (reaction (collect-by (filter #(= @selected-edge-type (:edge/type %)) @edges) :edge/to :edge/from))]
-    (fn a-table [graph-name nodes edges selected-id node-types edge-types selected-node-type selected-edge-type]
+                        (sort-by (comp second :rank) (:nodes @g)))
+        matching-edges (reaction
+                         (doall
+                           (for [[from tos] (:edges @g)
+                                 [to {:keys [edge/type]}] tos
+                                 :when (= type @selected-edge-type)]
+                             [from to])))
+        outs (reaction (collect @matching-edges))
+        ins (reaction (collect (map reverse @matching-edges)))]
+    (fn a-table [graph selected-id node-types edge-types selected-node-type selected-edge-type]
       [:div
        [common/editable-string "search"
         (fn [v]
           (reset! search-term v))]
-       [add-node graph-name selected-node-type selected-edge-type]
+       [add-node graph selected-node-type selected-edge-type]
        [:table.table.table-responsive
         [:thead
          [:tr
@@ -83,7 +99,7 @@
           [:th "From"]]]
         (into
          [:tbody]
-         (for [{:keys [db/id rank node/name]} @nodes-by-rank
+         (for [[id {:keys [rank node/name]}] @nodes-by-rank
                :let [selected? (= id @selected-id)
                      match? (and (seq @search-term)
                                  (gstring/startsWith name @search-term))
@@ -97,17 +113,19 @@
              (fn table-row-click [e]
                (reset! selected-id id))}
             [:td rank]
-            [:td [common/editable-string name
+            ;; TODO: names vs ids omg
+            [:td [common/editable-string (or name id)
                   (fn update-node-name [v]
-                    ()
-                    #_(db/name-node id v))]]
+                    (let [new-name (string/trim v)]
+                      (when (seq new-name)
+                        (swap! graph graph/rename-node id v))))]]
             [:td [common/editable-string outs-string
                   (fn update-out-edges [v]
-                    (replace-edges graph-name selected-id name @selected-node-type @selected-edge-type v ins-string))]]
+                    (replace-edges graph selected-id (or name id) @selected-node-type @selected-edge-type v ins-string))]]
             [:td [common/editable-string ins-string
                   (fn update-in-edges [v]
-                    (replace-edges graph-name selected-id name @selected-node-type @selected-edge-type outs-string v))]]]))]])))
+                    (replace-edges graph selected-id (or name id) @selected-node-type @selected-edge-type outs-string v))]]]))]])))
 
-(defn table-view [graph-name nodes edges]
+(defn table-view [graph nodes edges]
   (let [selected-id (reagent/atom nil)]
-    [table graph-name nodes edges selected-id]))
+    [table graph nodes edges selected-id]))

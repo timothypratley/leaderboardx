@@ -230,3 +230,31 @@
 
 (defn db-remove [path]
   (ref-remove (db-ref path)))
+
+(comment
+  ;; isolate
+  entities (reagent/atom {})
+  nodes (reaction
+          (doto
+            (for [[k v] @entities
+                  :let [v (set/rename-keys
+                            (walk/keywordize-keys v)
+                            {:edge-type :edge/type})]
+                  :when (not (:edge/type v))]
+              (assoc v :db/id k
+                       :node/name k))))
+  edges (reaction
+          (for [[k v] @entities
+                :let [v (set/rename-keys
+                          (walk/keywordize-keys v)
+                          {:edge-type :edge/type
+                           :from :edge/from
+                           :to :edge/to})]
+                :when (:edge/type v)]
+            (assoc v :db/id k
+                     :edge/name k)))
+  ;; TODO: downstream users want to modify
+  g (reaction
+      {:nodes @nodes
+       :edges @edges})
+  )

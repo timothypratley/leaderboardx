@@ -62,32 +62,8 @@
     (.-innerHTML)))
 
 (defn graph-editor-page [{:keys [id]}]
-  (let [
-        ;; isolate
-        entities (reagent/atom {})
-        nodes (reaction
-                (doto
-                  (for [[k v] @entities
-                        :let [v (set/rename-keys
-                                  (walk/keywordize-keys v)
-                                  {:edge-type :edge/type})]
-                        :when (not (:edge/type v))]
-                    (assoc v :db/id k
-                             :node/name k))))
-        edges (reaction
-                (for [[k v] @entities
-                      :let [v (set/rename-keys
-                                (walk/keywordize-keys v)
-                                {:edge-type :edge/type
-                                 :from :edge/from
-                                 :to :edge/to})]
-                      :when (:edge/type v)]
-                  (assoc v :db/id k
-                           :edge/name k)))
-        ;; TODO: downstream users want to modify
-        g (reaction
-            {:nodes @nodes
-             :edges @edges})
+  (let [g (reagent/atom {:nodes {}
+                         :edges {}})
         selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         ;; TODO: find a way to get a map from datascript
@@ -111,18 +87,17 @@
         callbacks
         {:shift-click-edge
          (fn shift-click-edge [{:keys [db/id edge/type]}]
-           #_(db/insert!
+           #_(swap! g graph/update-edge
              {:db/id id
               :edge/type (next-edge-type type)}))
          :shift-click-node
          (fn shift-click-node [a b]
-           #_(db/add-edge a b))}]
+           #_(swap! g graph/add-edge a b))}]
     (reagent/create-class
       {:display-name "graph-editor"
        :reagent-render
        (fn graph-editor []
          [:div
-          [db-firebase/watch-entities id entities]
           [toolbar/toolbar g get-svg show-settings?]
           (when @show-settings?
             [:div.panel.panel-default
@@ -130,10 +105,10 @@
               [graph-settings/graph-settings node-types edge-types]]])
           [title-editor g]
           [:div#d3g
-           [d3/graph node-types edge-types nodes edges selected-id callbacks]]
+           [d3/graph g node-types edge-types selected-id selected-edge-type callbacks]]
           [:div.panel.panel-default
            [:div.panel-body
-            [table/table id nodes edges selected-id node-types edge-types selected-node-type selected-edge-type]]]])
+            [table/table g selected-id node-types edge-types selected-node-type selected-edge-type]]]])
        :component-did-mount
        (fn graph-editor-did-mount [this]
          (.addEventListener js/document "keydown" keydown-handler))

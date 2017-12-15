@@ -1,7 +1,5 @@
 (ns algopop.leaderboardx.app.graph
-  (:require [algopop.leaderboardx.app.pagerank :as pagerank]
-            [clojure.set :as set]
-            [algopop.leaderboardx.app.db :as db]))
+  (:require [clojure.set :as set]))
 
 ;; TODO: store ins as part of graph instead of recalculating
 (defn in-edges [g k]
@@ -40,11 +38,11 @@
             (without-edges g k removals)
             ins)))
 
-(defn replace-edges [g k outs ins]
+(defn replace-edges [g node-id node outs ins]
   (-> g
-      (update-in [:nodes] merge-left {k {}} (zipmap outs (repeat {})) (zipmap ins (repeat {})))
-      (update-in [:edges k] merge-left (zipmap outs (repeat {})))
-      (replace-in-edges ins k)))
+      (update-in [:nodes] merge-left {node-id node} outs ins)
+      (update-in [:edges node-id] merge-left outs)
+      (replace-in-edges ins node-id)))
 
 (defn rename-in-edges [g k new-k ins]
   (reduce (fn rebuild-edges [acc from]

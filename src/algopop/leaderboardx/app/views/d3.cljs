@@ -14,19 +14,33 @@
   (:import
     [goog.crypt Md5]))
 
-(defn update-simulation [simulation node-types edge-types nodes edges]
-  (let [particles (concat nodes edges)
-        particles-by-id (into {} (for [p particles] [(:db/id p) p]))
+(defn index-by [f xs]
+  (persistent!
+    (reduce
+      (fn [acc x]
+        (assoc! acc (f x) x))
+      (transient {})
+      xs)))
+
+(defn update-simulation
+  "A simulation expects the graph as an object of nodes and links.
+  We need to convert maps of nodes to arrays of objects with indexes for mapping back to their id."
+  [simulation node-types edge-types nodes edges]
+  ;;TODO: nodes should be filtered by type already?
+  (let [particles (concat (for [[id n] nodes]
+                            (assoc n :db/id id))
+                          edges)
         simulation-particles (.nodes simulation)
-        kept-particles (clj->js
-                         (for [p simulation-particles
-                               :let [found (particles-by-id (.-id p))]
-                               :when found]
-                           (merge (js->clj p) found)))
+        edges-by-id (index-by :db/id edges)
+        kept-particles (for [p simulation-particles
+                             :let [particle-id (.-id p)
+                                   entity (or (nodes particle-id) (edges-by-id particle-id))]
+                             :when entity]
+                         (merge (js->clj p) entity))
         existing-ids (set (keys (.-idxs simulation)))
-        added-particles (clj->js (remove #(contains? existing-ids (:db/id %)) particles))
+        added-particles (remove #(contains? existing-ids (:db/id %)) particles)
         final-particles (concat kept-particles added-particles)
-        idxs (zipmap (map #(.-id %) final-particles) (range))]
+        idxs (zipmap (map :db/id final-particles) (range))]
     (.nodes
       simulation
       (clj->js
@@ -166,7 +180,7 @@
 
 (defn draw-node
   [node-types
-   {:keys [db/id node/name pagerank shape uid]}
+   [id {:keys [node/name pagerank shape uid]}]
    node-count
    max-pagerank
    simulation
@@ -210,7 +224,7 @@
          :font-size (min (max node-count 8) 22)
          :style {:pointer-events "none"
                  :dominant-baseline "central"}}
-        name]])))
+        (or name id)]])))
 
 (defn average [& args]
   (/ (apply + args) (count args)))
@@ -394,32 +408,45 @@
             (fn [link idx]
               (or (.-distance link) 30)))))))
 
-(defn graph [node-types edge-types nodes edges selected-id callbacks]
+(defn graph [g node-types edge-types selected-id selected-edge-type callbacks]
   (reagent/with-let
-    [snapshot (reagent/atom {:bounds [0 0 0 0]
+    [nodes (reaction (:nodes @g))
+     ;; TODO: duplicates table, refactor
+     matching-edges (reaction
+                      (doall
+                        (for [[from tos] (:edges @g)
+                              [to edge] tos
+                              :when (= (:edge/type edge) @selected-edge-type)]
+                          ;; TODO: not sure I like this
+                          (assoc edge :edge/from from
+                                      :edge/to to
+                                      :db/id (str from "-to-" to)))))
+     snapshot (reagent/atom {:bounds [0 0 0 0]
                              :particles @nodes})
      simulation (create-simulation)
      mouse-down? (reagent/atom nil)
      watch (reagent/track!
              (fn a-graph-watcher []
-               (update-simulation simulation node-types edge-types @nodes @edges)
+               (update-simulation simulation node-types edge-types @nodes @matching-edges)
                (restart-simulation simulation)))]
     (.on simulation "tick"
          (fn simulation-tick []
            (swap! snapshot update-bounds (.nodes simulation))))
-    [draw-graph (reagent/current-component) node-types edge-types nodes edges snapshot simulation mouse-down? selected-id callbacks]
+    [draw-graph (reagent/current-component) node-types edge-types nodes matching-edges snapshot simulation mouse-down? selected-id callbacks]
     (finally
       (reagent/dispose! watch)
       (.stop simulation))))
 
 (defcard-rg graph-example
   (fn []
-    (let [nodes (reagent/atom [{:index 0 :db/id 0 :name "foo" :uid "zz"}
-                               {:index 1 :db/id 1 :name "bar" :uid "zz"}])
-          edges (reagent/atom [{:from 0 :to 1}])
+    (let [g (reagent/atom {:nodes [{:index 0 :db/id 0 :name "foo" :uid "zz"}
+                                   {:index 1 :db/id 1 :name "bar" :uid "zz"}]
+                           :edges {:from 0 :to 1}})
+          node-types (reagent/atom {})
+          edge-types (reagent/atom {})
           selected-id (reagent/atom nil)
           callbacks {}]
       (fn []
         [:div
          {:style {:border "1px solid black"}}
-         [graph nodes edges selected-id callbacks]]))))
+         [graph g node-types edge-types selected-id callbacks]]))))
