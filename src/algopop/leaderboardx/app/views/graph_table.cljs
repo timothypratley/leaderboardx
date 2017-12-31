@@ -15,23 +15,23 @@
   (filter seq (map string/trim (string/split s delimiter))))
 
 (defn replace-edges [graph selected-id source node-type edge-type outs ins]
-  (when-let [node-name (first (string/split source delimiter))]
-    (let [source (string/trim node-name)]
-      (when (seq source)
-        (swap! graph graph/replace-edges
-               source
-               {:node/type node-type}
-               (zipmap (split outs) (repeat {:edge/type edge-type}))
-               (zipmap (split ins) (repeat {:edge/type edge-type})))
-        (reset! selected-id source)))))
+  (when-let [source (first (split source))]
+    (swap! graph
+           graph/replace-edges
+           source
+           node-type
+           edge-type
+           (set (split outs))
+           (set (split ins)))
+    (reset! selected-id source)))
 
-(defn add-node [graph selected-node-type selected-edge-type]
+(defn add-node [graph selected-id selected-node-type selected-edge-type]
   [:form.form-inline
    {:on-submit
     (fn submit-add [e]
       (.preventDefault e)
       (let [{:keys [name outs ins]} (common/form-data e)]
-        (replace-edges graph (atom nil) name @selected-node-type @selected-edge-type outs ins)))}
+        (replace-edges graph selected-id name @selected-node-type @selected-edge-type outs ins)))}
    [:input.form-control {:name "name"}]
    [:input.form-control {:name "outs"}]
    [:input.form-control {:name "ins"}]
@@ -75,7 +75,7 @@
 (defn table [g selected-id node-types edge-types selected-node-type selected-edge-type]
   (let [search-term (reagent/atom "")
         nodes-by-rank (reaction
-                        (sort-by (comp second :rank) (:nodes @g)))
+                        (sort-by #(vector (:rank (val %)) (key %)) (:nodes @g)))
         matching-edges (reaction
                          (doall
                            (for [[from tos] (:edges @g)
@@ -89,7 +89,7 @@
        [common/editable-string "search"
         (fn [v]
           (reset! search-term v))]
-       [add-node graph selected-node-type selected-edge-type]
+       [add-node graph selected-id selected-node-type selected-edge-type]
        [:table.table.table-responsive
         [:thead
          [:tr
@@ -121,10 +121,12 @@
                         (swap! graph graph/rename-node id v))))]]
             [:td [common/editable-string outs-string
                   (fn update-out-edges [v]
-                    (replace-edges graph selected-id (or name id) @selected-node-type @selected-edge-type v ins-string))]]
+                    (replace-edges graph selected-id (or name id) @selected-node-type @selected-edge-type v ins-string)
+                    (common/blur-active-input))]]
             [:td [common/editable-string ins-string
                   (fn update-in-edges [v]
-                    (replace-edges graph selected-id (or name id) @selected-node-type @selected-edge-type outs-string v))]]]))]])))
+                    (replace-edges graph selected-id (or name id) @selected-node-type @selected-edge-type outs-string v)
+                    (common/blur-active-input))]]]))]])))
 
 (defn table-view [graph nodes edges]
   (let [selected-id (reagent/atom nil)]

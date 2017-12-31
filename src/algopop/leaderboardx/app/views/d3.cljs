@@ -15,18 +15,16 @@
     [goog.crypt Md5]))
 
 (defn index-by [f xs]
-  (persistent!
-    (reduce
-      (fn [acc x]
-        (assoc! acc (f x) x))
-      (transient {})
-      xs)))
+  (into {}
+        (for [x xs]
+          [(f x) x])))
 
 (defn update-simulation
   "A simulation expects the graph as an object of nodes and links.
   We need to convert maps of nodes to arrays of objects with indexes for mapping back to their id."
   [simulation node-types edge-types nodes edges]
   ;;TODO: nodes should be filtered by type already?
+  ;;TODO: note that nodes and edges are different (nodes don't have ids, but edges do)... fix?
   (let [particles (concat (for [[id n] nodes]
                             (assoc n :db/id id))
                           edges)
@@ -34,7 +32,8 @@
         edges-by-id (index-by :db/id edges)
         kept-particles (for [p simulation-particles
                              :let [particle-id (.-id p)
-                                   entity (or (nodes particle-id) (edges-by-id particle-id))]
+                                   entity (or (assoc (nodes particle-id) :db/id particle-id)
+                                              (edges-by-id particle-id))]
                              :when entity]
                          (merge (js->clj p) entity))
         existing-ids (set (keys (.-idxs simulation)))

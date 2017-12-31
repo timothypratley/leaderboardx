@@ -1,18 +1,16 @@
 (ns algopop.leaderboardx.app.views.graph-editor
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require
-    [algopop.leaderboardx.app.db :as db]
-    [algopop.leaderboardx.app.db-firebase :as db-firebase]
+    ;;[algopop.leaderboardx.app.db :as db]
+    ;;[algopop.leaderboardx.app.db-firebase :as db-firebase]
     [algopop.leaderboardx.app.graph :as graph]
     [algopop.leaderboardx.app.views.common :as common]
     [algopop.leaderboardx.app.views.d3 :as d3]
     [algopop.leaderboardx.app.views.graph-table :as table]
     [algopop.leaderboardx.app.views.graph-settings :as graph-settings]
     [algopop.leaderboardx.app.views.toolbar :as toolbar]
-    [clojure.walk :as walk]
     [reagent.core :as reagent]
-    [reagent.session :as session]
-    [clojure.set :as set]))
+    [reagent.session :as session]))
 
 (defn title-input [title]
   (reagent/create-class
@@ -61,10 +59,8 @@
     (.-firstChild)
     (.-innerHTML)))
 
-(defn graph-editor-page [{:keys [id]}]
-  (let [g (reagent/atom {:nodes {}
-                         :edges {}})
-        selected-id (or (session/get :selected-id)
+(defn graph-editor-page2 [g]
+  (let [selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         ;; TODO: find a way to get a map from datascript
         node-types (reagent/atom {"person" {}})
@@ -115,3 +111,8 @@
        :component-will-unmount
        (fn graph-editor-will-unmount [this]
          (.removeEventListener js/document "keydown" keydown-handler))})))
+
+(defn graph-editor-page [{:keys [id]}]
+  (let [g (reagent/atom {:nodes {}
+                         :edges {}})]
+    [graph-editor-page2 g]))

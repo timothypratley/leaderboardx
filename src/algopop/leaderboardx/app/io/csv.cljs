@@ -22,7 +22,7 @@ eol : '\n' | '\r\n' | '\n\r'
 
 (defn collect-row [g [_ from & tos]]
   (-> g
-      (update-in [:nodes] graph/merge-left (zipmap tos (repeat {})))
+      (update-in [:nodes] graph/reverse-merge (zipmap tos (repeat {})))
       (assoc-in [:nodes from] {})
       (assoc-in [:edges from] (zipmap tos (repeat {})))))
 

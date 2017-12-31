@@ -11,7 +11,8 @@
     [reagent.core :as reagent]
     [reagent.session :as session]
     [recalcitrant.core :refer [error-boundary]])
-  (:import goog.History))
+  (:import
+    goog.History))
 
 (defn container []
   [error-boundary
@@ -24,13 +25,10 @@
      [:div {:id "disqus_thread"}]]]])
 
 (defonce history
-  (History.))
-
-;; May be called multiple times due to code reloading
-(defn hook-browser-navigation! []
-  (doto history
+  (doto (History.)
     (events/removeAll)
-    (events/listen EventType/NAVIGATE routes/navigate)
+    (events/listen EventType/NAVIGATE (fn on-navigate [e]
+                                        (#'routes/navigate e)))
     (.setEnabled true)))
 
 (defn mount-root []
@@ -38,7 +36,6 @@
 
 (defn init! []
   (firebase/init)
-  (hook-browser-navigation!)
   (mount-root))
 
 (defn ^:export main []
