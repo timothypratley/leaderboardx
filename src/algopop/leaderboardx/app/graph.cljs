@@ -18,14 +18,14 @@
                    (for [[k links] (dissoc (:edges g) id)]
                      [k (dissoc links id)])))))
 
-(defn with-edge [g [from to]]
-  (update-in g [:edges from] merge {to {}}))
-
 (defn without-edge [g [from to]]
   (update-in g [:edges from] dissoc to))
 
-(defn without-edges [g from tos]
-  (apply update-in g [:edges from] dissoc tos))
+(defn without-in-edges [g k ins]
+  (reduce (fn [acc from]
+            (update-in acc [:edges from] dissoc k))
+          g
+          ins))
 
 ;; TODO: make deep
 (defn reverse-merge [& maps]
@@ -34,7 +34,7 @@
 (defn replace-in-edges [g ins k edge-type]
   (let [old-ins (in-edges g k)
         removals (set/difference old-ins ins)
-        g (without-edges g k removals)]
+        g (without-in-edges g k removals)]
     (reduce (fn collect-ins [acc in]
               (update-in acc [:edges in k] reverse-merge {:edge/type edge-type}))
             g
