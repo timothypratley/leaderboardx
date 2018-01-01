@@ -74,3 +74,9 @@
           (update-in [:nodes new-k] reverse-merge node)
           (update-in [:edges new-k] reverse-merge outs)
           (rename-in-edges k new-k ins)))))
+
+(defn update-edge [g from to e]
+  (update-in g [:edges from to] merge e))
+
+(defn add-edge [g from to edge-type]
+  (update-in g [:edges from to] merge {:edge/type edge-type}))

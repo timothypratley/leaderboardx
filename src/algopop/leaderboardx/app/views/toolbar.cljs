@@ -108,15 +108,14 @@
     [:ul.dropdown-menu {:role "menu"}
      [action-button "Empty"
       (fn clear-click [e]
-        ;; TODO: how to delete?
         (reset! g {:nodes {}
                    :edges {}}))]
      [action-button "Random"
       (fn random-click [e]
-        (seed/set-rand!))]
+        (seed/set-rand! g))]
      [action-button "Example"
       (fn random-click [e]
-        (seed/set-example!))]
+        (seed/set-example! g))]
      #_[import-button "File (dot or txt)" ".dot,.txt" dot/read-graph g]]]
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle

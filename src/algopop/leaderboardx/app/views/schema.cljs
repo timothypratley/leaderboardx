@@ -8,12 +8,11 @@
      [:div
       [common/entity-editor "Schema" @schema
        :a :b
-      (fn add-attribute [v]
-         (firebase/ref-push r {"name" v}))
+       (fn add-attribute [v]
+          (firebase/ref-push r {"name" v}))
        (fn remove-attribute [id]
          (.remove (.child r id)))
        (fn add-attribute-attribute [id k]
-         (prn "hi" id k)
          (.set (.child (.child r id) k) "hello"))
        (fn remove-attribute-attribute [id k]
          (.remove (.child (.child r id) k)))]])])

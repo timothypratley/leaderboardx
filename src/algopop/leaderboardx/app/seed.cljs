@@ -31,43 +31,52 @@
 
 (defn rand-graph []
   (let [ks (take 10 (shuffle names))
-        nodes (into {} (for [k ks]
-                         [k {:hair (rand-nth ["red" "brown" "black" "blonde"])}]))]
+        nodes (into {}
+                    (for [k ks]
+                      [k {:hair (rand-nth ["red" "brown" "black" "blonde"])}]))]
     {:nodes nodes
-     :edges (for [from ks]
-              [from (into {} (for [to (take 2 (shuffle (remove #{from} ks)))]
-                               [to {:value 1}]))])}))
+     :edges (into {}
+                  (for [from ks]
+                    [from (into {} (for [to (take 2 (shuffle (remove #{from} ks)))]
+                                     [to {:value 1
+                                          :edge/type "likes"}]))]))}))
 
-(defn set-rand! []
-  (db/replace-many-edges (partition-all 2 (:edges (rand-graph))) "likes"))
+(defn set-rand! [g]
+  (reset! g (rand-graph)))
 
 (def example
-  {:edges ["Amy" ["Lily", "Abigail", "Emma"],
-           "Rhys" ["William", "Liam", "Matt"],
-           "Noah" ["William", "Matt"],
-           "Michael" ["William", "Mason", "Abigail"],
-           "Toby" ["Joel", "Mason", "Alex"],
-           "Olivia" ["Mia", "Claire", "Charlotte"],
-           "Jayden" ["Rhys", "Liam", "Matt"],
-           "Madison" ["Isabella", "Emily", "William"],
-           "Daniel" ["Mason", "Jayden", "Sophia"],
-           "Mia" ["Emily", "Olivia", "Claire"],
-           "William" ["Matt", "Emily", "Noah"],
-           "Matt" ["Liam", "Jayden", "William"],
-           "Claire" ["Charlotte", "Olivia", "Emily"],
-           "Sophia" ["Emma", "Abigail", "Rachelle"],
-           "Emma" ["Abigail", "Sophia", "Amy"],
-           "Joel" ["Emily", "Alex", "Isabella"],
-           "Emily" ["Mia", "Joel", "William"],
-           "Abigail" ["Rachelle", "Amy", "Sophia"],
-           "Alex" ["Mason", "Joel", "Daniel"],
-           "Isabella" ["Madison", "Emily", "Mia"],
-           "Lily" ["Amy", "Sophia", "Rachelle"],
-           "Charlotte" ["Olivia", "Emily", "Claire"],
-           "Liam" ["Matt", "Jayden", "William"],
-           "Rachelle" ["Abigail", "Sophia", "Emma"],
-           "Mason" ["Alex", "Daniel", "Toby"]],
-   :title "Example"})
+  (let [outs {"Amy" ["Lily", "Abigail", "Emma"],
+              "Rhys" ["William", "Liam", "Matt"],
+              "Noah" ["William", "Matt"],
+              "Michael" ["William", "Mason", "Abigail"],
+              "Toby" ["Joel", "Mason", "Alex"],
+              "Olivia" ["Mia", "Claire", "Charlotte"],
+              "Jayden" ["Rhys", "Liam", "Matt"],
+              "Madison" ["Isabella", "Emily", "William"],
+              "Daniel" ["Mason", "Jayden", "Sophia"],
+              "Mia" ["Emily", "Olivia", "Claire"],
+              "William" ["Matt", "Emily", "Noah"],
+              "Matt" ["Liam", "Jayden", "William"],
+              "Claire" ["Charlotte", "Olivia", "Emily"],
+              "Sophia" ["Emma", "Abigail", "Rachelle"],
+              "Emma" ["Abigail", "Sophia", "Amy"],
+              "Joel" ["Emily", "Alex", "Isabella"],
+              "Emily" ["Mia", "Joel", "William"],
+              "Abigail" ["Rachelle", "Amy", "Sophia"],
+              "Alex" ["Mason", "Joel", "Daniel"],
+              "Isabella" ["Madison", "Emily", "Mia"],
+              "Lily" ["Amy", "Sophia", "Rachelle"],
+              "Charlotte" ["Olivia", "Emily", "Claire"],
+              "Liam" ["Matt", "Jayden", "William"],
+              "Rachelle" ["Abigail", "Sophia", "Emma"],
+              "Mason" ["Alex", "Daniel", "Toby"]}]
+    {:nodes (into {}
+                  (for [[k vs] outs]
+                    [k {:node/type "person"}]))
+     :edges (into {}
+                  (for [[k vs] outs]
+                    [k (zipmap vs (repeat {:edge/type "likes"}))]))
+     :title "Example"}))
 
-(defn set-example! []
-  (db/replace-many-edges (partition-all 2 (:edges example)) "likes"))
+(defn set-example! [g]
+  (reset! g example))

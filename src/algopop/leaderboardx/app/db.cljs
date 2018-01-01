@@ -50,37 +50,37 @@
    :to {:db/valueType :db.type/ref}})
 
 #_(defonce conn
-  (doto
-    (d/create-conn schema)
-    (posh!)))
+   (doto
+     (d/create-conn schema)
+     (posh!)))
 
 #_(defn add-assessment [coach player attrs]
-  (transact!
-    conn
-    [{:coach coach
-      :player player
-      :attrs attrs}]))
+   (transact!
+     conn
+     [{:coach coach
+       :player player
+       :attrs attrs}]))
 
 #_(defonce seed
-  (do
+   (do
     ;; TODO: just make one map?
-    (transact!
-      conn
-      [{:name "William"
-        :somedata "something about William"}
-       {:node/types #{{:node/type "person"
-                       :node/color "white"
-                       :node/charge -30}
-                      {:node/type "class"
-                       :node/color "green"
-                       :node/charge 100}}}
-       {:edge/types #{{:edge/type "likes"
-                       :edge/color "#9ecae1"}
-                      {:edge/type "dislikes"
-                       :edge/distance 300
-                       :edge/dasharray "5,5"
-                       :edge/color "#9e0000"}}}])
-    (add-assessment "Coach" "William" {:producivity 7})))
+     (transact!
+       conn
+       [{:name "William"
+         :somedata "something about William"}
+        {:node/types #{{:node/type "person"
+                        :node/color "white"
+                        :node/charge -30}
+                       {:node/type "class"
+                        :node/color "green"
+                        :node/charge 100}}}
+        {:edge/types #{{:edge/type "likes"
+                        :edge/color "#9ecae1"}
+                       {:edge/type "dislikes"
+                        :edge/distance 300
+                        :edge/dasharray "5,5"
+                        :edge/color "#9e0000"}}}])
+     (add-assessment "Coach" "William" {:producivity 7})))
 
 (def q-player
   '[:find ?s ?attrs (pull ?e [*])
@@ -91,7 +91,7 @@
     [?e :somedata ?s]])
 
 #_(defn player []
-  (q q-player conn))
+   (q q-player conn))
 
 (def q-ac
   '[:find (pull ?e [*])
@@ -100,7 +100,7 @@
     [$ ?e :assessment-template/name ?template]])
 
 #_(defn assessment-components [name]
-  (q q-ac conn name))
+   (q q-ac conn name))
 
 (def q-ac2
   '[:find (pull ?e [*])
@@ -110,10 +110,10 @@
     [$ ?e :dom/tag "template"]])
 
 #_(defn ac2 [template]
-  (q q-ac2 conn template))
+   (q q-ac2 conn template))
 
 #_(defcard ac2
-  @(ac2 "player-assessment"))
+   @(ac2 "player-assessment"))
 
 (defn assess [ol]
   (for [i (range (count ol))]
@@ -132,13 +132,13 @@
     :where [?e :node/name ?name]])
 
 #_(defn get-node-by-name
-  ([node-name]
-   (first (d/q node-q @conn node-name)))
-  ([node-name default]
-   (or (get-node-by-name node-name) default)))
+   ([node-name]
+    (first (d/q node-q @conn node-name)))
+   ([node-name default]
+    (or (get-node-by-name node-name) default)))
 
 #_(defn p [id]
-  (posh/pull conn '[*] id))
+   (posh/pull conn '[*] id))
 
 (def nodes-q
   '[:find [?e ...]
@@ -152,49 +152,49 @@
     [?e :to ?to]])
 
 #_(defn set-ranks! []
-  (let [node-ids (d/q nodes-q @conn)
-        es (d/pull-many @conn '[*] (d/q edges-q @conn))]
-    (transact!
-      conn
-      (rank-entities (pagerank/ranks node-ids es)))))
+   (let [node-ids (d/q nodes-q @conn)
+         es (d/pull-many @conn '[*] (d/q edges-q @conn))]
+     (transact!
+       conn
+       (rank-entities (pagerank/ranks node-ids es)))))
 
 #_(defn add-node [name]
-  (transact!
-    conn
-    [{:node/name name}])
-  (set-ranks!))
+   (transact!
+     conn
+     [{:node/name name}])
+   (set-ranks!))
 
 #_(defn pull-q
-  ([conn query]
-   (pull-q conn '[*] query))
-  ([conn pattern query & args]
-   (reaction
-     (doall
-       (for [e @(apply q query conn args)]
-         @(posh/pull conn pattern e))))))
+   ([conn query]
+    (pull-q conn '[*] query))
+   ([conn pattern query & args]
+    (reaction
+      (doall
+        (for [e @(apply q query conn args)]
+          @(posh/pull conn pattern e))))))
 
 #_(defn watch-nodes []
-  (pull-q conn nodes-q))
+   (pull-q conn nodes-q))
 
 #_(defn watch-edges []
-  (pull-q conn edges-q))
+   (pull-q conn edges-q))
 
 #_(defn update-nodes [nodes]
-  (transact! conn nodes))
+   (transact! conn nodes))
 
 #_(defn get-out-edges [id]
-  @(q '[:find ?edge
-        :in $ ?node
-        :where [?edge :from ?node]]
-      conn
-      id))
+   @(q '[:find ?edge
+         :in $ ?node
+         :where [?edge :from ?node]]
+       conn
+       id))
 
 #_(defn get-in-edges [id]
-  @(q '[:find ?edge
-        :in $ ?node
-        :where [?edge :to ?node]]
-      conn
-      id))
+   @(q '[:find ?edge
+         :in $ ?node
+         :where [?edge :to ?node]]
+       conn
+       id))
 
 (defn merge-node [id node existing]
   (let [outs (get-out-edges id)
@@ -218,14 +218,14 @@
         (add-node id new-name)))))
 
 #_(defn edge-tx [edge-id from to]
-  {:db/id edge-id
-   :edge/name (str (d/pull @conn [:name/name] from) " to " (d/pull @conn [:name/name] to))
-   :from from
-   :to to})
+   {:db/id edge-id
+    :edge/name (str (d/pull @conn [:name/name] from) " to " (d/pull @conn [:name/name] to))
+    :from from
+    :to to})
 
 #_(defn add-edge [from to]
-  (transact! conn [(edge-tx -1 from to)])
-  (set-ranks!))
+   (transact! conn [(edge-tx -1 from to)])
+   (set-ranks!))
 
 (defn replace-edges-entities [node-name outs ins edge-type]
   (let [node-id (get-node-by-name node-name -1)
@@ -267,13 +267,13 @@
            :to node-id})))))
 
 #_(defn replace-edges [k outs ins edge-type]
-  (transact! conn (replace-edges-entities k outs ins edge-type))
-  (set-ranks!))
+   (transact! conn (replace-edges-entities k outs ins edge-type))
+   (set-ranks!))
 
 #_(defn replace-many-edges [xs edge-type]
-  (doseq [[k outs ins] xs]
-    (transact! conn (replace-edges-entities k outs ins edge-type)))
-  (set-ranks!))
+   (doseq [[k outs ins] xs]
+     (transact! conn (replace-edges-entities k outs ins edge-type)))
+   (set-ranks!))
 
 (defn nodes-for-table []
   (reaction (sort-by :rank @(watch-nodes))))
@@ -287,7 +287,7 @@
     [?out :node/name ?name]])
 
 #_(defn outs [id]
-  (q outs-q conn id))
+   (q outs-q conn id))
 
 (def ins-q
   '[:find [?name ...]
@@ -298,7 +298,7 @@
     [?in :node/name ?name]])
 
 #_(defn ins [id]
-  (q ins-q conn id))
+   (q ins-q conn id))
 
 (defn values [attribute]
   [:find '[(pull ?value [*]) ...]
@@ -318,13 +318,13 @@
     [?type :edge/type ?t]])
 
 #_(defn node-types []
-  (pull-q conn node-types-q))
+   (pull-q conn node-types-q))
 
 #_(defn edge-types []
-  (pull-q conn edge-types-q))
+   (pull-q conn edge-types-q))
 
 #_(defn insert! [e]
-  (transact! conn [e]))
+   (transact! conn [e]))
 
 (defn add-node-type [v])
 (defn add-edge-type [v]

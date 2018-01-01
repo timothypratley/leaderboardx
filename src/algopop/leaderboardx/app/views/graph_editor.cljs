@@ -64,13 +64,17 @@
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         ;; TODO: find a way to get a map from datascript
         node-types (reagent/atom {"person" {}})
-        edge-types (reagent/atom {"likes" {
-                                           ;;:edge/color "blue"
-                                           ;;:edge/dasharray "1"
-                                           ;;:edge/distance 100
-                                           ;;:weight 1
-                                           ;;:negate false
-                                           }})
+        edge-types (reagent/atom {"likes" {:edge/color "#9ecae1"
+                                           :edge/dasharray "1"
+                                           :edge/distance 30
+                                           :weight 1
+                                           :negate false}
+                                  "dislikes" {:edge/color "red"
+                                              :edge/dasharray "1"
+                                              :edge/distance 100
+                                              :weight 1
+                                              :negate true}})
+
         next-edge-type (reaction
                          (zipmap (keys @edge-types)
                                  (rest (cycle (keys @edge-types)))))
@@ -82,13 +86,12 @@
           (handle-keydown e selected-id g))
         callbacks
         {:shift-click-edge
-         (fn shift-click-edge [{:keys [db/id edge/type]}]
-           #_(swap! g graph/update-edge
-             {:db/id id
-              :edge/type (next-edge-type type)}))
+         (fn shift-click-edge [{:keys [edge/from edge/to edge/type]}]
+           (swap! g graph/update-edge from to
+                  {:edge/type (@next-edge-type type)}))
          :shift-click-node
          (fn shift-click-node [a b]
-           #_(swap! g graph/add-edge a b))}]
+           (swap! g graph/add-edge a b @selected-edge-type))}]
     (reagent/create-class
       {:display-name "graph-editor"
        :reagent-render

@@ -60,7 +60,7 @@
                   :let [idx (idxs id)
                         from-idx (idxs from)
                         to-idx (idxs to)
-                        distance (:edge/distance (get edge-types type))]
+                        distance (:edge/distance (get @edge-types type))]
                   :when (and idx from-idx to-idx)]
               (cond->
                 [{:link [from id]
@@ -243,7 +243,7 @@
           to-idx (idxs to)]
       ;; TODO: isolate data specific stuff here
       (when (and idx from-idx to-idx)
-        (let [{:keys [edge/color edge/dasharray weight negate]} (get edge-types type)
+        (let [{:keys [edge/color edge/dasharray weight negate]} (get @edge-types type)
               particle (aget (.nodes simulation) idx)
               x2 (.-x particle)
               from-particle (aget (.nodes simulation) from-idx)
@@ -414,8 +414,9 @@
      matching-edges (reaction
                       (doall
                         (for [[from tos] (:edges @g)
-                              [to edge] tos
-                              :when (= (:edge/type edge) @selected-edge-type)]
+                              [to edge] tos]
+                          ;; TODO: actually want to see all types
+                              ;:when (= (:edge/type edge) @selected-edge-type)]
                           ;; TODO: not sure I like this
                           (assoc edge :edge/from from
                                       :edge/to to

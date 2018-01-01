@@ -66,16 +66,16 @@
              (.equalTo (get v "from"))))
        ;; TODO: not quite right (pollutes top level because child returned without key)
        ;; Need it for information about the nodes
-       #_(fn get-the-from-nodes [r k v]
+       #_(fn get-the-from-nodes [r k v])
          (-> r
-)            (.orderByKey)
-             (.equalTo (get v "from"))))]
+            (.orderByKey
+             (.equalTo (get v "from")))))]
     (finally
       (unlisten a reference-tree))))
 
 (defn watch-graph2 []
-  (firebase/db-ref []
-      ))
+  (firebase/db-ref []))
+
 
 (defn membership [obj graph-name from to edge-name]
   (doto obj

@@ -103,8 +103,8 @@
                :let [selected? (= id @selected-id)
                      match? (and (seq @search-term)
                                  (gstring/startsWith name @search-term))
-                     outs-string (string/join "," (@outs id))
-                     ins-string (string/join "," (@ins id))]]
+                     outs-string (string/join ", " (@outs id))
+                     ins-string (string/join ", " (@ins id))]]
            [:tr
             {:class (cond selected? "info"
                           match? "warning")
