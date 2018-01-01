@@ -32,7 +32,7 @@
         edges-by-id (index-by :db/id edges)
         kept-particles (for [p simulation-particles
                              :let [particle-id (.-id p)
-                                   entity (or (assoc (nodes particle-id) :db/id particle-id)
+                                   entity (or (some-> (nodes particle-id) (assoc :db/id particle-id))
                                               (edges-by-id particle-id))]
                              :when entity]
                          (merge (js->clj p) entity))
