@@ -1,6 +1,7 @@
 (ns algopop.leaderboardx.app.views.toolbar
-  (:require                                                 ;;[algopop.leaderboardx.app.io.dot :as dot]
-    ;;[algopop.leaderboardx.app.io.csv :as csv]
+  (:require
+    [algopop.leaderboardx.app.io.csv :as csv]
+    [algopop.leaderboardx.app.io.dot :as dot]
     [algopop.leaderboardx.app.seed :as seed]
     [algopop.leaderboardx.app.views.graph-settings :as settings]
     [algopop.leaderboardx.app.logging :as log]
@@ -81,10 +82,10 @@
       :on-change
       (fn import-csv-change [e]
         (when-let [file (aget e "target" "files" 0)]
-          #_(if-let [r (cond (ends-with (.-name file) ".txt") csv/read-graph
-                             (ends-with (.-name file) ".dot") dot/read-graph)]
-              (read-file g file r)
-              (log/error "Must supply a .dot or .txt file"))))}]]])
+          (if-let [r (cond (ends-with (.-name file) ".txt") csv/read-graph
+                           (ends-with (.-name file) ".dot") dot/read-graph)]
+            (read-file g file r)
+            (log/error "Must supply a .dot or .txt file"))))}]]])
 
 (defn action-button [label f]
   [:li [:a.btn {:on-click f} label]])
@@ -116,17 +117,17 @@
      [action-button "Example"
       (fn random-click [e]
         (seed/set-example! g))]
-     #_[import-button "File (dot or txt)" ".dot,.txt" dot/read-graph g]]]
+     [import-button "File (dot or txt)" ".dot,.txt" dot/read-graph g]]]
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle
      {:data-toggle "dropdown"
       :aria-expanded "false"}
      "Save"]
     [:ul.dropdown-menu {:role "menu"}
-     #_[action-button "Graph (dot)"
+     [action-button "Graph (dot)"
         (fn export-graphviz [e]
           (save-file (filename @g "dot") "text/dot" (dot/write-graph @g)))]
-     #_[action-button "Summary table (txt)"
+     [action-button "Summary table (txt)"
         (fn export-csv-click [e]
           (save-file (filename @g "txt") "text/csv" (csv/write-graph @g)))]
      [action-button "Image (svg)"

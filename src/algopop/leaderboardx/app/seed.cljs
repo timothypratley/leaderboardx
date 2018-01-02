@@ -38,8 +38,7 @@
      :edges (into {}
                   (for [from ks]
                     [from (into {} (for [to (take 2 (shuffle (remove #{from} ks)))]
-                                     [to {:value 1
-                                          :edge/type "likes"}]))]))}))
+                                     [to {:edge/type "likes"}]))]))}))
 
 (defn set-rand! [g]
   (reset! g (rand-graph)))

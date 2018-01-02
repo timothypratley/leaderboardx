@@ -19,13 +19,14 @@
 (def routes
   ["/"
    [["about" #'about/about-page]
-    ["schema" #'schema/schema-view]
-    ["entities" #'entities/entities-view]
-    ["graphs" {"" #'graph-list/graph-list-view
+    ;;["schema" #'schema/schema-view]
+    ;;["entities" #'entities/entities-view]
+    #_["graphs" {"" #'graph-list/graph-list-view
                ["/" :id] #'graph-editor/graph-editor-page}]
-    ["assessments" {"" #'assess/assessments-view
+    ["graph" {"" #'graph-editor/graph-editor-page}]
+    #_["assessments" {"" #'assess/assessments-view
                     ["/" :assessee "/" [keyword :type] "/" :date] #'assess/assess-view}]
-    ["coach" #'coach/coach-view]]])
+    #_["coach" #'coach/coach-view]]])
 
 (def links
   (mapv first (second routes)))
@@ -37,9 +38,5 @@
   (session/assoc-in! [:viewpoint :route] (.-token event)))
 
 (defn current-page []
-  (if (firebase/uid)
-    ;; TODO: include userid in graph routes so they are not login specific
-    (let [{:keys [handler route-params]} (match (session/get-in [:viewpoint :route]))]
-      [(or handler about/about-page) route-params])
-    ;; TODO: don't force people to log in
-    [:h1 "Please log in"]))
+  (let [{:keys [handler route-params]} (match (session/get-in [:viewpoint :route]))]
+    [(or handler about/about-page) route-params]))

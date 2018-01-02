@@ -7,12 +7,12 @@
 
 (def dot-gramma
   "graph : <ws> [<'strict'> <ws>] ('graph' | 'digraph') <ws> [id <ws>] <'{'> stmt_list <'}'> <ws>
-<stmt_list> : <ws> {stmt <ws> [<';'> <ws>]}
+<stmt_list> : <ws> (stmt <ws> [<';'> <ws>])*
 <stmt> : node | edge | attr | eq | subgraph
 eq : id <ws> <'='> <ws> id
 attr : ('graph' | 'node' | 'edge') <ws> attr_list
 <attr_list> : (<'['> <ws> [a_list <ws>] <']'> <ws>)+
-<a_list> : a {<(';' | ',')> <ws> a}
+<a_list> : a (<(';' | ',')> <ws> a)*
 <a> : id <ws> <'='> <ws> id <ws>
 edge : (node_id | subgraph) <ws> edge_RHS [<ws> attr_list]
 <edge_RHS> : (<edge_op> <ws> (node_id | subgraph) <ws>)+
@@ -23,27 +23,32 @@ port  : <':'> <ws> id [<ws> <':'> <ws> compass_pt] | <':'> <ws> compass_pt
 compass_pt  : 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw' | 'c' | '_'
 subgraph  : ['subgraph' [<ws> id] <ws>] <'{'> <ws> stmt_list <ws> <'}'>
 ws : #'\\s*'
-<id> : literal | numeral | quoted | html
+<id> : literal | number | quoted | html
 <literal> : #'[a-zA-Z\\200-\\377][a-zA-Z\\200-\\377\\_0-9]*'
 <quoted> : <'\"'> #'(?:[^\"\\\\]|\\\\.)*' <'\"'>
-<numeral> : #'[-]?(.[0-9]+|[0-9]+(.[0-9]*)?)'
+<number> : #'-?([\\.]\\d+|\\d+(\\.\\d*)?)'
 <html> : #'<[^>]*>'")
 
 (def parse-dot
   (insta/parser dot-gramma))
 
+(defn qualify-keywords [m q]
+  (into {}
+        (for [[k v] m]
+          [(keyword q (name k)) v])))
+
 (defn collect-statement [graph [statement-type & statement-body]]
   (condp = statement-type
     :node (let [[id & attrs] statement-body
-                attr-map (apply hash-map attrs)]
+                attr-map (qualify-keywords (apply hash-map attrs) "node")]
             (assoc-in graph [:nodes id] attr-map))
     :edge (let [[from to & attrs] statement-body
-                attr-map (apply hash-map attrs)]
+                attr-map (qualify-keywords (apply hash-map attrs) "edge")]
             (-> graph
                 (assoc-in [:edges from to] attr-map)
                 (update-in [:nodes from] merge {})
                 (update-in [:nodes to] merge {})))
-    :attr (merge (apply hash-map statement-body) graph)
+    :attr (merge (qualify-keywords (apply hash-map statement-body) "graph") graph)
     :eq graph
     :subgraph graph
     graph))
@@ -65,9 +70,8 @@ ws : #'\\s*'
 (defn maybe-attrs [attrs]
   (when (seq attrs)
     (str " ["
-         (string/join "," (for [[k v] attrs]
-                            (str (common/quote-escape (name k))
-                                 " = " (common/quote-escape (pr-str v)))))
+         (string/join ", " (for [[k v] attrs]
+                            (str (name k) " = " (pr-str v))))
          "]")))
 
 (defn edges [g]
