@@ -23,7 +23,8 @@
     ;;["entities" #'entities/entities-view]
     #_["graphs" {"" #'graph-list/graph-list-view
                ["/" :id] #'graph-editor/graph-editor-page}]
-    ["graph" {"" #'graph-editor/graph-editor-page}]
+    ;;    ["graph" {"" #'graph-editor/graph-editor-page}]
+    ["graph-editor" {"" #'graph-editor/graph-editor-page}]
     #_["assessments" {"" #'assess/assessments-view
                     ["/" :assessee "/" [keyword :type] "/" :date] #'assess/assess-view}]
     #_["coach" #'coach/coach-view]]])

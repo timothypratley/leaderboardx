@@ -49,4 +49,4 @@
        (for [link routes/links]
          ^{:key link}
          [:li [:a {:href (str "#/" link)} [:kbd link]]])
-       [user-menu]]]]]])
+       #_[user-menu]]]]]])

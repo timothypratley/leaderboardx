@@ -65,7 +65,7 @@
         ;; TODO: find a way to get a map from datascript
         node-types (reagent/atom {"person" {}})
         edge-types (reagent/atom {"likes" {:edge/color "#9ecae1"
-                                           :edge/dasharray "1"
+                                           ;;:edge/dasharray "1"
                                            :edge/distance 30
                                            :weight 1
                                            :negate false}

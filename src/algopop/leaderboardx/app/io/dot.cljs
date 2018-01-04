@@ -24,7 +24,7 @@ compass_pt  : 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw' | 'c' | '_'
 subgraph  : ['subgraph' [<ws> id] <ws>] <'{'> <ws> stmt_list <ws> <'}'>
 ws : #'\\s*'
 <id> : literal | number | quoted | html
-<literal> : #'[a-zA-Z\\200-\\377][a-zA-Z\\200-\\377\\_0-9]*'
+<literal> : #'[a-zA-Z\\200-\\377][a-zA-Z\\200-\\377\\_\\d]*'
 <quoted> : <'\"'> #'(?:[^\"\\\\]|\\\\.)*' <'\"'>
 <number> : #'-?([\\.]\\d+|\\d+(\\.\\d*)?)'
 <html> : #'<[^>]*>'")

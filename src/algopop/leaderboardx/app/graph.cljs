@@ -57,10 +57,10 @@
 (defn rename-in-edges [g k new-k ins]
   (reduce (fn rebuild-edges [acc from]
             (-> acc
-                (update-in [:edges from] dissoc k)
-                (update-in [:edges from] reverse-merge {new-k {}})))
+                (update-in [:edges from] reverse-merge {new-k (get-in acc [:edges from k])})
+                (update-in [:edges from] dissoc k)))
           g
-          (keys ins)))
+          ins))
 
 (defn rename-node [g k new-k]
   (if (= k new-k)
