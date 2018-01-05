@@ -179,7 +179,7 @@
 
 (defn draw-node
   [node-types
-   [id {:keys [node/name pagerank shape uid]}]
+   [id {:keys [node/name node/pagerank shape uid]}]
    node-count
    max-pagerank
    simulation
@@ -339,7 +339,7 @@
 
 (defn draw-svg [node-types edge-types nodes edges snapshot simulation mouse-down? selected-id callbacks]
   (let [{:keys [bounds]} @snapshot
-        max-pagerank (reduce max (map :pagerank @nodes))
+        max-pagerank (reduce max (map :node/pagerank (vals @nodes)))
         node-count (count @nodes)]
     [:svg.unselectable
      {:view-box (string/join " " bounds)

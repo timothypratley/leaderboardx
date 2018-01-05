@@ -82,7 +82,7 @@
 (defn table [g selected-id node-types edge-types selected-node-type selected-edge-type]
   (let [search-term (reagent/atom "")
         nodes-by-rank (reaction
-                        (sort-by #(vector (:rank (val %)) (key %)) (:nodes @g)))
+                        (sort-by #(vector (:node/rank (val %)) (key %)) (:nodes @g)))
         matching-edges (reaction
                          (doall
                            (for [[from tos] (:edges @g)
@@ -103,7 +103,7 @@
           [:th "From"]]]
         (into
          [:tbody]
-         (for [[id {:keys [rank node/name]}] @nodes-by-rank
+         (for [[id {:keys [node/rank node/name]}] @nodes-by-rank
                :let [selected? (= id @selected-id)
                      match? (and (seq @search-term)
                                  (gstring/startsWith (or name id) @search-term))
@@ -112,6 +112,7 @@
                      outs-string (string/join ", " out-ids)
                      ins-string (string/join ", " in-ids)]
                :when (or (not @selected-id)
+                         (not (get-in @g [:nodes @selected-id])) ;; currently selected an edge
                          (= id @selected-id)
                          (contains? out-ids @selected-id)
                          (contains? in-ids @selected-id))]

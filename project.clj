@@ -18,7 +18,8 @@
                  [posh "0.5.6"]
                  [reagent "0.7.0"]
                  [reagent-utils "0.2.1"]
-                 [recalcitrant "0.1.1"]]
+                 [recalcitrant "0.1.1"]
+                 [binaryage/devtools "0.9.8"]]
 
   :plugins [[lein-cljsbuild "1.1.6"]
             [lein-asset-minifier "0.3.2"]]
@@ -52,7 +53,8 @@
                                :compiler {:main "dev.main"
                                           :optimizations :none
                                           :source-map true
-                                          :pretty-print true}}}}}
+                                          :pretty-print true
+                                          :preloads [devtools.preload]}}}}}
 
    :uberjar
    {:env {:production true}

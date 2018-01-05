@@ -79,7 +79,9 @@
         id->idx (zipmap node-ids (range))
         matrix (vec (repeat n (vec (repeat n 0))))]
     (reduce matrix-with-link matrix
-            (for [{{from :db/id} :from {to :db/id} :to} edges]
+            (for                                            ;;[{{from :db/id} :from {to :db/id} :to} edges]
+              [[from outs] edges
+               to outs]
               [(id->idx to) (id->idx from)]))))
 
 (defn same-rank-dups [[prev-id prev-pr prev-rank] [id pr rank]]

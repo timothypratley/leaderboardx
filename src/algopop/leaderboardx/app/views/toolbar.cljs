@@ -6,7 +6,8 @@
     [algopop.leaderboardx.app.views.graph-settings :as settings]
     [algopop.leaderboardx.app.logging :as log]
     [clojure.string :as string]
-    [reagent.core :as reagent]))
+    [reagent.core :as reagent]
+    [algopop.leaderboardx.app.graph :as graph]))
 
 (defn settings [show-settings?]
   [:div.btn-group
@@ -84,7 +85,7 @@
         (when-let [file (aget e "target" "files" 0)]
           (if-let [r (cond (ends-with (.-name file) ".txt") csv/read-graph
                            (ends-with (.-name file) ".dot") dot/read-graph)]
-            (read-file g file r)
+            (graph/with-ranks (read-file g file r))
             (log/error "Must supply a .dot or .txt file"))))}]]])
 
 (defn action-button [label f]

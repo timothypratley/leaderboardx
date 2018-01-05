@@ -1,9 +1,24 @@
 (ns algopop.leaderboardx.app.graph
-  (:require [clojure.set :as set]
-            [clojure.pprint]))
+  (:require
+    [clojure.set :as set]
+    [algopop.leaderboardx.app.pagerank :as pagerank]))
+
+(defn with-ranks [g]
+  (let [node-ids (keys (:nodes g))
+        ranks (pagerank/ranks node-ids
+                              ;; TODO: edges should just be the id->id; props in another spot
+                              (into {}
+                                    (for [[k m] (:edges g)
+                                          :let [es (set (keys m))]]
+                                      [k es])))]
+    ;; TODO: be less riddic
+    (update g :nodes #(merge-with merge %1 %2) (into {}
+                                                     (for [[k pr r] ranks]
+                                                       [k {:node/pagerank pr
+                                                           :node/rank r}])))))
 
 ;; TODO: store ins as part of graph instead of recalculating
-(defn in-edges [g k]
+(defn ^:private in-edges [g k]
   (set
     (for [[from es] (:edges g)
           [to v] es
@@ -16,22 +31,25 @@
       (assoc :edges
              (into {}
                    (for [[k links] (dissoc (:edges g) id)]
-                     [k (dissoc links id)])))))
+                     [k (dissoc links id)])))
+      (with-ranks)))
 
 (defn without-edge [g [from to]]
-  (update-in g [:edges from] dissoc to))
+  (->
+    (update-in g [:edges from] dissoc to)
+    (with-ranks)))
 
-(defn without-in-edges [g k ins]
+(defn ^:private without-in-edges [g k ins]
   (reduce (fn [acc from]
             (update-in acc [:edges from] dissoc k))
           g
           ins))
 
 ;; TODO: make deep
-(defn reverse-merge [& maps]
+(defn ^:private reverse-merge [& maps]
   (apply merge (reverse maps)))
 
-(defn replace-in-edges [g ins k edge-type]
+(defn ^:private replace-in-edges [g ins k edge-type]
   (let [old-ins (in-edges g k)
         removals (set/difference old-ins ins)
         g (without-in-edges g k removals)]
@@ -52,9 +70,10 @@
                    in-nodes)
         (update-in [:edges node-id] select-keys out-edges)
         (update-in [:edges node-id] reverse-merge out-edges)
-        (replace-in-edges ins node-id edge-type))))
+        (replace-in-edges ins node-id edge-type)
+        (with-ranks))))
 
-(defn rename-in-edges [g k new-k ins]
+(defn ^:private rename-in-edges [g k new-k ins]
   (reduce (fn rebuild-edges [acc from]
             (-> acc
                 (update-in [:edges from] reverse-merge {new-k (get-in acc [:edges from k])})
@@ -73,10 +92,16 @@
           (update-in [:edges] dissoc k)
           (update-in [:nodes new-k] reverse-merge node)
           (update-in [:edges new-k] reverse-merge outs)
-          (rename-in-edges k new-k ins)))))
+          (rename-in-edges k new-k ins)
+          (with-ranks)))))
 
 (defn update-edge [g from to e]
-  (update-in g [:edges from to] merge e))
+  (-> g
+      (update-in [:edges from to] merge e)
+      (with-ranks)))
 
 (defn add-edge [g from to edge-type]
-  (update-in g [:edges from to] merge {:edge/type edge-type}))
+  (-> g
+      (update-in [:edges from to] merge {:edge/type edge-type})
+      (with-ranks)))
+
