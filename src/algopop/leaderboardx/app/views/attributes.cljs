@@ -17,7 +17,6 @@
        (fn remove-entity [id]
          (.remove (.child r id)))
        (fn add-attribute [id k]
-         (prn "hi" id k)
          (.set (.child (.child r id) k) "hello"))
        (fn [id k]
          (.remove (.child (.child r id) k)))]])])

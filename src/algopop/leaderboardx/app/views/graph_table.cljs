@@ -25,41 +25,77 @@
            (set (split ins)))
     (reset! selected-id source)))
 
-(defn add-node [graph selected-id selected-node-type selected-edge-type search-term]
-  [:form.form-inline
-   {:on-submit
-    (fn submit-add [e]
-      (.preventDefault e)
-      (let [{:keys [name outs ins]} (common/form-data e)]
-        (replace-edges graph selected-id name @selected-node-type @selected-edge-type outs ins)))}
-   [:input.form-control
-    {:name "name"
-     :on-change
-     (fn [e]
-       (reset! search-term (.. e -target -value))
-       (when ((:nodes @graph) @search-term)
-         (reset! selected-id @search-term)))}]
-   ;; TODO: make reactive or remove
-   [:input.form-control {:name "outs"}]
-   [:input.form-control {:name "ins"}]
-   [:input.form-control
-    {:type "submit"
-     :value "Add"}]])
+(defn add-node [graph outs ins selected-id selected-node-type selected-edge-type search-term]
+  (reagent/with-let
+    [the-outs (reagent/atom "")
+     the-ins (reagent/atom "")
+     node-name-input (reagent/atom nil)
+     reset-inputs (fn [id]
+                    (reset! search-term (or id ""))
+                    (reset! the-outs (string/join ", " (@outs id)))
+                    (reset! the-ins (string/join ", " (@ins id))))
+     watch (reagent/track!
+             (fn []
+               ;; TODO: move graph to edges by id!
+               (if-let [from (second (re-matches #"(.+)-to-.+" (str @selected-id)))]
+                 (reset-inputs from)
+                 (reset-inputs @selected-id))))]
+    [:form.form-inline
+     {:on-submit
+      (fn submit-add [e]
+        (.preventDefault e)
+        (let [{:keys [name outs ins]} (common/form-data e)]
+          (replace-edges graph selected-id name @selected-node-type @selected-edge-type outs ins))
+        (reset! search-term "")
+        (reset! the-outs "")
+        (reset! the-ins "")
+        (reset! selected-id nil)
+        (.focus @node-name-input))}
+     [:input.form-control
+      {:name "name"
+       :value @search-term
+       :ref
+       (fn [this]
+         (when this
+           (reset! node-name-input this)))
+       :on-change
+       (fn search-term-change [e]
+         (let [s (first (split (.. e -target -value)))]
+           (when (not= s @search-term)
+             (reset! search-term s)
+             (if (seq @search-term)
+               (when ((:nodes @graph) @search-term)
+                 (reset! selected-id @search-term))
+               (reset! selected-id nil)))))}]
+     [:input.form-control
+      {:name "outs"
+       :value @the-outs
+       :on-change
+       (fn outs-change [e]
+         (reset! the-outs (.. e -target -value)))}]
+     [:input.form-control
+      {:name "ins"
+       :value @the-ins
+       :on-change
+       (fn ins-change [e]
+         (reset! the-ins (.. e -target -value)))}]
+     [:input.form-control
+      {:type "submit"
+       :value "Add"}]]
+    (finally
+      (reagent/dispose! watch))))
 
-;; TODO: use re-com
-(defn select-type [types]
-  (let [current-type (reagent/atom (ffirst types))]
-    (fn a-select-type [types]
-      [:th
-       (into
-         [:select
-          {:on-change
-           (fn selection [e]
-             (when-let [v (.. e -target -value)]
-               (reset! current-type v)
-               (common/blur-active-input)))}]
-         (for [type (keys types)]
-           [:option type]))])))
+(defn select-type [types selected]
+  [:th
+   (into
+     [:select
+      {:on-change
+       (fn selection [e]
+         (when-let [v (.. e -target -value)]
+           (reset! selected v)
+           (common/blur-active-input)))}]
+     (for [type (keys types)]
+       [:option type]))])
 
 (def conjs
   (fnil conj #{}))
@@ -80,8 +116,7 @@
           xs))
 
 (defn table [g selected-id node-types edge-types selected-node-type selected-edge-type]
-  (let [search-term (reagent/atom "")
-        nodes-by-rank (reaction
+  (let [nodes-by-rank (reaction
                         (sort-by #(vector (:node/rank (val %)) (key %)) (:nodes @g)))
         matching-edges (reaction
                          (doall
@@ -89,17 +124,18 @@
                                  [to {:keys [edge/type]}] tos
                                  :when (= type @selected-edge-type)]
                              [from to])))
+        search-term (reagent/atom "")
         outs (reaction (collect @matching-edges))
         ins (reaction (collect (map reverse @matching-edges)))]
     (fn a-table [graph selected-id node-types edge-types selected-node-type selected-edge-type]
       [:div
-       [add-node graph selected-id selected-node-type selected-edge-type search-term]
+       [add-node graph outs ins selected-id selected-node-type selected-edge-type search-term]
        [:table.table.table-responsive
         [:thead
          [:tr
           [:th "Rank"]
-          [select-type @node-types]
-          [select-type @edge-types]
+          [select-type @node-types selected-node-type]
+          [select-type @edge-types selected-edge-type]
           [:th "From"]]]
         (into
          [:tbody]
@@ -110,12 +146,7 @@
                      out-ids (@outs id)
                      in-ids (@ins id)
                      outs-string (string/join ", " out-ids)
-                     ins-string (string/join ", " in-ids)]
-               :when (or (not @selected-id)
-                         (not (get-in @g [:nodes @selected-id])) ;; currently selected an edge
-                         (= id @selected-id)
-                         (contains? out-ids @selected-id)
-                         (contains? in-ids @selected-id))]
+                     ins-string (string/join ", " in-ids)]]
            [:tr
             {:class (cond selected? "info"
                           match? "warning")
@@ -141,7 +172,3 @@
                   (fn update-in-edges [v]
                     (replace-edges graph selected-id (or name id) @selected-node-type @selected-edge-type outs-string v)
                     (common/blur-active-input))]]]))]])))
-
-(defn table-view [graph nodes edges]
-  (let [selected-id (reagent/atom nil)]
-    [table graph nodes edges selected-id]))
