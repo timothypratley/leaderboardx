@@ -2,27 +2,25 @@
   :description "LeaderboardX"
   :url "http://timothypratley.blogspot.com"
 
-  :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
-                 [org.clojure/clojurescript "1.9.671" :scope "provided"]
-                 [bidi "2.1.1"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [org.clojure/clojurescript "1.9.946" :scope "provided"]
+                 [bidi "2.1.2"]
                  [cljsjs/bootstrap "3.3.6-1"]
-                 [cljsjs/d3 "4.3.0-5"]
-                 [cljsjs/firebase "4.0.0-0"]
+                 [cljsjs/d3 "4.12.0-0"]
+                 [cljsjs/firebase "4.8.1-0"]
                  [cljsjs/google-platformjs-extern "1.0.0-0"]
                  [compojure "1.6.0"]
-                 ;; TODO: don't need it
-                 [com.lucasbradstreet/instaparse-cljs "1.4.1.2"]
-                 [com.taoensso/encore "2.91.1"]
-                 [datascript "0.16.1"]
-                 [devcards "0.2.3"]
+                 [instaparse "1.4.8"]
+                 [com.taoensso/encore "2.93.0"]
+                 [datascript "0.16.3"]
+                 [devcards "0.2.4"]
                  [posh "0.5.6"]
                  [reagent "0.7.0"]
                  [reagent-utils "0.2.1"]
-                 [recalcitrant "0.1.1"]
-                 [binaryage/devtools "0.9.8"]]
+                 [recalcitrant "0.1.2"]]
 
-  :plugins [[lein-cljsbuild "1.1.6"]
-            [lein-asset-minifier "0.3.2"]]
+  :plugins [[lein-cljsbuild "1.1.7"]
+            [lein-asset-minifier "0.4.4"]]
 
   :min-lein-version "2.5.0"
 
@@ -44,7 +42,7 @@
   :profiles
   {:dev
    {:env {:dev? true}
-    :plugins [[lein-figwheel "0.5.11"]]
+    :plugins [[lein-figwheel "0.5.14"]]
     :figwheel {:http-server-root "public"
                :css-dirs ["resources/public/css"]}
     :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs" "src"]
@@ -53,8 +51,7 @@
                                :compiler {:main "dev.main"
                                           :optimizations :none
                                           :source-map true
-                                          :pretty-print true
-                                          :preloads [devtools.preload]}}}}}
+                                          :pretty-print true}}}}}
 
    :uberjar
    {:env {:production true}

@@ -31,7 +31,8 @@
      the-ins (reagent/atom "")
      node-name-input (reagent/atom nil)
      reset-inputs (fn [id]
-                    (reset! search-term (or id ""))
+                    (when (not (= js/document.activeElement @node-name-input))
+                      (reset! search-term (or id "")))
                     (reset! the-outs (string/join ", " (@outs id)))
                     (reset! the-ins (string/join ", " (@ins id))))
      watch (reagent/track!
@@ -39,49 +40,65 @@
                ;; TODO: move graph to edges by id!
                (if-let [from (second (re-matches #"(.+)-to-.+" (str @selected-id)))]
                  (reset-inputs from)
-                 (reset-inputs @selected-id))))]
-    [:form.form-inline
-     {:on-submit
-      (fn submit-add [e]
-        (.preventDefault e)
-        (let [{:keys [name outs ins]} (common/form-data e)]
-          (replace-edges graph selected-id name @selected-node-type @selected-edge-type outs ins))
-        (reset! search-term "")
-        (reset! the-outs "")
-        (reset! the-ins "")
-        (reset! selected-id nil)
-        (.focus @node-name-input))}
-     [:input.form-control
-      {:name "name"
-       :value @search-term
-       :ref
-       (fn [this]
-         (when this
-           (reset! node-name-input this)))
-       :on-change
-       (fn search-term-change [e]
-         (let [s (first (split (.. e -target -value)))]
-           (when (not= s @search-term)
-             (reset! search-term s)
-             (if (seq @search-term)
-               (when ((:nodes @graph) @search-term)
-                 (reset! selected-id @search-term))
-               (reset! selected-id nil)))))}]
-     [:input.form-control
-      {:name "outs"
-       :value @the-outs
-       :on-change
-       (fn outs-change [e]
-         (reset! the-outs (.. e -target -value)))}]
-     [:input.form-control
-      {:name "ins"
-       :value @the-ins
-       :on-change
-       (fn ins-change [e]
-         (reset! the-ins (.. e -target -value)))}]
-     [:input.form-control
-      {:type "submit"
-       :value "Add"}]]
+                 (reset-inputs @selected-id))))
+     ok (fn add-node-click [e]
+          (replace-edges graph selected-id @search-term @selected-node-type @selected-edge-type @the-outs @the-ins)
+          (reset! search-term "")
+          (reset! the-outs "")
+          (reset! the-ins "")
+          (reset! selected-id nil)
+          (.focus @node-name-input))
+     input-key-down
+     (fn input-key-down [e]
+       (case (common/key-code-name (.-keyCode e))
+         "ESC" (common/blur-active-input)
+         "ENTER" (do
+                   (.preventDefault e)
+                   (ok e))
+         nil))]
+    [:tr
+     [:td
+      [:input.form-control
+       {:name "name"
+        :value @search-term
+        :ref
+        (fn [this]
+          (when this
+            (reset! node-name-input this)))
+        :on-key-down input-key-down
+        :on-change
+        (fn search-term-change [e]
+          (let [s (first (split (.. e -target -value)))]
+            (when (not= s @search-term)
+              (reset! search-term s)
+              (if (seq @search-term)
+                (if ((:nodes @graph) @search-term)
+                  (when (not= @selected-id @search-term)
+                    (reset! selected-id @search-term))
+                  (when @selected-id
+                    (reset! selected-id nil)))
+                (when @selected-id
+                  (reset! selected-id nil))))))}]]
+     [:td
+      [:input.form-control
+       {:name "outs"
+        :value @the-outs
+        :on-key-down input-key-down
+        :on-change
+        (fn outs-change [e]
+          (reset! the-outs (.. e -target -value)))}]]
+     [:td
+      [:input.form-control
+       {:name "ins"
+        :value @the-ins
+        :on-key-down input-key-down
+        :on-change
+        (fn ins-change [e]
+          (reset! the-ins (.. e -target -value)))}]]
+     [:td
+      [:button.form-control
+       {:on-click ok}
+       "Add"]]]
     (finally
       (reagent/dispose! watch))))
 
@@ -129,16 +146,17 @@
         ins (reaction (collect (map reverse @matching-edges)))]
     (fn a-table [graph selected-id node-types edge-types selected-node-type selected-edge-type]
       [:div
-       [add-node graph outs ins selected-id selected-node-type selected-edge-type search-term]
        [:table.table.table-responsive
         [:thead
          [:tr
-          [:th "Rank"]
-          [select-type @node-types selected-node-type]
+          ;;[select-type @node-types selected-node-type]
+          [:th "Person"]
           [select-type @edge-types selected-edge-type]
-          [:th "From"]]]
+          [:th "reciprocated by"]
+          [:th "Rank"]]]
         (into
-         [:tbody]
+         [:tbody
+          [add-node graph outs ins selected-id selected-node-type selected-edge-type search-term]]
          (for [[id {:keys [node/rank node/name]}] @nodes-by-rank
                :let [selected? (= id @selected-id)
                      match? (and (seq @search-term)
@@ -154,8 +172,6 @@
              :on-click
              (fn table-row-click [e]
                (reset! selected-id id))}
-            [:td rank]
-            ;; TODO: names vs ids omg
             [:td [common/editable-string (or name id)
                   (fn update-node-name [v]
                     (let [new-name (string/trim v)]
@@ -163,6 +179,7 @@
                                  (not= new-name (or name id)))
                         (swap! graph graph/rename-node id new-name)
                         (reset! selected-id new-name))))]]
+            ;; TODO: names vs ids omg
             [:td [common/editable-string outs-string
                   (fn update-out-edges [v]
                     ;; TODO: make edge type selection make sense
@@ -171,4 +188,5 @@
             [:td [common/editable-string ins-string
                   (fn update-in-edges [v]
                     (replace-edges graph selected-id (or name id) @selected-node-type @selected-edge-type outs-string v)
-                    (common/blur-active-input))]]]))]])))
+                    (common/blur-active-input))]]
+            [:td rank]]))]])))
