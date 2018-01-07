@@ -136,4 +136,4 @@
       (fn export-svg [e]
         (save-file (filename @g "svg") "image/svg+xml" (format-svg (get-svg))))]]]
    [help]
-   [settings show-settings?]])
+   #_[settings show-settings?]])
