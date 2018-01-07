@@ -14,5 +14,5 @@
            (not-found "<p>Page not found.</p>")) ;; all other, return 404
 
 (defn -main [& args]
-  (run-server (site #'all-routes) {:port (env :http-port 3000)})
+  (run-server (site #'all-routes) {:port (Integer. (env :port 3000))})
   (println "Server started."))
