@@ -23,6 +23,9 @@ html, body {
 }
 .container {
   min-height: 100%;
+  margin: 1%;
+  padding: 1%;
+  width: 98% !important;
 }
 .well {
   height: 90%;

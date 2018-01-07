@@ -17,9 +17,6 @@
 (defn container []
   [error-boundary
    [:div.container
-    {:style {:margin "1%"
-             :padding "1%"
-             :width "98%"}}
     [header/header]
     [:div.well
      [error-boundary

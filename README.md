@@ -41,8 +41,8 @@ Open http://localhost:3000
 
 To test advanced compilation:
 `lein with-profile uberjar do clean, cljsbuild auto`
-`lein run 8080`
-http://localhost:8080
+`lein run`
+http://localhost:3000
 
 If the schema changes:
 `lein run migrate`

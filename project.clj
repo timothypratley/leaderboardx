@@ -9,11 +9,14 @@
                  [cljsjs/d3 "4.12.0-0"]
                  [cljsjs/firebase "4.8.1-0"]
                  [cljsjs/google-platformjs-extern "1.0.0-0"]
-                 [compojure "1.6.0"]
                  [instaparse "1.4.8"]
                  [com.taoensso/encore "2.93.0"]
                  [datascript "0.16.3"]
                  [devcards "0.2.4"]
+                 [http-kit "2.2.0"]
+                 [ring "1.6.3"]
+                 [compojure "1.6.0"]
+                 [environ "1.1.0"]
                  [posh "0.5.6"]
                  [reagent "0.7.0"]
                  [reagent-utils "0.2.1"]
@@ -26,7 +29,7 @@
 
   :uberjar-name "algopop-leaderboardx-standalone.jar"
 
-  :main algopop.leaderboardx.main
+  :main algopop.leaderboardx.server.main
 
   :clean-targets ^{:protect false} ["resources/public/js/out" "resources/public/js/app.js"]
 
@@ -55,7 +58,7 @@
 
    :uberjar
    {:env {:production true}
-    :hooks [leiningen.cljsbuild minify-assets.plugin/hooks]
+    :hooks [leiningen.cljsbuild]
     :aot :all
     :omit-source true
     :cljsbuild {:builds {:app
@@ -64,5 +67,6 @@
                           :compiler
                           {:main prod.main
                            :optimizations :advanced
+                           :infer-externs true
                            :source-map "resources/public/js/compiled.main.map"
                            :pretty-print false}}}}}})

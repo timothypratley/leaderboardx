@@ -21,6 +21,7 @@
 (defn forum-page []
   [:div.well
    [:div#disqus_thread
-    {:ref (fn [this]
-            (when (and this js/window.DISQUS)
-              (js/window.DISQUS.reset #js {:reload true})))}]])
+    {:ref
+     (fn [this]
+       (when (and this js/window.DISQUS)
+         (js/window.DISQUS.reset #js {:reload true})))}]])
