@@ -42,7 +42,7 @@
         [:img {:src "img/brand.png"
                :height "40px"}]
         "  Leaderboard"
-        [:span {:style {:font-family "cursive"}} "X"]]]]
+        [:i "X"]]]]
      [:div.collapse.navbar-collapse {:id "navbar-collapse"}
       [:ul.nav.navbar-nav.navbar-right
        [notifications]

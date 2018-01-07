@@ -14,3 +14,10 @@
     #_[:p [:a {:href "//algopop.herokuapp.com"
              :target "_blank"}
          "Created by Algopop"]]]])
+
+(defn forum-page []
+  [:div.well
+   [:div#disqus_thread
+    {:ref (fn [this]
+            (when (and this js/window.DISQUS)
+              (js/window.DISQUS.reset #js {:reload true})))}]])

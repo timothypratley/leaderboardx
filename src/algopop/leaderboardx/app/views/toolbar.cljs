@@ -32,12 +32,13 @@
       [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
       [:li "To delete nodes and links, click on the graph or table and press the DELETE key."]
       [:li "Select one name and shift click another to add a link."]
-      [:li "Shift click a selected node to change its shape."]
+      ;;[:li "Shift click a selected node to change its shape."]
       [:li "Shift click a link to change the link type."]
       [:li "Drag nodes or edges around with the mouse."]
       [:li "Double click to unpin nodes and edges."]
-      [:li "Click on the table row then click again to edit."]
-      [:li "If your names are email addresses, a Gravatar will be drawn."]]]]])
+      [:li "Click on the table row to edit."]
+      ;;[:li "If your names are email addresses, a Gravatar will be drawn."]
+      ]]]])
 
 (defn save-file [filename t s]
   (if js/Blob

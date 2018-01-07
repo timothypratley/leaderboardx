@@ -35,9 +35,11 @@
                      [k (dissoc links id)])))
       (with-ranks)))
 
-(defn without-edge [g [from to]]
+(defn without-edge [g from to]
+  (prn from to g)
   (->
     (update-in g [:edges from] dissoc to)
+    (doto (prn))
     (with-ranks)))
 
 (defn ^:private without-in-edges [g k ins]

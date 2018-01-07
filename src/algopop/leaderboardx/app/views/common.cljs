@@ -50,7 +50,8 @@
         (reset! visible-value default-value))
       [:input
        {:type "text"
-        :style {:width "100%"}
+        :style {:width "100%"
+                :border "1px solid #f0f0f0"}
         :value @visible-value
         :on-change
         (fn editable-string-change [e]

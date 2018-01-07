@@ -37,9 +37,12 @@
 
 (defn delete-selected [selected-id g]
   (when-let [id @selected-id]
-    (if (string? id)
+    (if (and (string? id) ((:nodes @g) id))
       (swap! g graph/without-node id)
-      (swap! g graph/without-edge id))
+      ;; TODO: distinguish nodes/edges better in datastructure
+      (let [[_ from to] (re-matches #"(.+)-to-(.+)" id)]
+        (prn "FT" from to)
+        (swap! g graph/without-edge from to)))
     (unselect selected-id)))
 
 (defn maybe-delete [e selected-id g]

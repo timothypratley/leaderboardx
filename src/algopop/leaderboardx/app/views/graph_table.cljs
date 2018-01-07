@@ -112,7 +112,9 @@
            (reset! selected v)
            (common/blur-active-input)))}]
      (for [type (keys types)]
-       [:option type]))])
+       [:option
+        {:value type}
+        (string/capitalize type)]))])
 
 (def conjs
   (fnil conj #{}))
@@ -134,7 +136,7 @@
 
 (defn table [g selected-id node-types edge-types selected-node-type selected-edge-type]
   (let [nodes-by-rank (reaction
-                        (sort-by #(vector (:node/rank (val %)) (key %)) (:nodes @g)))
+                        (sort-by #(vector (key %) (:node/rank (val %))) (:nodes @g)))
         matching-edges (reaction
                          (doall
                            (for [[from tos] (:edges @g)
@@ -152,7 +154,7 @@
           ;;[select-type @node-types selected-node-type]
           [:th "Person"]
           [select-type @edge-types selected-edge-type]
-          [:th "reciprocated by"]
+          [:th "Reciprocated by"]
           [:th "Rank"]]]
         (into
          [:tbody

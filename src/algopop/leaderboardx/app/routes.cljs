@@ -25,6 +25,7 @@
                ["/" :id] #'graph-editor/graph-editor-page}]
     ;;    ["graph" {"" #'graph-editor/graph-editor-page}]
     ["graph-editor" {"" #'graph-editor/graph-editor-page}]
+    ["forum" #'about/forum-page]
     #_["assessments" {"" #'assess/assessments-view
                     ["/" :assessee "/" [keyword :type] "/" :date] #'assess/assess-view}]
     #_["coach" #'coach/coach-view]]])
