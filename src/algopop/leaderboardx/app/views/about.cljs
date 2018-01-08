@@ -4,10 +4,10 @@
   [:div
    [:div.jumbotron
     [:h2 "Welcome to Leaderboard" [:i "X"]]
-    [:p "This is a tool for quickly building graphs representions of relationships."]
+    [:p "build graphs of relationships"]
     [:small "Contact timothypratley@gmail.com"]]
    [:div.well
-    [:p "Click `graph-editor` in the top right navigation menu to get started."]
+    [:p "Click " [:strong "graph-editor"] " in the top right navigation menu to get started."]
     [:p "There is a help button in the graph-editor with usage instructions."]]
    [:div
     [:div.embed-responsive.embed-responsive-16by9
