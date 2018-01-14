@@ -148,20 +148,25 @@
   [:div
    [:h3 heading]
    [:ul.list-unstyled
+    [:li.row
+     [:div.col-xs-2
+      {:style {:text-align "right"}}
+      [add add-entity]]]
     (for [[entity-name entity] (sort entities)]
       ^{:key entity-name}
       [:li.row
        {:style {:padding "10px"}}
        [:div.col-xs-2
         {:style {:text-align "right"}}
-        [:h4 entity-name [:a {:href (str "/#/graphs/" entity-name)} "π"]]
         [:button.remove
-         {:on-click
+         {:style {:float "left"}
+          :on-click
           (fn [e]
             (remove-entity entity-name))}
-         "x"]]
+         "x"]
+        [:strong entity-name]]
        [:div.col-xs-10
-        [:div
+        [:div.form-inline
          [:ul.list-unstyled
           (for [[attribute value] (sort entity)]
             ^{:key attribute}
@@ -173,19 +178,16 @@
                (fn [x]
                  ;; TODO: might combine into one update?
                  (add-attribute entity-name x value)
-                 (remove-attribute entity-name attribute))]
+                 (remove-attribute entity-name attribute))]]
+             [:div.col-xs-9
+              [editable-string value #(add-attribute entity-name attribute %)]]
+             [:div.col-xs-1
               [:button.remove
                {:on-click
                 (fn [e]
                   (remove-attribute entity-name attribute))}
-               "x"]]
-             [:div.col-xs-10
-              [editable-string value #(add-attribute entity-name attribute %)]]])
+               "x"]]])
           [:li.row
            [:div.col-xs-2
             {:style {:text-align "right"}}
-            [add #(add-attribute entity-name % "")]]]]]]])
-    [:li.row
-     [:div.col-xs-2
-      {:style {:text-align "right"}}
-      [add add-entity]]]]])
+            [add #(add-attribute entity-name % "")]]]]]]])]])

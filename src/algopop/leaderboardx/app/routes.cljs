@@ -10,6 +10,7 @@
     [algopop.leaderboardx.app.views.graph-editor :as graph-editor]
     [algopop.leaderboardx.app.views.graph-table :as graph-table]
     [algopop.leaderboardx.app.views.graph-list :as graph-list]
+    [algopop.leaderboardx.app.views.roster :as roster]
     [algopop.leaderboardx.app.views.settings :as settings]
     [algopop.leaderboardx.app.views.schema :as schema]
     [bidi.bidi :as bidi]
@@ -26,6 +27,7 @@
     ;;    ["graph" {"" #'graph-editor/graph-editor-page}]
     ["graph-editor" {"" #'graph-editor/graph-editor-page}]
     ["forum" #'about/forum-page]
+    ["roster" #'roster/roster-page]
     #_["assessments" {"" #'assess/assessments-view
                     ["/" :assessee "/" [keyword :type] "/" :date] #'assess/assess-view}]
     #_["coach" #'coach/coach-view]]])
