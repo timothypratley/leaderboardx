@@ -3,13 +3,19 @@
     [algopop.leaderboardx.app.views.common :as common]
     [reagent.core :as reagent]
     [clojure.string :as string]
-    [clojure.set :as set]))
+    [clojure.set :as set]
+    [algopop.leaderboardx.app.logging :as log]
+    [cljs.tools.reader.edn :as edn]))
 
 ;; TODO: would a vector of maps with types in them be better?
 ;; TODO: schema can define relations -> dropdown
 
 (def db
-  (reagent/atom
+  (reagent/atom {}))
+
+(defn set-simple-example! [db]
+  (reset!
+    db
     {:assignments {}
      :duties {"Morning Bus" {:start-time "08:00"
                              :roles #{"Support"}}
@@ -24,6 +30,84 @@
               "Barry" {:role "Teacher"}
               "Brian" {:role "Support"}
               "Bob" {:role "Support"}}
+     :roles {"Support" {}
+             "Teacher" {}
+             "Coordinator" {}}
+     :rules {"Match duty role" {:rule [:in [:people :role] [:duties :roles]]}
+             "Duties per day" {:rule [:<= [:match :people :duties :day-of-week] 1]}
+             "Total duties" {:rule [:<= [:match :people :duties] 4]}}}))
+
+(defn set-example! [db]
+  (reset!
+    db
+    {:assignments {}
+     :duties {"Morning Bus" {:start-time "08:15"
+                             :duration 30
+                             :roles #{"Support"}}
+              "Morning" {:start-time "08:15"
+                         :duration 30}
+              "Recess Area 1" {:start-time "10:50"
+                               :duration 30}
+              "Recess Area 2" {:start-time "10:50"
+                               :duration 30}
+              "Recess Area 3" {:start-time "10:50"
+                               :duration 30}
+              "Recess Library" {:start-time "10:50"
+                                :duration 30}
+              "K-1 Eating Area" {:start-time "12:50"
+                                 :duration 10}
+              "2-5 Eating Area" {:start-time "12:50"
+                                 :duration 10}
+              "Lunch Area 1" {:start-time "13:00"
+                              :duration 30}
+              "Lunch Area 2" {:start-time "13:00"
+                              :duration 30}
+              "Lunch Area 3" {:start-time "13:00"
+                              :duration 30}
+              "Homework Club" {:start-time "13:00"
+                               :duration 30}
+              "Library" {:start-time "13:00"
+                         :duration 30}
+              "Fitzroy Extra" {:start-time "13:00"
+                               :duration 30}
+              "Curb Pickup" {:start-time "15:05"
+                             :duration 35}
+              "Fort Farwell" {:start-time "15:05"
+                              :duration 35}
+              "Bus Lines 2" {:start-time "15:05"
+                             :duration 20}
+              "Bus 2" {:start-time "15:20"
+                       :duration 30}
+              "Afternoon Homework Club" {:start-time "15:20"
+                                         :duration 30}
+
+              "Evening Bus" {:start-time "15:00"}}
+     :days ["mon" "tues" "wed" "thurs" "fri"]
+     :people {"Liz" {:role "Support"}
+              "Kristy" {:role "Teacher"}
+              "Jeremy" {:role "Teacher"}
+              "Mandy" {:role "Coordinator"}
+              "Amanda" {:role "Teacher"}
+              "Paul" {:role "Support"}
+              "Kelly" {:role "Coordinator"}
+              "Janelle" {:role "Teacher"}
+              "Irene" {:role "Support"}
+              "Amy" {:role "Teacher"}
+              "Bronwyn" {:role "Teacher"}
+              "Gloria" {:role "Teacher"}
+              "Jodie" {:role "Coordinator"}
+              "Jodi" {:role "Teacher"}
+              "Robyn" {:role "Teacher"}
+              "Violeta" {:role "Teacher"}
+              "Andrew" {:role "Coordinator"}
+              "Alison" {:role "Teacher"}
+              "Marina" {:role "Support"}
+              "Svet" {:role "Support"}
+              "Jon" {:role "Teacher"}
+              "Aminata" {:role "Teacher"}
+              "Rowena" {:role "Teacher"}
+              "Sheree" {:role "Support"}
+              "Terrence" {:role "Support"}}
      :roles {"Support" {}
              "Teacher" {}
              "Coordinator" {}}
@@ -98,7 +182,7 @@
       (map-indexed
         (fn [row [duty-name {:keys [start-time]}]]
           [row start-time duty-name])
-        duties))))
+        (sort-by (comp :start-time val) duties)))))
 
 (defn assignments-grid [db]
   (let [{:keys [assignments duties days]} @db]
@@ -158,9 +242,109 @@
                                      (= d day))
                                    assignments))))))])))))
 
+;; TODO: make this open a panel like settings
+(defn help []
+  [:div.btn-group
+   [:button.btn.btn-default.dropdown-toggle
+    {:data-toggle "dropdown"
+     :aria-expanded "false"}
+    [:span.glyphicon.glyphicon-question-sign {:aria-hidden "true"}]]
+   [:div.panel.panel-default.dropdown-menu.dropdown-menu-right
+    {:style {:width "550px"}}
+    [:div.panel-body
+     [:ul.list-unstyled
+      [:li "Add data, make a schedule"]]]]])
+
+;; TODO: move to shared
+
+(defn save-file [filename t s]
+  (if js/Blob
+    (let [b (js/Blob. #js [s] #js {:type t})]
+      (if js/window.navigator.msSaveBlob
+        (js/window.navigator.msSaveBlob b filename)
+        (let [link (js/document.createElement "a")]
+          (aset link "download" filename)
+          (if js/window.webkitURL
+            (aset link "href" (js/window.webkitURL.createObjectURL b))
+            (do
+              (aset link "href" (js/window.URL.createObjectURL b))
+              (aset link "onclick" (fn destroy-clicked [e]
+                                     (.removeChild (.-body js/document) (.-target e))))
+              (aset link "style" "display" "none")
+              (.appendChild (.-body js/document) link)))
+          (.click link))))
+    (log/error "Browser does not support Blob")))
+
+(defn ends-with [s suffix]
+  (not (neg? (.indexOf s suffix (- (.-length s) (.-length suffix))))))
+
+(defn read-file [r file deserialize]
+  (if js/FileReader
+    (let [reader (js/FileReader.)]
+      (set! (.-onload reader)
+            (fn csv-loaded [e]
+              (when-let [new-graph (deserialize (.. e -target -result))]
+                (reset! r new-graph))))
+      (.readAsText reader file))
+    (js/alert "Browser does not support FileReader")))
+
+(defn filename [{:keys [title]} ext]
+  (str (or title "roster") "." ext))
+
+(defn import-button [label accept deserialize db]
+  [:li
+   [:a.btn.btn-file
+    label
+    [:input
+     {:type "file"
+      :name "import"
+      :tab-index "-1"
+      :accept accept
+      :value ""
+      :on-change
+      (fn import-csv-change [e]
+        (when-let [file (aget e "target" "files" 0)]
+          (if (ends-with (.-name file) ".txt")
+            (reset! db (read-file db file deserialize))
+            (log/error "Must supply a .dot or .txt file"))))}]]])
+
+(defn action-button [label f]
+  [:li [:a.btn {:on-click f} label]])
+
+(defn toolbar []
+  [:div.btn-toolbar.pull-right {:role "toolbar"}
+   [:div.btn-group
+    [:button.btn.btn-default.dropdown-toggle
+     {:data-toggle "dropdown"
+      :aria-expanded "false"}
+     "Load"]
+    [:ul.dropdown-menu {:role "menu"}
+     [action-button "Empty"
+      (fn clear-click [e]
+        (reset! db {}))]
+     [action-button "Simple Example"
+      (fn random-click [e]
+        (set-simple-example! db))]
+     [action-button "Example"
+      (fn random-click [e]
+        (set-example! db))]
+     [import-button "File (txt)" ".txt" edn/read-string db]]]
+   [:div.btn-group
+    [:button.btn.btn-default.dropdown-toggle
+     {:data-toggle "dropdown"
+      :aria-expanded "false"}
+     "Save"]
+    [:ul.dropdown-menu {:role "menu"}
+     [action-button "Summary table (txt)"
+      (fn export-csv-click [e]
+        (save-file (filename @db "txt") "text/csv" (pr-str @db)))]]]
+   [help]])
+
 (defn roster-page []
   (let [{:keys [people duties roles rules assignments]} @db]
     [:div
+     [toolbar]
+     [:br]
      [:button
       {:on-click
        (fn [e]
