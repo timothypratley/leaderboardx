@@ -141,7 +141,29 @@
           true))
       assignments)))
 
-(defn solve [{:keys [people duties days]}]
+(defn solve-csp [{:keys [people duties days]}]
+  (let [people-names (keys people)
+        variable-keys (for [day days
+                            [duty-name _] duties]
+                        [day duty-name])
+        variables (zipmap (map #(apply str %) variable-keys)
+                          (repeat people-names))
+        problem (clj->js {:timeStep 0
+                          :variables variables
+                          :constraints (for [day days
+                                             [duty-name-i _] duties
+                                             [duty-name-j _] duties
+                                             :when (not= duty-name-i duty-name-j)]
+                                         [(str day duty-name-i) (str day duty-name-j) not=])})
+        solution (js/csp.solve problem)]
+    (if (= solution "FAILURE")
+      {}
+      (into {}
+            (zipmap
+              (sort variable-keys)
+              (vals (sort (js->clj solution))))))))
+
+(defn solve-randomly [{:keys [people duties days]}]
   (let [solution
         (first
           (filter
@@ -154,12 +176,10 @@
           (for [[duty-name day time person] solution]
             [[day duty-name] person]))))
 
-(defn solve! []
-  (swap! db assoc :assignments (solve @db))
+(defn solve! [solver]
+  (swap! db assoc :assignments (solver @db))
   (doseq [[person duties] (group-by val (:assignments @db))]
     (swap! db assoc-in [:people person :duties] (str (count duties)))))
-
-(solve!)
 
 (defn add-entity [t k]
   (swap! db assoc-in [t k] {}))
@@ -182,7 +202,9 @@
       (map-indexed
         (fn [row [duty-name {:keys [start-time]}]]
           [row start-time duty-name])
-        (sort-by (comp :start-time val) duties)))))
+        (sort-by (fn [[duty-name {:keys [start-time]}]]
+                   [start-time (string/lower-case duty-name)])
+                 duties)))))
 
 (defn assignments-grid [db]
   (let [{:keys [assignments duties days]} @db]
@@ -348,8 +370,13 @@
      [:button
       {:on-click
        (fn [e]
-         (solve!))}
+         (solve! solve-randomly))}
       "Randomize"]
+     [:button
+      {:on-click
+       (fn [e]
+         (solve! solve-csp))}
+      "Randomize (CSP)"]
      [roster db]
      [:div.well {:style {:background-color "white"}}
       [common/entity-editor

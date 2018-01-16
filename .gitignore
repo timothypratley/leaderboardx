@@ -13,5 +13,5 @@ pom.xml.asc
 .hgignore
 .hg/
 .idea/
-resources/public/js/
+resources/public/js/compiled
 /bower_components

@@ -31,15 +31,15 @@
 
   :main algopop.leaderboardx.server.main
 
-  :clean-targets ^{:protect false} ["resources/public/js/out" "resources/public/js/app.js"]
+  :clean-targets ^{:protect false} ["resources/public/js/compiled"]
 
   :minify-assets
   {:assets
    {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
 
-  :cljsbuild {:builds {:app {:compiler {:output-to "resources/public/js/app.js"
-                                        :output-dir "resources/public/js/out"
-                                        :asset-path "js/out"
+  :cljsbuild {:builds {:app {:compiler {:output-to "resources/public/js/compiled/app.js"
+                                        :output-dir "resources/public/js/compiled/out"
+                                        :asset-path "js/compiled/out"
                                         :externs ["externs.js"]}}}}
 
   :profiles
@@ -68,5 +68,5 @@
                           {:main prod.main
                            :optimizations :advanced
                            :infer-externs true
-                           :source-map "resources/public/js/compiled.main.map"
+                           :source-map "resources/public/js/compiled/app.js.map"
                            :pretty-print false}}}}}})
