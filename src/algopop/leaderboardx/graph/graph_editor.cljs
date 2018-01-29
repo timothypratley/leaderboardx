@@ -1,16 +1,17 @@
-(ns algopop.leaderboardx.app.views.graph-editor
+(ns algopop.leaderboardx.graph.graph-editor
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require
     ;;[algopop.leaderboardx.app.db :as db]
     ;;[algopop.leaderboardx.app.db-firebase :as db-firebase]
-    [algopop.leaderboardx.app.graph :as graph]
+    [algopop.leaderboardx.graph.graph :as graph]
     [algopop.leaderboardx.app.views.common :as common]
-    [algopop.leaderboardx.app.views.d3 :as d3]
-    [algopop.leaderboardx.app.views.graph-table :as table]
+    [algopop.leaderboardx.graph.graph-view :as graph-view]
+    [algopop.leaderboardx.graph.graph-table :as table]
     [algopop.leaderboardx.app.views.graph-settings :as graph-settings]
     [algopop.leaderboardx.app.views.toolbar :as toolbar]
     [reagent.core :as reagent]
-    [reagent.session :as session]))
+    [reagent.session :as session]
+    [loom.graph :as lg]))
 
 (defn title-input [title]
   (reagent/create-class
@@ -37,7 +38,7 @@
 
 (defn delete-selected [selected-id g]
   (when-let [id @selected-id]
-    (if (and (string? id) ((:nodes @g) id))
+    (if (lg/has-node? @g id)
       (swap! g graph/without-node id)
       ;; TODO: distinguish nodes/edges better in datastructure
       (let [[_ from to] (re-matches #"(.+)-to-(.+)" id)]
@@ -89,12 +90,12 @@
           (handle-keydown e selected-id g))
         callbacks
         {:shift-click-edge
-         (fn shift-click-edge [{:keys [edge/from edge/to edge/type]}]
-           (swap! g graph/update-edge from to
-                  {:edge/type (@next-edge-type type)}))
+         (fn shift-click-edge [edge-id {:keys [edge/type]}]
+           (swap! g graph/update-edge edge-id
+                  :edge/type (@next-edge-type type)))
          :shift-click-node
          (fn shift-click-node [a b]
-           (swap! g graph/add-edge a b @selected-edge-type))}]
+           (swap! g graph/with-edge a b @selected-edge-type))}]
     (reagent/create-class
       {:display-name "graph-editor"
        :reagent-render
@@ -107,7 +108,7 @@
               [graph-settings/graph-settings node-types edge-types]]])
           [title-editor g]
           [:div#d3g
-           [d3/graph g node-types edge-types selected-id selected-edge-type callbacks]]
+           [graph-view/graph-view g node-types edge-types selected-id selected-edge-type callbacks]]
           [:div.panel.panel-default
            [:div.panel-body
             [table/table g selected-id node-types edge-types selected-node-type selected-edge-type]]]])
@@ -119,6 +120,5 @@
          (.removeEventListener js/document "keydown" keydown-handler))})))
 
 (defn graph-editor-page [{:keys [id]}]
-  (let [g (reagent/atom {:nodes {}
-                         :edges {}})]
+  (let [g (reagent/atom (lg/digraph))]
     [graph-editor-page2 g]))

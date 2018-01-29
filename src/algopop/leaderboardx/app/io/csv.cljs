@@ -1,5 +1,5 @@
 (ns algopop.leaderboardx.app.io.csv
-  (:require [algopop.leaderboardx.app.graph :as graph]
+  (:require [algopop.leaderboardx.graph.graph :as graph]
             [algopop.leaderboardx.app.io.common :as common]
             [algopop.leaderboardx.app.logging :as log]
             [instaparse.core :as insta]

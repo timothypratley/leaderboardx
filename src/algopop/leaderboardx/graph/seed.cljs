@@ -1,7 +1,9 @@
-(ns algopop.leaderboardx.app.seed
-  (:require [clojure.string :as str]
-            [algopop.leaderboardx.app.db :as db]
-            [algopop.leaderboardx.app.graph :as graph]))
+(ns algopop.leaderboardx.graph.seed
+  (:require
+    [algopop.leaderboardx.graph.graph :as graph]))
+
+(defn set-empty! [g]
+  (reset! g (graph/create {})))
 
 (def names
   ["Emma" "Noah" "Olivia" "Liam" "Sophia" "Mason" "Isabella" "Jacob"
@@ -30,17 +32,14 @@
    "London" "Asher" "Lauren" "Nathaniel" "Gianna" "Ryder" "Isabelle" "Justin"
    "Alice" "Leo" "Vivian" "Juan" "Hadley" "Luis"])
 
+;;TODO: attrs?
 (defn rand-graph []
-  (let [ks (take 10 (shuffle names))
-        nodes (into {}
-                    (for [k ks]
-                      [k {:hair (rand-nth ["red" "brown" "black" "blonde"])}]))]
-    (graph/with-ranks
-      {:nodes nodes
-       :edges (into {}
-                    (for [from ks]
-                      [from (into {} (for [to (take 2 (shuffle (remove #{from} ks)))]
-                                       [to {:edge/type "likes"}]))]))})))
+  (let [ks (take 10 (shuffle names))]
+    (graph/create
+      (into {}
+            (for [from ks
+                  to (take 2 (shuffle (remove #{from} ks)))]
+              [[from to] {:edge/type "likes"}])))))
 
 (defn set-rand! [g]
   (reset! g (rand-graph)))
@@ -71,14 +70,11 @@
               "Liam" ["Matt", "Jayden", "William"],
               "Rachelle" ["Abigail", "Sophia", "Emma"],
               "Mason" ["Alex", "Daniel", "Toby"]}]
-    (graph/with-ranks
-      {:nodes (into {}
-                    (for [[k vs] outs]
-                      [k {:node/type "person"}]))
-       :edges (into {}
-                    (for [[k vs] outs]
-                      [k (zipmap vs (repeat {:edge/type "likes"}))]))
-       :title "Example"})))
+    (graph/create
+      (into {}
+            (for [[from tos] outs
+                  to tos]
+              [[from to] {:edge/type "likes"}])))))
 
 (defn set-example! [g]
   (reset! g example))

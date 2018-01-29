@@ -1,6 +1,6 @@
-(ns algopop.leaderboardx.app.views.graph-table
+(ns algopop.leaderboardx.graph.graph-table
   (:require
-    [algopop.leaderboardx.app.graph :as graph]
+    [algopop.leaderboardx.graph.graph :as graph]
     [algopop.leaderboardx.app.views.common :as common]
     [goog.string :as gstring]
     [clojure.string :as string]
@@ -25,24 +25,24 @@
            (set (split ins)))
     (reset! selected-id source)))
 
-(defn add-node [graph outs ins selected-id selected-node-type selected-edge-type search-term]
+(defn add-node [g outs ins selected-id selected-node-type selected-edge-type search-term]
   (reagent/with-let
     [the-outs (reagent/atom "")
      the-ins (reagent/atom "")
      node-name-input (reagent/atom nil)
-     reset-inputs (fn [id]
-                    (when (not (= js/document.activeElement @node-name-input))
+     reset-inputs (fn a-reset-inputs [id]
+                    (when (not= @node-name-input js/document.activeElement)
                       (reset! search-term (or id "")))
-                    (reset! the-outs (string/join ", " (@outs id)))
-                    (reset! the-ins (string/join ", " (@ins id))))
+                    (reset! the-outs (string/join ", " (keys (@outs id))))
+                    (reset! the-ins (string/join ", " (keys (@ins id)))))
      watch (reagent/track!
              (fn []
-               ;; TODO: move graph to edges by id!
-               (if-let [from (second (re-matches #"(.+)-to-.+" (str @selected-id)))]
-                 (reset-inputs from)
+               (if (vector? @selected-id)
+                 (let [[from to] @selected-id]
+                   (reset-inputs from))
                  (reset-inputs @selected-id))))
      ok (fn add-node-click [e]
-          (replace-edges graph selected-id @search-term @selected-node-type @selected-edge-type @the-outs @the-ins)
+          (replace-edges g selected-id @search-term @selected-node-type @selected-edge-type @the-outs @the-ins)
           (reset! search-term "")
           (reset! the-outs "")
           (reset! the-ins "")
@@ -72,7 +72,7 @@
             (when (not= s @search-term)
               (reset! search-term s)
               (if (seq @search-term)
-                (if ((:nodes @graph) @search-term)
+                (if (get (graph/nodes @g) @search-term)
                   (when (not= @selected-id @search-term)
                     (reset! selected-id @search-term))
                   (when @selected-id
@@ -116,38 +116,28 @@
         {:value type}
         (string/capitalize type)]))])
 
-(def conjs
-  (fnil conj #{}))
-
-;; TODO: remove if don't need
-(defn collect-by [xs k1 k2]
-  (reduce
-    (fn [acc [id x]]
-      (update acc (get x k1) conjs (get x k2)))
-    {}
-    xs))
-
-;; TODO: can transients support update?
-(defn collect [xs]
-  (reduce (fn [acc [k v]]
-            (update acc k conjs v))
-          {}
-          xs))
-
 (defn table [g selected-id node-types edge-types selected-node-type selected-edge-type]
   (let [nodes-by-rank (reaction
-                        (sort-by #(vector (key %) (:node/rank (val %))) (:nodes @g)))
-        matching-edges (reaction
-                         (doall
-                           (for [[from tos] (:edges @g)
-                                 [to {:keys [edge/type]}] tos
-                                 :when (= type @selected-edge-type)]
-                             [from to])))
+                        ;; TODO: maybe share the reaction with graph-view?
+                        (sort-by #(vector (key %) (:node/rank (val %)))
+                                 (graph/nodes @g)))
         search-term (reagent/atom "")
-        outs (reaction (collect @matching-edges))
-        ins (reaction (collect (map reverse @matching-edges)))]
+        ;; TODO: don't need to be reactions, just put in body?
+        filter-fn (fn [{:keys [edge/type]}]
+                    (= type @selected-edge-type))
+        outs (reaction (graph/out-edges @g filter-fn))
+        ins (reaction (graph/in-edges @g filter-fn))]
     (fn a-table [graph selected-id node-types edge-types selected-node-type selected-edge-type]
       [:div
+       [:table.table.table-responsive
+        [:thead]
+        [:tbody
+         ;; TODO: fix me
+         (when-let [node (get-in @graph [:nodes @selected-id])]
+           [:tr
+            [:td [:input]]])
+         (when-let [edge (get-in @graph [:edges @selected-id])]
+           [:tr [:td [:p "hi"]]])]]
        [:table.table.table-responsive
         [:thead
          [:tr
@@ -163,8 +153,8 @@
                :let [selected? (= id @selected-id)
                      match? (and (seq @search-term)
                                  (gstring/startsWith (or name id) @search-term))
-                     out-ids (@outs id)
-                     in-ids (@ins id)
+                     out-ids (keys (@outs id))
+                     in-ids (keys (@ins id))
                      outs-string (string/join ", " out-ids)
                      ins-string (string/join ", " in-ids)]]
            [:tr

@@ -2,7 +2,6 @@
   (:require [algopop.leaderboardx.app.views.common :as common]
             [algopop.leaderboardx.app.db :as db]
             [algopop.leaderboardx.app.commands :as commands]
-            [algopop.leaderboardx.app.seed :as seed]
             [reagent.core :as reagent]
             [reagent.session :as session]
             [reagent.ratom :as ratom :refer-macros [reaction]]

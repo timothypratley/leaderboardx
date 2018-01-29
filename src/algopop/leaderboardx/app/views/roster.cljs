@@ -127,6 +127,12 @@
 
 (defn valid? [duties people assignments]
   (and
+    ;; limit of two recess/lunch/afternoon duties per week
+    #_(every? true?
+            (for [[person person-assignments] (group-by last assignments)]
+              ;; TODO: how to nominate the duties?
+              (frequencies (map first person-assignments))))
+
     ;; only one duty per day per person
     (every? true?
             (for [[day assignments-that-day] (group-by second assignments)]

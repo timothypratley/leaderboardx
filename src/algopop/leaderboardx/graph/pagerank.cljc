@@ -1,4 +1,4 @@
-(ns algopop.leaderboardx.app.pagerank)
+(ns algopop.leaderboardx.graph.pagerank)
 
 (defn normalize-vector
   "Returns a proportional vector of sum 1"

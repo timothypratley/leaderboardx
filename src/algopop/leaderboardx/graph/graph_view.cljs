@@ -1,88 +1,19 @@
-(ns algopop.leaderboardx.app.views.d3
+(ns algopop.leaderboardx.graph.graph-view
   (:require
     [algopop.leaderboardx.app.views.common :as common]
-    [cljsjs.d3]
+    [algopop.leaderboardx.graph.d3-force-layout :as force]
     [cljs.test]
     [clojure.string :as string]
     [reagent.core :as reagent]
     [reagent.dom :as dom]
     [goog.crypt :as crypt]
-    [devcards.core])
+    [devcards.core]
+    [algopop.leaderboardx.graph.graph :as graph])
   (:require-macros
     [devcards.core :refer [defcard-rg]]
     [reagent.ratom :refer [reaction]])
   (:import
     [goog.crypt Md5]))
-
-(defn index-by [f xs]
-  (into {}
-        (for [x xs]
-          [(f x) x])))
-
-(defn update-simulation
-  "A simulation expects the graph as an object of nodes and links.
-  We need to convert maps of nodes to arrays of objects with indexes for mapping back to their id."
-  [simulation node-types edge-types nodes edges]
-  ;;TODO: nodes should be filtered by type already?
-  ;;TODO: note that nodes and edges are different (nodes don't have ids, but edges do)... fix?
-  (let [particles (concat (for [[id n] nodes]
-                            (assoc n :db/id id))
-                          edges)
-        simulation-particles (.nodes simulation)
-        edges-by-id (index-by :db/id edges)
-        kept-particles (for [p simulation-particles
-                             :let [particle-id (.-id p)
-                                   entity (or (some-> (nodes particle-id) (assoc :db/id particle-id))
-                                              (edges-by-id particle-id))]
-                             :when entity]
-                         (merge (js->clj p) entity))
-        existing-ids (set (keys (.-idxs simulation)))
-        added-particles (remove #(contains? existing-ids (:db/id %)) particles)
-        final-particles (concat kept-particles added-particles)
-        idxs (zipmap (map :db/id final-particles) (range))]
-    (.nodes
-      simulation
-      (clj->js
-        (map-indexed
-          (fn [idx particle]
-            (set! (.-index particle) idx)
-            particle)
-          final-particles)))
-    (.links
-      (.force simulation "link")
-      (clj->js
-        (map-indexed
-          (fn [idx x]
-            (assoc x :index idx))
-          (apply
-            concat
-            (for [{:keys [db/id edge/type edge/from edge/to]} edges
-                  :let [idx (idxs id)
-                        from-idx (idxs from)
-                        to-idx (idxs to)
-                        distance (:edge/distance (get @edge-types type))]
-                  :when (and idx from-idx to-idx)]
-              (cond->
-                [{:link [from id]
-                  :source from-idx
-                  :target idx
-                  :distance distance}
-                 {:link [id to]
-                  :source idx
-                  :target to-idx
-                  :distance distance}]
-                distance
-                (conj {:link [from to]
-                       :source (idxs from)
-                       :target (idxs to)
-                       :distance (* 3 distance)})))))))
-    (set! (.-name simulation) "Untitled")
-    (set! (.-idxs simulation) idxs)))
-
-(defn restart-simulation [simulation]
-  (doto simulation
-    (.restart)
-    (.alpha 1)))
 
 (defn color-for [uid]
   (if uid
@@ -179,7 +110,7 @@
 
 (defn draw-node
   [node-types
-   [id {:keys [node/name node/pagerank shape uid]}]
+   [node-id {:keys [node/name node/pagerank shape uid]}]
    node-count
    max-pagerank
    simulation
@@ -187,13 +118,13 @@
    selected-id
    {:keys [shift-click-node]}]
   (when-let [idxs (.-idxs simulation)]
-    (let [particle (aget (.nodes simulation) (idxs id))
+    (let [particle (aget (.nodes simulation) (idxs node-id))
           x (.-x particle)
           y (.-y particle)
-          selected? (= id @selected-id)
+          selected? (= node-id @selected-id)
           rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
           r (scale-dist node-count rank-scale)]
-      ^{:key id}
+      ^{:key node-id}
       [:g
        {:transform (str "translate(" x "," y ")"
                         (when selected?
@@ -204,26 +135,25 @@
           (reset! selected-id nil)
           (js-delete particle "fx")
           (js-delete particle "fy")
-          (restart-simulation simulation))
+          (force/restart-simulation simulation))
         :on-mouse-down
         (fn node-mouse-down [e]
           (.stopPropagation e)
           (.preventDefault e)
-          (let [new-selected-id id]
-            (when (and shift-click-node (.-shiftKey e) @selected-id new-selected-id)
-              (shift-click-node @selected-id new-selected-id))
-            (common/blur-active-input)
-            (reset! selected-id new-selected-id))
+          (when (and shift-click-node (.-shiftKey e) @selected-id node-id)
+            (shift-click-node @selected-id node-id))
+          (common/blur-active-input)
+          (reset! selected-id node-id)
           (reset! mouse-down? true))}
        (if (email? name)
-         [gravatar-background id r name]
+         [gravatar-background node-id r name]
          [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
        [:text.unselectable
         {:text-anchor "middle"
          :font-size (min (max node-count 8) 22)
          :style {:pointer-events "none"
                  :dominant-baseline "central"}}
-        (or name id)]])))
+        (or name node-id)]])))
 
 (defn average [& args]
   (/ (apply + args) (count args)))
@@ -235,10 +165,16 @@
   ;; TODO: implement
   color)
 
-(defn draw-edge [edge-types edge simulation mouse-down? selected-id {:keys [shift-click-edge]}]
+(defn draw-edge
+  [edge-types
+   [[from to :as edge-id] edge]
+   simulation
+   mouse-down?
+   selected-id
+   {:keys [shift-click-edge]}]
   (when-let [idxs (.-idxs simulation)]
-    (let [{:keys [db/id edge/type edge/from edge/to]} edge
-          idx (idxs id)
+    (let [{:keys [edge/type]} edge
+          idx (idxs edge-id)
           from-idx (idxs from)
           to-idx (idxs to)]
       ;; TODO: isolate data specific stuff here
@@ -260,8 +196,8 @@
               yo2 (* yo 3)
               midx (/ (+ x1 x2 x2 x3) 4)
               midy (/ (+ y1 y2 y2 y3) 4)
-              selected? (= id @selected-id)]
-          ^{:key id}
+              selected? (= edge-id @selected-id)]
+          ^{:key edge-id}
           [:g
            {:on-double-click
             (fn link-double-click [e]
@@ -269,16 +205,16 @@
               (let [particle (aget (.nodes simulation) idx)]
                 (js-delete particle "fx")
                 (js-delete particle "fy"))
-              (restart-simulation simulation))
+              (force/restart-simulation simulation))
             :on-mouse-down
             (fn link-mouse-down [e]
               (.stopPropagation e)
               (.preventDefault e)
               (reset! mouse-down? true)
-              (reset! selected-id id)
+              (reset! selected-id edge-id)
               (common/blur-active-input)
               (when (and shift-click-edge (.-shiftKey e))
-                (shift-click-edge edge)))
+                (shift-click-edge edge-id edge)))
             ;; TODO: negate color should be paramatarizable
             :stroke (cond-> (or (when negate "#ff0000") color "#9ecae1")
                             selected? (darken))}
@@ -389,49 +325,25 @@
               (when-let [particle (aget (.nodes simulation) idx)]
                 (set! (.-fx particle) x)
                 (set! (.-fy particle) y)
-                (restart-simulation simulation)))))))}
+                (force/restart-simulation simulation)))))))}
    [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root]])
 
-;; TODO: nodes should have a stronger charge than links
-(defn create-simulation []
-  (-> (js/d3.forceSimulation #js [])
-      (.force
-        "charge"
-        (doto (js/d3.forceManyBody)
-          (.distanceMax 300)
-          (.strength -100)))
-      (.force
-        "link"
-        (doto (js/d3.forceLink #js [])
-          (.distance
-            (fn [link idx]
-              (or (.-distance link) 30)))))))
-
-(defn graph [g node-types edge-types selected-id selected-edge-type callbacks]
+(defn graph-view [g node-types edge-types selected-id selected-edge-type callbacks]
   (reagent/with-let
-    [nodes (reaction (:nodes @g))
-     ;; TODO: duplicates table, refactor
-     matching-edges (reaction
-                      (doall
-                        (for [[from tos] (:edges @g)
-                              [to edge] tos]
-                          ;; TODO: actually want to see all types
-                              ;:when (= (:edge/type edge) @selected-edge-type)]
-                          ;; TODO: not sure I like this
-                          (assoc edge :edge/from from
-                                      :edge/to to
-                                      :db/id (str from "-to-" to)))))
+    [nodes (reaction (graph/nodes @g))
+     matching-edges (reaction (graph/edges @g))
      snapshot (reagent/atom {:bounds [0 0 0 0]
                              :particles @nodes})
-     simulation (create-simulation)
+     simulation (force/create-simulation)
      mouse-down? (reagent/atom nil)
      watch (reagent/track!
              (fn a-graph-watcher []
-               (update-simulation simulation node-types edge-types @nodes @matching-edges)
-               (restart-simulation simulation)))]
-    (.on simulation "tick"
-         (fn simulation-tick []
-           (swap! snapshot update-bounds (.nodes simulation))))
+               (force/update-simulation simulation @nodes @matching-edges node-types edge-types)
+               (force/restart-simulation simulation)))
+     ;; test this, should be inside right?
+     _ (.on simulation "tick"
+            (fn simulation-tick []
+              (swap! snapshot update-bounds (.nodes simulation))))]
     [draw-graph (reagent/current-component) node-types edge-types nodes matching-edges snapshot simulation mouse-down? selected-id callbacks]
     (finally
       (reagent/dispose! watch)
@@ -449,4 +361,4 @@
       (fn []
         [:div
          {:style {:border "1px solid black"}}
-         [graph g node-types edge-types selected-id callbacks]]))))
+         [graph-view g node-types edge-types selected-id callbacks]]))))

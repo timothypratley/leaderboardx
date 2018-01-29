@@ -7,4 +7,4 @@ git init
 git add .
 git commit -m "Deploy to GitHub Pages"
 git push --force --quiet "git@github.com:timothypratley/leaderboardx.git" master:gh-pages
-rm -fr resources/public/.git
+rm -fr .git

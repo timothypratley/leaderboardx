@@ -2,12 +2,12 @@
   (:require
     [algopop.leaderboardx.app.io.csv :as csv]
     [algopop.leaderboardx.app.io.dot :as dot]
-    [algopop.leaderboardx.app.seed :as seed]
+    [algopop.leaderboardx.graph.seed :as seed]
     [algopop.leaderboardx.app.views.graph-settings :as settings]
     [algopop.leaderboardx.app.logging :as log]
     [clojure.string :as string]
     [reagent.core :as reagent]
-    [algopop.leaderboardx.app.graph :as graph]))
+    [algopop.leaderboardx.graph.graph :as graph]))
 
 (defn settings [show-settings?]
   [:div.btn-group
@@ -111,8 +111,7 @@
     [:ul.dropdown-menu {:role "menu"}
      [action-button "Empty"
       (fn clear-click [e]
-        (reset! g {:nodes {}
-                   :edges {}}))]
+        (seed/set-empty! g ))]
      [action-button "Random"
       (fn random-click [e]
         (seed/set-rand! g))]
