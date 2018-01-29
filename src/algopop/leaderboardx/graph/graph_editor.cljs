@@ -28,7 +28,7 @@
   (let [title (:title @g)]
     [:div.btn-group
      [:h4
-      [common/editable-string (or title "Untitled") nil
+      [common/editable-string (or title "Untitled")
        (fn title-submit [v]
          (swap! g assoc :title v))]]]))
 

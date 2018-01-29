@@ -146,3 +146,6 @@
           (with-successors new-node-id outs edge-type)
           (with-predecessors new-node-id ins edge-type)
           (with-ranks)))))
+
+;; TODO: fix io
+;; TODO: when renaming nodes, the edge attrs might be left over?
