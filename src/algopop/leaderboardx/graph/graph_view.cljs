@@ -173,13 +173,14 @@
    selected-id
    {:keys [shift-click-edge]}]
   (when-let [idxs (.-idxs simulation)]
-    (let [{:keys [edge/type]} edge
+    (let [{:keys [edge/type edge/weight]} edge
           idx (idxs edge-id)
           from-idx (idxs from)
           to-idx (idxs to)]
       ;; TODO: isolate data specific stuff here
       (when (and idx from-idx to-idx)
-        (let [{:keys [edge/color edge/dasharray weight negate]} (get @edge-types type)
+        (let [{:keys [edge/color edge/dasharray negate]} (get @edge-types type)
+              weight (or weight (get-in @edge-types [type :weight]))
               particle (aget (.nodes simulation) idx)
               x2 (.-x particle)
               from-particle (aget (.nodes simulation) from-idx)
@@ -237,15 +238,23 @@
              [:path
               {:fill "none"
                :d (str "M " (- midx xo2) "," (- midy yo2) " L " (+ midx xo2) "," (+ midy yo2))}])
-           [:polygon
-            {:points "0,-5 0,5 12,0"
-             :fill (cond-> (or color "#9ecae1")
-                           selected? (darken))
-             :transform (str "translate(" midx "," midy
-                             ") rotate(" (rise-over-run (- y3 y1) (- x3 x1)) ")"
-                             (when selected?
-                               " scale(1.25,1.25)"))
-             :style {:cursor "pointer"}}]])))))
+           [:g
+            {:transform (str "translate(" midx "," midy ")")}
+            [:polygon
+             {:points "0,-5 0,5 12,0"
+              :fill (cond-> (or color "#9ecae1")
+                      selected? (darken))
+              :transform (str "rotate(" (rise-over-run (- y3 y1) (- x3 x1)) ")"
+                              (when selected?
+                                " scale(1.25,1.25)"))
+              :style {:cursor "pointer"}}]
+            (when (not= 1 weight)
+              ;; TODO: 1 is boring, but is hiding it the answer?
+              [:text
+               {:fill "black"
+                :stroke "none"
+                :text-anchor "middle"}
+               weight])]])))))
 
 (defn bounds [[minx miny maxx maxy] simulation-node]
   [(min minx (.-x simulation-node))

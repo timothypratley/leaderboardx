@@ -119,6 +119,8 @@
        (fn graph-editor-will-unmount [this]
          (.removeEventListener js/document "keydown" keydown-handler))})))
 
+(defonce g
+  (reagent/atom (lg/digraph)))
+
 (defn graph-editor-page [{:keys [id]}]
-  (let [g (reagent/atom (lg/digraph))]
-    [graph-editor-page2 g]))
+  [graph-editor-page2 g])

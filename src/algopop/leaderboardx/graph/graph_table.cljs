@@ -127,17 +127,40 @@
                     (= type @selected-edge-type))
         outs (reaction (graph/out-edges @g filter-fn))
         ins (reaction (graph/in-edges @g filter-fn))]
-    (fn a-table [graph selected-id node-types edge-types selected-node-type selected-edge-type]
+    (fn a-table [g selected-id node-types edge-types selected-node-type selected-edge-type]
       [:div
        [:table.table.table-responsive
         [:thead]
         [:tbody
-         ;; TODO: fix me
-         (when-let [node (get-in @graph [:nodes @selected-id])]
+         ;; TODO: fix me lookup bad
+         (when-let [node (get (graph/nodes @g) @selected-id)]
            [:tr
-            [:td [:input]]])
-         (when-let [edge (get-in @graph [:edges @selected-id])]
-           [:tr [:td [:p "hi"]]])]]
+            [:td "Node attributes"]
+            [:td
+             [:input]]
+            [:td
+             [:input]]])
+         ;; TODO: into
+         (when-let [edge (get (graph/edges @g) @selected-id)]
+           (concat [[:tr
+                     [:td "Edge attributes"]
+                     [:td
+                      [:input]]
+                     [:td
+                      [:input]]]
+                    [:tr
+                     [:td]
+                     [:td "weight"]
+                     [:td [common/editable-string (graph/weight @g @selected-id)
+                           (fn update-edge-weight [v]
+                             (swap! g graph/add-weight @selected-id (js/parseFloat v)))]]]]
+                   (for [[k v] edge]
+                     [:tr
+                      [:td]
+                      [:td (name k)]
+                      [:td [common/editable-string (str v)
+                            (fn update-edge-attr [v]
+                              (swap! g graph/add-attr @selected-id k v))]]])))]]
        [:table.table.table-responsive
         [:thead
          [:tr
@@ -148,7 +171,7 @@
           [:th "Rank"]]]
         (into
          [:tbody
-          [add-node graph outs ins selected-id selected-node-type selected-edge-type search-term]]
+          [add-node g outs ins selected-id selected-node-type selected-edge-type search-term]]
          (for [[id {:keys [node/rank node/name]}] @nodes-by-rank
                :let [selected? (= id @selected-id)
                      match? (and (seq @search-term)
@@ -169,16 +192,16 @@
                     (let [new-name (string/trim v)]
                       (when (and (seq new-name)
                                  (not= new-name (or name id)))
-                        (swap! graph graph/rename-node id new-name)
+                        (swap! g graph/rename-node id new-name)
                         (reset! selected-id new-name))))]]
             ;; TODO: names vs ids omg
             [:td [common/editable-string outs-string
                   (fn update-out-edges [v]
                     ;; TODO: make edge type selection make sense
-                    (replace-edges graph selected-id (or name id) @selected-node-type @selected-edge-type v ins-string)
+                    (replace-edges g selected-id (or name id) @selected-node-type @selected-edge-type v ins-string)
                     (common/blur-active-input))]]
             [:td [common/editable-string ins-string
                   (fn update-in-edges [v]
-                    (replace-edges graph selected-id (or name id) @selected-node-type @selected-edge-type outs-string v)
+                    (replace-edges g selected-id (or name id) @selected-node-type @selected-edge-type outs-string v)
                     (common/blur-active-input))]]
             [:td rank]]))]])))

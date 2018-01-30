@@ -5,12 +5,21 @@
     [loom.graph :as lg]
     [loom.attr :as la]))
 
+(defn add-attr [g id k v]
+  (la/add-attr g id k v))
+
+(defn weight [g edge]
+  (lg/weight g edge))
+
 (defn add-attrs [g [id attrs]]
   (reduce
     (fn [acc2 [k v]]
       (la/add-attr acc2 id k v))
     g
     attrs))
+
+(defn add-weight [g [a b] w]
+  (assoc-in g [:adj a b] w))
 
 (defn edge-attrs [g edges]
   (reduce add-attrs g edges))
@@ -29,7 +38,9 @@
 (defn edges [g]
   (into {}
         (for [edge (lg/edges g)]
-          [edge (or (la/attrs g edge) {})])))
+          [edge (assoc (or (la/attrs g edge) {})
+                  ;; TODO: hmmm not sure I like just overwritting it but meh
+                  :edge/weight (lg/weight g edge))])))
 
 (defn out-edges
   ([g]
