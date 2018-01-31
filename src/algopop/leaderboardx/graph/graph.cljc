@@ -6,7 +6,11 @@
     [loom.attr :as la]))
 
 (defn add-attr [g id k v]
-  (la/add-attr g id k v))
+  ;; TODO: yuck do not want
+  (if (= k :edge/weight)
+    (let [[a b] id]
+      (assoc-in g [:adj a b] v))
+    (la/add-attr g id k v)))
 
 (defn weight [g edge]
   (lg/weight g edge))
@@ -47,6 +51,14 @@
           [edge (assoc (or (la/attrs g edge) {})
                   ;; TODO: hmmm not sure I like just overwritting it but meh
                   :edge/weight (lg/weight g edge))])))
+
+;; TODO: might be better to rely on nodes/edges, need to get everything pointing to the same stuff maybe
+(defn entity [g id]
+  (cond-> (or (la/attrs g id) {})
+    ;; TODO: better way to determine edge/vs node
+    (vector? id) (assoc
+                   ;; TODO: hmmm not sure I like just overwritting it but meh
+                   :edge/weight (lg/weight g id))))
 
 ;; TODO: kind of expect to be able to pass a key here to get outs of a node hmmm.
 (defn out-edges

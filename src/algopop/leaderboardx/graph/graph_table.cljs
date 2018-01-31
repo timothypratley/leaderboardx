@@ -116,6 +116,26 @@
         {:value type}
         (string/capitalize type)]))])
 
+(defn attribute-editor [g id]
+  [:table.table.table-responsive
+   [:thead]
+   (into
+     [:tbody
+      [:tr
+       [:td [:strong (str (if (vector? id) "Edge " "Node ") "attributes")]
+        [:p (str id)]]
+       [:td [common/editable-string ""
+             (fn add-edge-attr [k]
+               (swap! g graph/add-attr id k ""))]]
+       [:td]]]
+     (for [[k v] (graph/entity @g id)]
+       [:tr
+        [:td]
+        [:td (name k)]
+        [:td [common/editable-string (str v)
+              (fn update-edge-attr [v]
+                (swap! g graph/add-attr id k v))]]]))])
+
 (defn table [g selected-id node-types edge-types selected-node-type selected-edge-type]
   (let [nodes-by-rank (reaction
                         ;; TODO: maybe share the reaction with graph-view?
@@ -129,38 +149,8 @@
         ins (reaction (graph/in-edges @g filter-fn))]
     (fn a-table [g selected-id node-types edge-types selected-node-type selected-edge-type]
       [:div
-       [:table.table.table-responsive
-        [:thead]
-        [:tbody
-         ;; TODO: fix me lookup bad
-         (when-let [node (get (graph/nodes @g) @selected-id)]
-           [:tr
-            [:td "Node attributes"]
-            [:td
-             [:input]]
-            [:td
-             [:input]]])
-         ;; TODO: into
-         (when-let [edge (get (graph/edges @g) @selected-id)]
-           (concat [[:tr
-                     [:td "Edge attributes"]
-                     [:td
-                      [:input]]
-                     [:td
-                      [:input]]]
-                    [:tr
-                     [:td]
-                     [:td "weight"]
-                     [:td [common/editable-string (graph/weight @g @selected-id)
-                           (fn update-edge-weight [v]
-                             (swap! g graph/add-weight @selected-id (js/parseFloat v)))]]]]
-                   (for [[k v] edge]
-                     [:tr
-                      [:td]
-                      [:td (name k)]
-                      [:td [common/editable-string (str v)
-                            (fn update-edge-attr [v]
-                              (swap! g graph/add-attr @selected-id k v))]]])))]]
+       (when @selected-id
+         [attribute-editor g @selected-id])
        [:table.table.table-responsive
         [:thead
          [:tr
