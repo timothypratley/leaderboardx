@@ -1,6 +1,7 @@
 (ns algopop.leaderboardx.app.io.dot
   (:require [algopop.leaderboardx.app.io.common :as common]
             [algopop.leaderboardx.app.logging :as log]
+            [algopop.leaderboardx.graph.graph :as graph]
             [clojure.string :as string]
             [clojure.walk :as walk]
             [instaparse.core :as insta]))
@@ -41,14 +42,11 @@ ws : #'\\s*'
   (condp = statement-type
     :node (let [[id & attrs] statement-body
                 attr-map (qualify-keywords (apply hash-map attrs) "node")]
-            (assoc-in graph [:nodes id] attr-map))
+            (graph/add-node graph id attr-map))
     :edge (let [[from to & attrs] statement-body
                 attr-map (qualify-keywords (apply hash-map attrs) "edge")]
-            (-> graph
-                (assoc-in [:edges from to] attr-map)
-                (update-in [:nodes from] merge {})
-                (update-in [:nodes to] merge {})))
-    :attr (merge (qualify-keywords (apply hash-map statement-body) "graph") graph)
+            (graph/add-edge graph [from to] attr-map))
+    :attr (merge graph (qualify-keywords (apply hash-map statement-body) "graph"))
     :eq graph
     :subgraph graph
     graph))
@@ -62,9 +60,8 @@ ws : #'\\s*'
             statements (if (string? title)
                          (rest statements)
                          statements)
-            graph (if (string? title)
-                    {:title title}
-                    {})]
+            graph (cond-> (graph/create {})
+                          (string? title) (assoc :title title))]
         (reduce collect-statement graph statements)))))
 
 (defn maybe-attrs [attrs]

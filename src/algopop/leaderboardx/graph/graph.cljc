@@ -18,6 +18,12 @@
     g
     attrs))
 
+(defn add-node [g id attrs]
+  (add-attrs (lg/add-nodes g id) [id attrs]))
+
+(defn add-edge [g id attrs]
+  (add-attrs (lg/add-edges g id) [id attrs]))
+
 (defn add-weight [g [a b] w]
   (assoc-in g [:adj a b] w))
 
@@ -42,6 +48,7 @@
                   ;; TODO: hmmm not sure I like just overwritting it but meh
                   :edge/weight (lg/weight g edge))])))
 
+;; TODO: kind of expect to be able to pass a key here to get outs of a node hmmm.
 (defn out-edges
   ([g]
    (out-edges g (constantly true)))
