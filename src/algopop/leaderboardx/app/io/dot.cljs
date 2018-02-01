@@ -72,8 +72,7 @@ ws : #'\\s*'
          "]")))
 
 (defn edges [g]
-  (for [[from tos] (sort-by key (get g "edges"))
-        [to attrs] (sort-by key tos)]
+  (for [[[from to] attrs] (sort (walk/stringify-keys (graph/edges g)))]
     (str (common/quote-escape from)
          " -> "
          (common/quote-escape to)
@@ -81,15 +80,14 @@ ws : #'\\s*'
          ";")))
 
 (defn nodes [g]
-  (for [[k attrs] (sort-by (comp #(get % "rank") val) (get g "nodes"))]
+  (for [[k attrs] (sort (walk/stringify-keys (graph/nodes g)))]
     (str (common/quote-escape k) (maybe-attrs attrs) ";")))
 
 ;; TODO: why do sometimes ranks exist, sometimes not? not merging?
 (defn write-graph [g]
-  (let [g (walk/stringify-keys g)]
-    (str "digraph " (common/quote-escape (get g "title" "untitled")) " {" \newline
-         (string/join \newline
-                      (concat
-                       (nodes g)
-                       (edges g)))
-         \newline "}")))
+  (str "digraph " (common/quote-escape (:title g "untitled")) " {" \newline
+       (string/join \newline
+         (concat
+           (nodes g)
+           (edges g)))
+       \newline "}"))

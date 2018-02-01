@@ -109,12 +109,12 @@
    (merge attrs {:r (max width height)})])
 
 (def shapes
-  {:circle circle-background
-   :ellipse ellipse-background
-   :triangle triangle-background
-   :triangle-down triangle-down-background
-   :square square-background
-   :rectangle rectangle-background})
+  {"circle" circle-background
+   "ellipse" ellipse-background
+   "triangle" triangle-background
+   "triangle-down" triangle-down-background
+   "square" square-background
+   "rectangle" rectangle-background})
 
 (defn shape-background [shape dimensions node-color rank-scale selected?]
   [(shapes shape circle-background)
@@ -137,7 +137,7 @@
 
 (defn draw-node
   [node-types
-   [node-id {:keys [node/name node/pagerank shape uid]}]
+   [node-id {:keys [node/name node/pagerank node/shape uid]}]
    node-count
    max-pagerank
    simulation
@@ -150,6 +150,7 @@
           y (.-y particle)
           selected? (= node-id @selected-id)
           rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
+          ;; TODO: if pageranking... checkbox?
           r (scale-dist node-count rank-scale)
           width (* 2 (+ 4 (count node-id)))
           height 15]
@@ -171,19 +172,19 @@
           (.stopPropagation e)
           (.preventDefault e)
           (when (and shift-click-node (.-shiftKey e) @selected-id node-id)
-            (shift-click-node @selected-id node-id))
+            (shift-click-node @selected-id node-id shape next-shape))
           (common/blur-active-input)
           (reset! selected-id node-id)
           (reset! mouse-down? true))}
-       (if (email? name)
-         [gravatar-background node-id r name]
-         [shape-background (keyword shape) [width height] (color-for uid) rank-scale selected?])
+       (if (email? node-id)
+         [gravatar-background node-id [height height] node-id]
+         [shape-background shape [width height] (color-for uid) rank-scale selected?])
        [:text.unselectable
         {:text-anchor "middle"
          :font-size (min (max node-count 8) 22)
          :style {:pointer-events "none"
                  :dominant-baseline "central"}}
-        (or name node-id)]])))
+        node-id]])))
 
 (defn average [& args]
   (/ (apply + args) (count args)))

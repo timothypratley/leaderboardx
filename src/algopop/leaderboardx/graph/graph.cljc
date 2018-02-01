@@ -54,11 +54,12 @@
 
 ;; TODO: might be better to rely on nodes/edges, need to get everything pointing to the same stuff maybe
 (defn entity [g id]
-  (cond-> (or (la/attrs g id) {})
-    ;; TODO: better way to determine edge/vs node
-    (vector? id) (assoc
-                   ;; TODO: hmmm not sure I like just overwritting it but meh
-                   :edge/weight (lg/weight g id))))
+  (cond (lg/has-node? g id)
+        (or (la/attrs g id))
+        (lg/has-node? g id)
+        (assoc (or (la/attrs g id))
+          ;; TODO: hmmm not sure I like just overwritting it but meh
+          :edge/weight (lg/weight g id))))
 
 ;; TODO: kind of expect to be able to pass a key here to get outs of a node hmmm.
 (defn out-edges

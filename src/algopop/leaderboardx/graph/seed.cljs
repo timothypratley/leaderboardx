@@ -2,6 +2,7 @@
   (:require
     [algopop.leaderboardx.graph.graph :as graph]))
 
+;; TODO: sometimes raises exception...
 (defn set-empty! [g]
   (reset! g (graph/create {})))
 

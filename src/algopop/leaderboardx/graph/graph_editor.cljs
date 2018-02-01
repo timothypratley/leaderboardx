@@ -92,20 +92,24 @@
          (fn shift-click-edge [edge-id {:keys [edge/type]}]
            (swap! g graph/update-edge edge-id
                   :edge/type (@next-edge-type type)))
+
+         ;; TODO: omg don't pass shapes, but don't want to look up either
          :shift-click-node
-         (fn shift-click-node [a b]
-           (swap! g graph/with-edge a b @selected-edge-type))
+         (fn shift-click-node [a b shape next-shape]
+           (if (= a b)
+             (swap! g graph/add-attr a :node/shape (get next-shape shape "triangle"))
+             (swap! g graph/with-edge a b @selected-edge-type)))
 
          ;; TODO: passing next-shap is kinda silly... where do shapes belong?
          :double-click-node
          (fn double-click-node [node-id shape next-shape]
-           (swap! g graph/add-attr node-id :shape (next-shape shape :triangle)))}]
+           #_(swap! g graph/add-attr node-id :node/shape (next-shape shape "triangle")))}]
     (reagent/create-class
       {:display-name "graph-editor"
        :reagent-render
        (fn graph-editor []
          [:div
-          [toolbar/toolbar g get-svg show-settings?]
+          [toolbar/toolbar g get-svg show-settings? selected-id]
           (when @show-settings?
             [:div.panel.panel-default
              [:div.panel-body
