@@ -41,8 +41,7 @@
     (if (lg/has-node? @g id)
       (swap! g graph/without-node id)
       ;; TODO: distinguish nodes/edges better in datastructure
-      (let [[_ from to] (re-matches #"(.+)-to-(.+)" id)]
-        (prn "FT" from to)
+      (let [[from to] id]
         (swap! g graph/without-edge from to)))
     (unselect selected-id)))
 
@@ -95,7 +94,12 @@
                   :edge/type (@next-edge-type type)))
          :shift-click-node
          (fn shift-click-node [a b]
-           (swap! g graph/with-edge a b @selected-edge-type))}]
+           (swap! g graph/with-edge a b @selected-edge-type))
+
+         ;; TODO: passing next-shap is kinda silly... where do shapes belong?
+         :double-click-node
+         (fn double-click-node [node-id shape next-shape]
+           (swap! g graph/add-attr node-id :shape (next-shape shape :triangle)))}]
     (reagent/create-class
       {:display-name "graph-editor"
        :reagent-render

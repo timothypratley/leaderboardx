@@ -37,8 +37,9 @@
     (.update md5 s)
     (crypt/byteArrayToHex (.digest md5))))
 
-(defn gravatar-background [id r email]
-  (let [guid (md5-hash (string/trim email))]
+(defn gravatar-background [id [width height] email]
+  (let [guid (md5-hash (string/trim email))
+        r (max width height)]
     [:g
      [:defs
       [:pattern
@@ -65,38 +66,64 @@
   [:polygon
    (merge attrs {:points (stringify-points points)})])
 
-(defn triangle-background [attrs r]
-  (let [h (Math/sqrt (- (* 4 r r) (* r r)))
-        y1 (- (/ h 3))
-        y2 (- (* 2 y1))
-        points [(- r) y1 r y1 0 y2]]
+(defn triangle-background [attrs [width height]]
+  (let [y1 (/ height 2)
+        y2 (- height)
+        x1 (* 2 width)
+        x2 (- x1)
+        points [x1 y1 0 y2 x2 y1]]
     [polygon-background attrs points]))
 
-(defn rect-background [attrs r]
+(defn triangle-down-background [attrs [width height]]
+  (let [y1 height
+        y2 (- (/ height 2))
+        x1 (* 2 width)
+        x2 (- x1)
+        points [x1 y2 0 y1 x2 y2]]
+    [polygon-background attrs points]))
+
+(defn rectangle-background [attrs [width height]]
   [:rect
    (merge attrs
-          {:x (- r)
-           :y (- r)
-           :width (* r 2)
-           :height (* r 2)})])
+          {:x (- width)
+           :y (- height)
+           :width (* width 2)
+           :height (* height 2)})])
 
-(defn circle-background [attrs r]
+(defn square-background [attrs [width height]]
+  [:rect
+   (let [r (max width height)]
+     (merge attrs
+            {:x (- r)
+             :y (- r)
+             :width (* r 2)
+             :height (* r 2)}))])
+
+(defn ellipse-background [attrs [width height]]
+  [:ellipse
+   (merge attrs {:rx width
+                 :ry height})])
+
+(defn circle-background [attrs [width height]]
   [:circle
-   (merge attrs {:r r})])
+   (merge attrs {:r (max width height)})])
 
 (def shapes
   {:circle circle-background
+   :ellipse ellipse-background
    :triangle triangle-background
-   :square rect-background})
+   :triangle-down triangle-down-background
+   :square square-background
+   :rectangle rectangle-background})
 
-(defn shape-background [shape r node-color rank-scale selected?]
+(defn shape-background [shape dimensions node-color rank-scale selected?]
   [(shapes shape circle-background)
    {:fill (rgb (scale-rgb node-color rank-scale))
     :stroke (if selected?
               "#6699aa"
               "#9ecae1")
     :style {:cursor "pointer"}}
-   r])
+   dimensions])
 
 (def next-shape
   (zipmap (keys shapes) (rest (cycle (keys shapes)))))
@@ -116,14 +143,16 @@
    simulation
    mouse-down?
    selected-id
-   {:keys [shift-click-node]}]
+   {:keys [shift-click-node double-click-node]}]
   (when-let [idxs (.-idxs simulation)]
     (let [particle (aget (.nodes simulation) (idxs node-id))
           x (.-x particle)
           y (.-y particle)
           selected? (= node-id @selected-id)
           rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
-          r (scale-dist node-count rank-scale)]
+          r (scale-dist node-count rank-scale)
+          width (* 2 (+ 4 (count node-id)))
+          height 15]
       ^{:key node-id}
       [:g
        {:transform (str "translate(" x "," y ")"
@@ -131,8 +160,9 @@
                           " scale(1.25,1.25)"))
         :tab-index "1"
         :on-double-click
-        (fn node-double-click [e]
-          (reset! selected-id nil)
+        (fn node-double-clicked [e]
+          (double-click-node node-id shape next-shape)
+          ;;(reset! selected-id nil)
           (js-delete particle "fx")
           (js-delete particle "fy")
           (force/restart-simulation simulation))
@@ -147,7 +177,7 @@
           (reset! mouse-down? true))}
        (if (email? name)
          [gravatar-background node-id r name]
-         [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
+         [shape-background (keyword shape) [width height] (color-for uid) rank-scale selected?])
        [:text.unselectable
         {:text-anchor "middle"
          :font-size (min (max node-count 8) 22)
