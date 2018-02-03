@@ -45,7 +45,7 @@
 (defn set-rand! [g]
   (reset! g (rand-graph)))
 
-(def example
+(defn example-graph []
   (let [outs {"Amy" ["Lily", "Abigail", "Emma"],
               "Rhys" ["William", "Liam", "Matt"],
               "Noah" ["William", "Matt"],
@@ -78,4 +78,4 @@
               [[from to] {:edge/type "likes"}])))))
 
 (defn set-example! [g]
-  (reset! g example))
+  (reset! g (example-graph)))

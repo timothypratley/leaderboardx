@@ -128,7 +128,7 @@
          (.removeEventListener js/document "keydown" keydown-handler))})))
 
 (defonce g
-  (reagent/atom (lg/digraph)))
+  (reagent/atom (graph/create {})))
 
 (defn graph-editor-page [{:keys [id]}]
   [graph-editor-page2 g])
