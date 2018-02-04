@@ -116,27 +116,21 @@
         {:value type}
         (string/capitalize type)]))])
 
-(defn attribute-editor [g id]
-  [:table.table.table-responsive
-   [:thead]
-   (into
-     [:tbody
-      [:tr
-       [:td [:strong (str (if (vector? id) "Edge " "Node ") "attributes")]
-        [:p (str id)]]
-       [:td [common/editable-string ""
-             (fn add-edge-attr [k]
-               (swap! g graph/add-attr id k ""))]]
-       [:td]]]
-     (for [[k v] (graph/entity @g id)]
-       [:tr
-        [:td]
-        [:td (name k)]
-        [:td [common/editable-string (str v)
-              (fn update-edge-attr [v]
-                (swap! g graph/add-attr id k v))]]]))])
+(defn humanize-id [id entity]
+  (if (vector? id)
+    (str (first id) " " (:edge/type entity) " " (second id))
+    (str id)))
 
-(defn table [g selected-id node-types edge-types selected-node-type selected-edge-type]
+(defn attribute-editor [g id]
+  (let [entity (graph/entity @g id)]
+    [:div
+     [:i (humanize-id id entity)]
+     [common/single-entity-editor id entity
+      #(swap! g graph/add-attr %1 %2 %3)
+      #(swap! g graph/remove-attr %1 %2)]]))
+
+(defn table [g selected-id node-types edge-types selected-node-type selected-edge-type
+             {:keys [shift-click-node]}]
   (let [nodes-by-rank (reaction
                         ;; TODO: maybe share the reaction with graph-view?
                         (sort-by #(vector (key %) (:node/rank (val %)))
@@ -149,8 +143,6 @@
         ins (reaction (graph/in-edges @g filter-fn))]
     (fn a-table [g selected-id node-types edge-types selected-node-type selected-edge-type]
       [:div
-       (when @selected-id
-         [attribute-editor g @selected-id])
        [:table.table.table-responsive
         [:thead
          [:tr
@@ -162,12 +154,12 @@
         (into
          [:tbody
           [add-node g outs ins selected-id selected-node-type selected-edge-type search-term]]
-         (for [[id {:keys [node/rank node/name]}] @nodes-by-rank
-               :let [selected? (= id @selected-id)
+         (for [[node-id {:keys [node/rank node/name]}] @nodes-by-rank
+               :let [selected? (= node-id @selected-id)
                      match? (and (seq @search-term)
-                                 (gstring/startsWith (or name id) @search-term))
-                     out-ids (keys (@outs id))
-                     in-ids (keys (@ins id))
+                                 (gstring/startsWith (or name node-id) @search-term))
+                     out-ids (keys (@outs node-id))
+                     in-ids (keys (@ins node-id))
                      outs-string (string/join ", " out-ids)
                      ins-string (string/join ", " in-ids)]]
            [:tr
@@ -176,22 +168,25 @@
              :style {:cursor "pointer"}
              :on-click
              (fn table-row-click [e]
-               (reset! selected-id id))}
-            [:td [common/editable-string (or name id)
+               (when (and shift-click-node (.-shiftKey e) @selected-id node-id (not= @selected-id node-id))
+                 ;; TODO: don't care about shape here
+                 (shift-click-node @selected-id node-id nil nil))
+               (reset! selected-id node-id))}
+            [:td [common/editable-string (or name node-id)
                   (fn update-node-name [v]
                     (let [new-name (string/trim v)]
                       (when (and (seq new-name)
-                                 (not= new-name (or name id)))
-                        (swap! g graph/rename-node id new-name)
+                                 (not= new-name (or name node-id)))
+                        (swap! g graph/rename-node node-id new-name)
                         (reset! selected-id new-name))))]]
             ;; TODO: names vs ids omg
             [:td [common/editable-string outs-string
                   (fn update-out-edges [v]
                     ;; TODO: make edge type selection make sense
-                    (replace-edges g selected-id (or name id) @selected-node-type @selected-edge-type v ins-string)
+                    (replace-edges g selected-id (or name node-id) @selected-node-type @selected-edge-type v ins-string)
                     (common/blur-active-input))]]
             [:td [common/editable-string ins-string
                   (fn update-in-edges [v]
-                    (replace-edges g selected-id (or name id) @selected-node-type @selected-edge-type outs-string v)
+                    (replace-edges g selected-id (or name node-id) @selected-node-type @selected-edge-type outs-string v)
                     (common/blur-active-input))]]
             [:td rank]]))]])))

@@ -115,11 +115,16 @@
              [:div.panel-body
               [graph-settings/graph-settings node-types edge-types]]])
           [title-editor g]
+          (when @selected-id
+            [:div.panel.panel-default.pull-left
+             {:style {:position "absolute"
+                      :width "25%"}}
+             [table/attribute-editor g @selected-id]])
           [:div#d3g
            [graph-view/graph-view g node-types edge-types selected-id selected-edge-type callbacks]]
           [:div.panel.panel-default
            [:div.panel-body
-            [table/table g selected-id node-types edge-types selected-node-type selected-edge-type]]]])
+            [table/table g selected-id node-types edge-types selected-node-type selected-edge-type callbacks]]]])
        :component-did-mount
        (fn graph-editor-did-mount [this]
          (.addEventListener js/document "keydown" keydown-handler))

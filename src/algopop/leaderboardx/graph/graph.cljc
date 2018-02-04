@@ -8,9 +8,13 @@
 (defn add-attr [g id k v]
   ;; TODO: yuck do not want
   (if (= k :edge/weight)
-    (let [[a b] id]
+    (let [[a b] id
+          #?(:cljs v) #?(:cljs(js/parseFloat v))]
       (assoc-in g [:adj a b] v))
     (la/add-attr g id k v)))
+
+(defn remove-attr [g id k]
+  (la/remove-attr g id k))
 
 (defn weight [g edge]
   (lg/weight g edge))
@@ -54,12 +58,10 @@
 
 ;; TODO: might be better to rely on nodes/edges, need to get everything pointing to the same stuff maybe
 (defn entity [g id]
-  (cond (lg/has-node? g id)
-        (or (la/attrs g id))
-        (lg/has-node? g id)
-        (assoc (or (la/attrs g id))
-          ;; TODO: hmmm not sure I like just overwritting it but meh
-          :edge/weight (lg/weight g id))))
+  (if (lg/has-node? g id)
+    (or (la/attrs g id))
+    (assoc (or (la/attrs g id))
+      :edge/weight (lg/weight g id))))
 
 ;; TODO: kind of expect to be able to pass a key here to get outs of a node hmmm.
 (defn out-edges

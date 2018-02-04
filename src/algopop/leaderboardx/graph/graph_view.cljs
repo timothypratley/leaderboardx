@@ -222,8 +222,8 @@
               x3 (.-x to-particle)
               y3 (.-y to-particle)
               phi (+ (js/Math.atan2 (- y3 y1) (- x3 x1)) (/ js/Math.PI 2))
-              xo (* 5 (js/Math.cos phi))
-              yo (* 5 (js/Math.sin phi))
+              xo (* 2 (js/Math.cos phi))
+              yo (* 2 (js/Math.sin phi))
               xo2 (* xo 3)
               yo2 (* yo 3)
               midx (/ (+ x1 x2 x2 x3) 4)
@@ -250,7 +250,8 @@
             ;; TODO: negate color should be paramatarizable
             :stroke (cond-> (or (when negate "#ff0000") color "#9ecae1")
                             selected? (darken))}
-           (when (not= 3 weight)
+           ;; TODO: what about weights greater than 3?
+           (when (not= 2 weight)
              [:path
               {:fill "none"
                :stroke-dasharray dasharray

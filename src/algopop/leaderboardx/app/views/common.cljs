@@ -20,7 +20,7 @@
     :reagent-render
     (fn focus-append-input-render [m]
       [:input
-       (merge
+       (merge-with merge
         {:type "text"
          :name "text"
          :style {:width "100%"}}
@@ -65,6 +65,8 @@
           (save write default-value @visible-value))
         :on-key-down
         (fn editable-string-key-down [e]
+          (.stopPropagation e)
+          (.stopImmediatePropagation (.-nativeEvent e))
           (case (key-code-name (.-keyCode e))
             "ESC" (do
                     (reset! visible-value default-value)
@@ -78,6 +80,7 @@
   "editable string"
   (dc/reagent [editable-string "foo" (fn [x] x)]))
 
+;; TODO: move tests to another namespace to save production build size
 (deftest some-test
   "blah blah blah"
   (testing "zzz"
@@ -117,32 +120,64 @@
         nil)}
      (get-in @model path)]))
 
-(defn add [write]
+(defn add [label write]
   (let [show? (reagent/atom false)]
-    (fn an-add [write]
+    (fn an-add [label write]
       (if @show?
         [focus-append-input
-         {:style {:width "100%"}
+         {:style {:width "100%"
+                  :text-align "right"}
           :on-blur
           (fn editable-string-blur [e]
+            (swap! show? not)
             (let [v (.. e -target -value)]
               (when (seq v)
                 (write v))))
           :on-key-down
           (fn editable-string-key-down [e]
+            (.stopPropagation e)
+            (.stopImmediatePropagation (.-nativeEvent e))
             (case (key-code-name (.-keyCode e))
               "ESC" (swap! show? not)
               "ENTER" (do
+                        (.preventDefault e)
                         (let [v (.. e -target -value)]
-                          (when (seq v)
+                          (when (and (seq v) write)
                             (write v)))
                         (swap! show? not))
               nil))}]
-        [:button
-         {:on-click
+        [:button.btn.btn-default
+         {:style {:width "100%"}
+          :on-click
           (fn add-click [e]
             (swap! show? not))}
-         "Add"]))))
+         label]))))
+
+(defn single-entity-editor [entity-name entity add-attribute remove-attribute]
+  [:div.form-inline
+   [:table.table.table-responsive
+    [:tbody
+     (doall
+       (for [[attribute value] (sort entity)]
+         ^{:key attribute}
+         [:tr
+          [:td
+           {:style {:font-weight "bold"
+                    :width "40%"
+                    :text-align "right"}}
+           attribute ":"]
+          [:td
+           {:style {:width "60%"}}
+           [editable-string value #(add-attribute entity-name attribute %)]]
+          [:td [:button.close
+                {:on-click
+                 (fn [e]
+                   (remove-attribute entity-name attribute))}
+                "×"]]]))
+     [:tr
+      [:td
+       {:style {:text-align "right"}}
+       [add "Add attribute" #(add-attribute entity-name (keyword %) "")]]]]]])
 
 (defn entity-editor [heading entities add-entity remove-entity add-attribute remove-attribute]
   [:div
@@ -151,43 +186,18 @@
     [:li.row
      [:div.col-xs-2
       {:style {:text-align "right"}}
-      [add add-entity]]]
+      [add (str "Add " heading) add-entity]]]
     (for [[entity-name entity] (sort entities)]
       ^{:key entity-name}
       [:li.row
        {:style {:padding "10px"}}
        [:div.col-xs-2
         {:style {:text-align "right"}}
-        [:button.remove
+        [:button.close
          {:style {:float "left"}
           :on-click
           (fn [e]
             (remove-entity entity-name))}
-         "x"]
+         "×"]
         [:strong entity-name]]
-       [:div.col-xs-10
-        [:div.form-inline
-         [:ul.list-unstyled
-          (for [[attribute value] (sort entity)]
-            ^{:key attribute}
-            [:li.row
-             [:div.col-xs-2
-              {:style {:font-weight "bold"
-                       :text-align "right"}}
-              [editable-string attribute
-               (fn [x]
-                 ;; TODO: might combine into one update?
-                 (add-attribute entity-name x value)
-                 (remove-attribute entity-name attribute))]]
-             [:div.col-xs-9
-              [editable-string value #(add-attribute entity-name attribute %)]]
-             [:div.col-xs-1
-              [:button.remove
-               {:on-click
-                (fn [e]
-                  (remove-attribute entity-name attribute))}
-               "x"]]])
-          [:li.row
-           [:div.col-xs-2
-            {:style {:text-align "right"}}
-            [add #(add-attribute entity-name % "")]]]]]]])]])
+       [single-entity-editor entity-name entity add-attribute remove-attribute]])]])
