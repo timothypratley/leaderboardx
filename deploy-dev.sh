@@ -11,3 +11,4 @@ git commit -m "Deploy to GitHub Pages"
 git push --force --quiet "git@github.com:timothypratley/leaderboardx.git" master:gh-pages
 mv index.html.bak index.html
 rm -fr .git
+echo http://timothypratley.github.io/leaderboardx

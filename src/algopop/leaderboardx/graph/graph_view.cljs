@@ -269,7 +269,7 @@
            (when negate
              [:path
               {:fill "none"
-               :d (str "M " (- midx xo2) "," (- midy yo2) " L " (+ midx xo2) "," (+ midy yo2))}])
+               :d (str "M " (- midx (* 2 xo2)) "," (- midy (* 2 yo2)) " L " (+ midx (* 2 xo2)) "," (+ midy (* 2 yo2)))}])
            [:g
             {:transform (str "translate(" midx "," midy ")")}
             [:polygon

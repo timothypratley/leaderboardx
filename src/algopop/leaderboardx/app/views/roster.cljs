@@ -10,7 +10,7 @@
 ;; TODO: would a vector of maps with types in them be better?
 ;; TODO: schema can define relations -> dropdown
 
-(def db
+(defonce db
   (reagent/atom {}))
 
 (defn set-simple-example! [db]

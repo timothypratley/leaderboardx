@@ -33,14 +33,15 @@
    46 "DELETE"
    8 "BACKSPACE"})
 
-(defn save [write a b]
-  (when (and write (not= a b))
-    (write b)))
-
 (defn blur-active-input []
   (let [activeElement (.-activeElement js/document)]
     (when (some-> activeElement (.-tagName) #{"INPUT" "TEXTAREA"})
       (.blur activeElement))))
+
+(defn save [write a b]
+  (when (and write (not= a b))
+    (write b))
+  (blur-active-input))
 
 (defn editable-string [default-value write]
   (let [focused (reagent/atom false)
@@ -146,7 +147,7 @@
                             (write v)))
                         (swap! show? not))
               nil))}]
-        [:button.btn.btn-default
+        [:button.btn.btn-default.btn-sm
          {:style {:width "100%"}
           :on-click
           (fn add-click [e]
@@ -184,14 +185,14 @@
    [:h3 heading]
    [:ul.list-unstyled
     [:li.row
-     [:div.col-xs-2
+     [:div.col-xs-3
       {:style {:text-align "right"}}
       [add (str "Add " heading) add-entity]]]
     (for [[entity-name entity] (sort entities)]
       ^{:key entity-name}
       [:li.row
        {:style {:padding "10px"}}
-       [:div.col-xs-2
+       [:div.col-xs-3
         {:style {:text-align "right"}}
         [:button.close
          {:style {:float "left"}
@@ -200,4 +201,4 @@
             (remove-entity entity-name))}
          "×"]
         [:strong entity-name]]
-       [single-entity-editor entity-name entity add-attribute remove-attribute]])]])
+       [:div.col-xs-9 [single-entity-editor entity-name entity add-attribute remove-attribute]]])]])

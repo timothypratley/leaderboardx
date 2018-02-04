@@ -183,10 +183,8 @@
             [:td [common/editable-string outs-string
                   (fn update-out-edges [v]
                     ;; TODO: make edge type selection make sense
-                    (replace-edges g selected-id (or name node-id) @selected-node-type @selected-edge-type v ins-string)
-                    (common/blur-active-input))]]
+                    (replace-edges g selected-id (or name node-id) @selected-node-type @selected-edge-type v ins-string))]]
             [:td [common/editable-string ins-string
                   (fn update-in-edges [v]
-                    (replace-edges g selected-id (or name node-id) @selected-node-type @selected-edge-type outs-string v)
-                    (common/blur-active-input))]]
+                    (replace-edges g selected-id (or name node-id) @selected-node-type @selected-edge-type outs-string v))]]
             [:td rank]]))]])))
