@@ -98,7 +98,8 @@
          (fn shift-click-node [a b shape next-shape]
            (if (= a b)
              (swap! g graph/add-attr a :node/shape (get next-shape shape "triangle"))
-             (swap! g graph/with-edge a b @selected-edge-type)))
+             (when-not (vector? a)
+               (swap! g graph/with-edge a b @selected-edge-type))))
 
          ;; TODO: passing next-shap is kinda silly... where do shapes belong?
          :double-click-node
