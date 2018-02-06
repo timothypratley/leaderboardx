@@ -23,13 +23,13 @@ eol : '\n' | '\r\n' | '\n\r'
 (defn collect-row [g [_ from & tos]]
   (if (seq tos)
     (graph/with-successors g from tos "likes")
-    (graph/add-node g from {})))
+    (graph/add-node g from {:node/type "person"})))
 
 (defn read-graph [csv]
   (let [ast (parse-csv csv)]
     (if (insta/failure? ast)
       (log/error ast "Failed to parse CSV")
-      (reduce collect-row (graph/create {}) (nnext ast)))))
+      (reduce collect-row (graph/create) (nnext ast)))))
 
 (defn write-graph [g]
   (let [outs (graph/out-edges g)]

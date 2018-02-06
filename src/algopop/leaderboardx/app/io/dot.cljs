@@ -4,7 +4,8 @@
             [algopop.leaderboardx.graph.graph :as graph]
             [clojure.string :as string]
             [clojure.walk :as walk]
-            [instaparse.core :as insta]))
+            [instaparse.core :as insta]
+            [clojure.set :as set]))
 
 (def dot-gramma
   "graph : <ws> [<'strict'> <ws>] ('graph' | 'digraph') <ws> [id <ws>] <'{'> stmt_list <'}'> <ws>
@@ -33,10 +34,28 @@ ws : #'\\s*'
 (def parse-dot
   (insta/parser dot-gramma))
 
+(def flat-prefix
+  {:node-types "n"
+   :edge-types "e"})
+
+(def prefix-flat
+  (set/map-invert flat-prefix))
+
 (defn qualify-keywords [m q]
   (into {}
         (for [[k v] m]
           [(keyword q (name k)) v])))
+
+
+(defn nest-attrs [m]
+  (reduce
+    (fn nest-flat-kvs [acc [k v]]
+      (let [[_ prefix k1 k2 :as match] (re-matches #"(.+)__(.+)__(.+)" k)
+            category (prefix-flat prefix)]
+        (when match
+          (assoc-in acc [category k1 k2] v))))
+    {}
+    m))
 
 (defn collect-statement [graph [statement-type & statement-body]]
   (condp = statement-type
@@ -46,7 +65,7 @@ ws : #'\\s*'
     :edge (let [[from to & attrs] statement-body
                 attr-map (qualify-keywords (apply hash-map attrs) "edge")]
             (graph/add-edge graph [from to] attr-map))
-    :attr (merge graph (qualify-keywords (apply hash-map statement-body) "graph"))
+    :attr (merge graph (nest-attrs (apply hash-map statement-body)))
     :eq graph
     :subgraph graph
     graph))
@@ -60,13 +79,13 @@ ws : #'\\s*'
             statements (if (string? title)
                          (rest statements)
                          statements)
-            graph (cond-> (graph/create {})
+            graph (cond-> (graph/create)
                           (string? title) (assoc :title title))]
         (reduce collect-statement graph statements)))))
 
 (defn maybe-attrs [attrs]
   (when (seq attrs)
-    (str " ["
+    (str "graph ["
          (string/join ", " (for [[k v] attrs]
                             (str (name k) " = " (pr-str v))))
          "]")))
@@ -83,11 +102,22 @@ ws : #'\\s*'
   (for [[k attrs] (sort (walk/stringify-keys (graph/nodes g)))]
     (str (common/quote-escape k) (maybe-attrs attrs) ";")))
 
+(defn flat-attrs [g entity-type]
+  (let [types (get g entity-type)
+        label (flat-prefix entity-type)]
+    (for [[t m] types
+          [k v] m]
+      [(str label "__" t "__" (name k)) v])))
+
 ;; TODO: why do sometimes ranks exist, sometimes not? not merging?
 (defn write-graph [g]
   (str "digraph " (common/quote-escape (:title g "untitled")) " {" \newline
        (string/join \newline
          (concat
+           [(maybe-attrs
+              (concat
+                (flat-attrs g :node-types)
+                (flat-attrs g :edge-types)))]
            (nodes g)
            (edges g)))
        \newline "}"))

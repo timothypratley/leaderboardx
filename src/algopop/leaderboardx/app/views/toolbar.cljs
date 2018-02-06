@@ -3,7 +3,7 @@
     [algopop.leaderboardx.app.io.csv :as csv]
     [algopop.leaderboardx.app.io.dot :as dot]
     [algopop.leaderboardx.graph.seed :as seed]
-    [algopop.leaderboardx.app.views.graph-settings :as settings]
+    [algopop.leaderboardx.graph.graph-settings :as settings]
     [algopop.leaderboardx.app.logging :as log]
     [clojure.string :as string]
     [reagent.core :as reagent]
@@ -137,4 +137,4 @@
       (fn export-svg [e]
         (save-file (filename @g "svg") "image/svg+xml" (format-svg (get-svg))))]]]
    [help]
-   #_[settings show-settings?]])
+   [settings show-settings?]])

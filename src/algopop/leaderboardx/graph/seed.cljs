@@ -4,7 +4,7 @@
 
 ;; TODO: sometimes raises exception...
 (defn set-empty! [g]
-  (reset! g (graph/create {})))
+  (reset! g (graph/create)))
 
 (def names
   ["Emma" "Noah" "Olivia" "Liam" "Sophia" "Mason" "Isabella" "Jacob"
@@ -37,6 +37,9 @@
 (defn rand-graph []
   (let [ks (take 10 (shuffle names))]
     (graph/create
+      (into {}
+            (for [k ks]
+              [k {:node/type "person"}]))
       (into {}
             (for [from ks
                   to (take 2 (shuffle (remove #{from} ks)))]
@@ -72,6 +75,9 @@
               "Rachelle" ["Abigail", "Sophia", "Emma"],
               "Mason" ["Alex", "Daniel", "Toby"]}]
     (graph/create
+      (into {}
+            (for [k (keys outs)]
+              [k {:node/type "person"}]))
       (into {}
             (for [[from tos] outs
                   to tos]

@@ -1,5 +1,4 @@
 (ns algopop.leaderboardx.graph.graph-editor
-  (:require-macros [reagent.ratom :refer [reaction]])
   (:require
     ;;[algopop.leaderboardx.app.db :as db]
     ;;[algopop.leaderboardx.app.db-firebase :as db-firebase]
@@ -7,9 +6,10 @@
     [algopop.leaderboardx.app.views.common :as common]
     [algopop.leaderboardx.graph.graph-view :as graph-view]
     [algopop.leaderboardx.graph.graph-table :as table]
-    [algopop.leaderboardx.app.views.graph-settings :as graph-settings]
+    [algopop.leaderboardx.graph.graph-settings :as graph-settings]
     [algopop.leaderboardx.app.views.toolbar :as toolbar]
     [reagent.core :as reagent]
+    [reagent.ratom :refer [reaction]]
     [reagent.session :as session]
     [loom.graph :as lg]))
 
@@ -65,19 +65,8 @@
 (defn graph-editor-page2 [g]
   (let [selected-id (or (session/get :selected-id)
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
-        ;; TODO: find a way to get a map from datascript
-        node-types (reagent/atom {"person" {}})
-        edge-types (reagent/atom {"likes" {:edge/color "#9ecae1"
-                                           ;;:edge/dasharray "1"
-                                           :edge/distance 30
-                                           :weight 1
-                                           :negate false}
-                                  "dislikes" {:edge/color "red"
-                                              :edge/dasharray "1"
-                                              :edge/distance 100
-                                              :weight 1
-                                              :negate true}})
-
+        node-types (reaction (:node-types @g))
+        edge-types (reaction (:edge-types @g))
         next-edge-type (reaction
                          (zipmap (keys @edge-types)
                                  (rest (cycle (keys @edge-types)))))
@@ -114,7 +103,7 @@
           (when @show-settings?
             [:div.panel.panel-default
              [:div.panel-body
-              [graph-settings/graph-settings node-types edge-types]]])
+              [graph-settings/graph-settings g @node-types @edge-types]]])
           [title-editor g]
           (when @selected-id
             [:div.panel.panel-default.pull-left
@@ -134,7 +123,7 @@
          (.removeEventListener js/document "keydown" keydown-handler))})))
 
 (defonce g
-  (reagent/atom (graph/create {})))
+  (reagent/atom (graph/create)))
 
 (defn graph-editor-page [{:keys [id]}]
   [graph-editor-page2 g])

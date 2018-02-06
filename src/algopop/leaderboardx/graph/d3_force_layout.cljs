@@ -48,11 +48,11 @@
         (with-index
           (apply
             concat
-            (for [[[from to :as edge-id] {:keys [edge/type]}] edges
+            (for [[[from to :as edge-id] {:keys [edge/type edge/distance]}] edges
                   :let [idx (idxs edge-id)
                         from-idx (idxs from)
                         to-idx (idxs to)
-                        distance (:edge/distance (get @edge-types type))]
+                        distance (or distance (get-in @edge-types [type :edge/distance]) 30)]
                   :when (and idx from-idx to-idx)]
               (cond->
                 ;; TODO: link for what? distance does it work? (other force?)

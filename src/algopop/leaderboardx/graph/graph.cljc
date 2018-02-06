@@ -35,14 +35,30 @@
 (defn add-weight [g [a b] w]
   (assoc-in g [:adj a b] w))
 
-(defn edge-attrs [g edges]
-  (reduce add-attrs g edges))
+(defn add-many-attrs [g entities]
+  (reduce add-attrs g entities))
 
 ;; TODO: with-ranks
-(defn create [edges]
-  (edge-attrs
-    (apply lg/weighted-digraph (keys edges))
-    edges))
+(defn create
+  ([] (assoc (lg/weighted-digraph)
+        ;; TODO: not always appropriate when loading from a file (might have been removed)
+        :node-types {"person" {:node/shape "circle"}}
+        :edge-types {"likes" {:edge/color "#9ecae1"
+                              :edge/dasharray ""
+                              :edge/distance 30
+                              :edge/weight 1
+                              :edge/negate false}
+                     "dislikes" {:edge/color "red"
+                                 :edge/dasharray ""
+                                 :edge/distance 100
+                                 :edge/weight 1
+                                 :edge/negate true}}))
+  ([nodes edges]
+   (-> (create)
+       (lg/add-nodes* (keys nodes))
+       (add-many-attrs nodes)
+       (lg/add-edges* (keys edges))
+       (add-many-attrs edges))))
 
 (defn nodes [g]
   (into {}
@@ -58,10 +74,13 @@
 
 ;; TODO: might be better to rely on nodes/edges, need to get everything pointing to the same stuff maybe
 (defn entity [g id]
-  (if (lg/has-node? g id)
-    (or (la/attrs g id))
-    (assoc (or (la/attrs g id))
-      :edge/weight (lg/weight g id))))
+  (let [m (la/attrs g id)]
+    (if (lg/has-node? g id)
+      (-> (get-in g [:node-types (:node/type m "person")])
+          (merge m))
+      (-> (get-in g [:edge-types (:edge/type m "likes")])
+          (merge m)
+          (assoc :edge/weight (lg/weight g id))))))
 
 ;; TODO: kind of expect to be able to pass a key here to get outs of a node hmmm.
 (defn out-edges
@@ -155,10 +174,11 @@
     (with-predecessors g node-id ins edge-type)))
 
 (defn replace-edges [g node-id node-type edge-type outs ins]
-  (let [node-ids (concat [node-id] outs ins)]
+  (let [node-ids (set (concat [node-id] outs ins))
+        new-nodes (set/difference node-ids (lg/nodes g))]
     (-> g
-        (lg/add-nodes* node-ids)
-        (la/add-attr-to-nodes :node/type node-type node-ids)
+        (lg/add-nodes* new-nodes)
+        (la/add-attr-to-nodes :node/type node-type new-nodes)
         (replace-in-edges ins node-id edge-type)
         (replace-out-edges outs node-id edge-type)
         (with-ranks))))

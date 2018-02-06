@@ -137,7 +137,7 @@
 
 (defn draw-node
   [node-types
-   [node-id {:keys [node/name node/pagerank node/shape uid]}]
+   [node-id node]
    node-count
    max-pagerank
    simulation
@@ -148,6 +148,8 @@
     (let [particle (aget (.nodes simulation) (idxs node-id))
           x (.-x particle)
           y (.-y particle)
+          defaults (get @node-types (:node/type node "person"))
+          {:keys [node/pagerank node/shape uid]} (merge defaults node)
           selected? (= node-id @selected-id)
           rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
           ;; TODO: if pageranking... checkbox?
@@ -204,14 +206,14 @@
    selected-id
    {:keys [shift-click-edge]}]
   (when-let [idxs (.-idxs simulation)]
-    (let [{:keys [edge/type edge/weight]} edge
-          idx (idxs edge-id)
+    (let [idx (idxs edge-id)
           from-idx (idxs from)
           to-idx (idxs to)]
       ;; TODO: isolate data specific stuff here
       (when (and idx from-idx to-idx)
-        (let [{:keys [edge/color edge/dasharray negate]} (get @edge-types type)
-              weight (or weight (get-in @edge-types [type :weight]))
+        (let [
+              defaults (get @edge-types (:edge/type edge "person"))
+              {:keys [edge/weight edge/color edge/dasharray edge/negate]} (merge defaults edge)
               particle (aget (.nodes simulation) idx)
               x2 (.-x particle)
               from-particle (aget (.nodes simulation) from-idx)

@@ -11,7 +11,7 @@
       (as-> ~sym (is ~form ~msg)))))
 
 (deftest graph-operations
-  (-> (graph/create {})
+  (-> (graph/create)
       (has g g)
       (graph/with-edge "from" "to" "likes")
       (has g (= 1 (count (graph/edges g))))

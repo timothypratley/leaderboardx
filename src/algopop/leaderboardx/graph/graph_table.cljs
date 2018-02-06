@@ -5,7 +5,7 @@
     [goog.string :as gstring]
     [clojure.string :as string]
     [reagent.core :as reagent]
-    [reagent.ratom :as ratom :refer-macros [reaction]]))
+    [reagent.ratom :refer [reaction]]))
 
 ;; TODO: only show video and discuss on about and discuss tabs
 
@@ -14,9 +14,10 @@
 (defn split [s]
   (filter seq (map string/trim (string/split s delimiter))))
 
-(defn replace-edges [graph selected-id source node-type edge-type outs ins]
+;; TODO: centralize in model?
+(defn replace-edges [g selected-id source node-type edge-type outs ins]
   (when-let [source (first (split source))]
-    (swap! graph
+    (swap! g
            graph/replace-edges
            source
            node-type
@@ -25,6 +26,7 @@
            (set (split ins)))
     (reset! selected-id source)))
 
+;; TODO: the text boxes look funny when a different type is selected...
 (defn add-node [g outs ins selected-id selected-node-type selected-edge-type search-term]
   (reagent/with-let
     [the-outs (reagent/atom "")
@@ -103,18 +105,19 @@
       (reagent/dispose! watch))))
 
 (defn select-type [types selected]
-  [:th
-   (into
-     [:select
-      {:on-change
-       (fn selection [e]
-         (when-let [v (.. e -target -value)]
-           (reset! selected v)
-           (common/blur-active-input)))}]
-     (for [type (keys types)]
-       [:option
-        {:value type}
-        (string/capitalize type)]))])
+  (if (= 1 (count types))
+    [:span (string/capitalize (first (keys types)))]
+    (into
+      [:select
+       {:on-change
+        (fn selection [e]
+          (when-let [v (.. e -target -value)]
+            (reset! selected v)
+            (common/blur-active-input)))}]
+      (for [type (keys types)]
+        [:option
+         {:value type}
+         (string/capitalize type)]))))
 
 (defn humanize-id [id entity]
   (if (vector? id)
@@ -129,26 +132,26 @@
       #(swap! g graph/add-attr %1 %2 %3)
       #(swap! g graph/remove-attr %1 %2)]]))
 
-(defn table [g selected-id node-types edge-types selected-node-type selected-edge-type
-             {:keys [shift-click-node]}]
+(defn table [g selected-id node-types edge-types selected-node-type selected-edge-type callbacks]
   (let [nodes-by-rank (reaction
                         ;; TODO: maybe share the reaction with graph-view?
                         (sort-by #(vector (key %) (:node/rank (val %)))
-                                 (graph/nodes @g)))
+                                 (filter
+                                   (fn [[node-id {:keys [node/type]}]]
+                                     (= type @selected-node-type))
+                                   (graph/nodes @g))))
         search-term (reagent/atom "")
-        ;; TODO: don't need to be reactions, just put in body?
         filter-fn (fn [{:keys [edge/type]}]
                     (= type @selected-edge-type))
         outs (reaction (graph/out-edges @g filter-fn))
         ins (reaction (graph/in-edges @g filter-fn))]
-    (fn a-table [g selected-id node-types edge-types selected-node-type selected-edge-type]
+    (fn a-table [g selected-id node-types edge-types selected-node-type selected-edge-type {:keys [shift-click-node]}]
       [:div
        [:table.table.table-responsive
         [:thead
          [:tr
-          ;;[select-type @node-types selected-node-type]
-          [:th "Person"]
-          [select-type @edge-types selected-edge-type]
+          [:th [select-type @node-types selected-node-type]]
+          [:th [select-type @edge-types selected-edge-type]]
           [:th "Reciprocated by"]
           [:th "Rank"]]]
         (into
