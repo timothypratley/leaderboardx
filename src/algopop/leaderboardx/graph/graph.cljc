@@ -42,7 +42,11 @@
 (defn create
   ([] (assoc (lg/weighted-digraph)
         ;; TODO: not always appropriate when loading from a file (might have been removed)
-        :node-types {"person" {:node/shape "circle"}}
+        :node-types {"person" {:node/shape "circle"
+                               :node/text ""
+                               :node/tags ""
+                               :node/size 1
+                               :node/color "white"}}
         :edge-types {"likes" {:edge/color "#9ecae1"
                               :edge/dasharray ""
                               :edge/distance 30

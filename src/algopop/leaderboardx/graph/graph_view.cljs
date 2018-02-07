@@ -118,7 +118,7 @@
 
 (defn shape-background [shape dimensions node-color rank-scale selected?]
   [(shapes shape circle-background)
-   {:fill (rgb (scale-rgb node-color rank-scale))
+   {:fill node-color
     :stroke (if selected?
               "#6699aa"
               "#9ecae1")
@@ -135,6 +135,16 @@
             (string/upper-case)
             (re-matches #"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}"))))
 
+(defn lines [s width]
+  (reduce
+    (fn add-word [lines word]
+      (if (> (count (last lines)) width)
+        (conj lines word)
+        (update lines (dec (count lines)) str " " word)))
+    [""]
+    (-> (string/split s #"\s+")
+        (->> (map string/trim)))))
+
 (defn draw-node
   [node-types
    [node-id node]
@@ -149,12 +159,12 @@
           x (.-x particle)
           y (.-y particle)
           defaults (get @node-types (:node/type node "person"))
-          {:keys [node/pagerank node/shape uid]} (merge defaults node)
+          {:keys [node/size node/color node/tags node/text node/pagerank node/shape uid]} (merge defaults node)
           selected? (= node-id @selected-id)
           rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
           ;; TODO: if pageranking... checkbox?
           r (scale-dist node-count rank-scale)
-          width (* 2 (+ 4 (count node-id)))
+          width (* size 2 (+ 4 (count node-id)))
           height 15]
       ^{:key node-id}
       [:g
@@ -180,13 +190,51 @@
           (reset! mouse-down? true))}
        (if (email? node-id)
          [gravatar-background node-id [height height] node-id]
-         [shape-background shape [width height] (color-for uid) rank-scale selected?])
+         [shape-background shape [width height] (or color "white") rank-scale selected?])
        [:text.unselectable
         {:text-anchor "middle"
          :font-size (min (max node-count 8) 22)
          :style {:pointer-events "none"
                  :dominant-baseline "central"}}
-        node-id]])))
+        node-id]
+       (when (seq text)
+         (into
+           [:g]
+           (map-indexed
+             (fn [idx line]
+               [:text.unselectable
+                {:y (* (+ 2 idx) (/ (min (max node-count 8) 22) 2))
+                 :text-anchor "middle"
+                 :font-size (/ (min (max node-count 8) 22) 2)
+                 :style {:pointer-events "none"
+                         :dominant-baseline "central"}}
+                line])
+             (lines text 15))))
+       (when (seq tags)
+         (into
+           [:g]
+           (map-indexed
+             (fn [idx tag]
+               [:g
+                {:transform (str "translate(0," (/ (* (- (+ 2 idx)) (min (max node-count 8) 22)) 2) ")")}
+                [:rect
+                 {:fill "#ffeead"
+                  :stroke "black"
+                  :stroke-width 0.1
+                  :rx 2
+                  :ry 2
+                  :x (- (/ (* 2 (+ 3 (count tag))) 2))
+                  :y (- (/ (/ (min (max node-count 8) 22) 2) 2))
+                  :width (* 2 (+ 3 (count tag)))
+                  :height (/ (min (max node-count 8) 22) 2)}]
+                [:text.unselectable
+                 {:text-anchor "middle"
+                  :font-size (/ (min (max node-count 8) 22) 2)
+                  :style {:pointer-events "none"
+                          :dominant-baseline "central"}}
+                 tag]])
+             (-> (string/split tags #",")
+                 (->> (map string/trim))))))])))
 
 (defn average [& args]
   (/ (apply + args) (count args)))
