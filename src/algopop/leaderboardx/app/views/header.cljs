@@ -46,7 +46,11 @@
      [:div.collapse.navbar-collapse {:id "navbar-collapse"}
       [:ul.nav.navbar-nav.navbar-right
        [notifications]
-       (for [link routes/links]
-         ^{:key link}
-         [:li [:a {:href (str "#/" link)} [:kbd link]]])
+       (doall
+         (for [[link handler] (second routes/routes)]
+           ^{:key link}
+           [:li.nav-item
+            {:class (when (= handler (first (routes/current-page)))
+                      "active")}
+            [:a.nav-link {:href (str "#/" link)} [:kbd link]]]))
        #_[user-menu]]]]]])

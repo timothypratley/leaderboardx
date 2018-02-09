@@ -25,15 +25,12 @@
     #_["graphs" {"" #'graph-list/graph-list-view
                ["/" :id] #'graph-editor/graph-editor-page}]
     ;;    ["graph" {"" #'graph-editor/graph-editor-page}]
-    ["graph-editor" {"" #'graph-editor/graph-editor-page}]
+    ["graph-editor" #'graph-editor/graph-editor-page]
     ["forum" #'about/forum-page]
     ["roster" #'roster/roster-page]
     #_["assessments" {"" #'assess/assessments-view
                     ["/" :assessee "/" [keyword :type] "/" :date] #'assess/assess-view}]
     #_["coach" #'coach/coach-view]]])
-
-(def links
-  (mapv first (second routes)))
 
 (defn match [s]
   (bidi/match-route routes s))
@@ -42,5 +39,6 @@
   (session/assoc-in! [:viewpoint :route] (.-token event)))
 
 (defn current-page []
-  (let [{:keys [handler route-params]} (match (session/get-in [:viewpoint :route]))]
-    [(or handler about/about-page) route-params]))
+  (if-let [{:keys [handler route-params]} (match (session/get-in [:viewpoint :route]))]
+    [handler route-params]
+    [#'about/about-page]))
