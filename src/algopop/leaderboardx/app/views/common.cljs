@@ -45,19 +45,26 @@
   (blur-active-input))
 
 (defn editable-string [default-value write autofocus]
-  (let [visible-value (reagent/atom default-value)]
+  (let [visible-value (reagent/atom default-value)
+        focused (reagent/atom false)]
     (fn an-editable-string [default-value write autofocus]
+      (when (not @focused)
+        (reset! visible-value default-value))
       [:input
        {:type "text"
         :auto-focus autofocus
         :style {:width "100%"
                 :border "1px solid #f0f0f0"}
         :value @visible-value
+        :on-focus
+        (fn editable-string-focus [e]
+          (reset! focused true))
         :on-change
         (fn editable-string-change [e]
           (reset! visible-value (.. e -target -value)))
         :on-blur
         (fn editable-string-blur [e]
+          (reset! focused false)
           (save write default-value @visible-value))
         :on-key-down
         (fn editable-string-key-down [e]
@@ -150,35 +157,40 @@
          label]))))
 
 (defn single-entity-editor [entity-name entity add-attribute remove-attribute]
-  [:div.form-inline
-   [:table.table.table-responsive
-    [:tbody
-     (doall
-       (for [[attribute value] (sort entity)]
-         ^{:key attribute}
-         [:tr
-          [:td
-           {:style {:font-weight "bold"
-                    :width "40%"
-                    :text-align "right"}}
-           attribute ":"]
-          [:td
-           {:style {:width "60%"}}
-           ;; TODO: shouldn't be always auto-focus... only the most recently added
-           [editable-string value #(add-attribute entity-name attribute %) true]]
-          [:td
-           [:button.close
+  (let [just-added (reagent/atom nil)]
+    (fn a-single-entity-editor [entity-name entity add-attribute remove-attribute]
+      [:div.form-inline
+       [:table.table.table-responsive
+        [:tbody
+         (doall
+           (for [[attribute value] (sort entity)]
+             ^{:key attribute}
+             [:tr
+              [:td
+               {:style {:font-weight "bold"
+                        :width "40%"
+                        :text-align "right"}}
+               attribute ":"]
+              [:td
+               {:style {:width "60%"}}
+               [editable-string value #(add-attribute entity-name attribute %) (= attribute @just-added)]]
+              [:td
+               [:button.close
                 {:on-click
-                 (fn [e]
+                 (fn click-clear-attribute [e]
                    (remove-attribute entity-name attribute))}
                 "×"]]]))
-     [:tr
-      [:td
-       {:style {:text-align "right"
-                :width "40%"}}
-       [add "Add attribute" #(add-attribute entity-name (keyword %) "")]]
-      [:td]
-      [:td]]]]])
+         [:tr
+          [:td
+           {:style {:text-align "right"
+                    :width "40%"}}
+           [add "Add attribute"
+            (fn click-add-attribute [x]
+              (let [attribute (keyword x)]
+                (reset! just-added attribute)
+                (add-attribute entity-name attribute "")))]]
+          [:td]
+          [:td]]]]])))
 
 ;; TODO: idea - have 3 text boxes, just like graph node entry but for entity/attrpairs
 (defn entity-editor [heading entities add-entity remove-entity add-attribute remove-attribute]
