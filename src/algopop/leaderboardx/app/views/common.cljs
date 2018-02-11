@@ -162,12 +162,16 @@
               [:td
                {:style {:width "60%"}}
                (if options
-                 [selectable value #(add-attribute id attribute %) options]
+                 (if (<= (count options) 1)
+                   [:div value]
+                   [selectable value #(add-attribute id attribute %) options])
                  [editable-string value #(add-attribute id attribute %) (= attribute @just-added)])]
               [:td
                [:button.close
                 {:on-click
                  (fn click-clear-attribute [e]
+                   ;; TODO: currently you can remove a node/type! that seems wrong...
+                   ;; maybe... but it works? maybe not a bad thing?
                    (remove-attribute id attribute))}
                 "×"]]]))
          [:tr
