@@ -46,14 +46,11 @@
         (js/window.navigator.msSaveBlob b filename)
         (let [link (js/document.createElement "a")]
           (aset link "download" filename)
-          (if js/window.webkitURL
-            (aset link "href" (js/window.webkitURL.createObjectURL b))
-            (do
-              (aset link "href" (js/window.URL.createObjectURL b))
-              (aset link "onclick" (fn destroy-clicked [e]
-                                     (.removeChild (.-body js/document) (.-target e))))
-              (aset link "style" "display" "none")
-              (.appendChild (.-body js/document) link)))
+          (aset link "href" (js/window.URL.createObjectURL b))
+          (aset link "onclick" (fn destroy-clicked [e]
+                                 (.removeChild (.-body js/document) (.-target e))))
+          (aset link "style" "display" "none")
+          (.appendChild (.-body js/document) link)
           (.click link))))
     (log/error "Browser does not support Blob")))
 

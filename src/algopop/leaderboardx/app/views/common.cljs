@@ -176,6 +176,7 @@
                     :width "40%"}}
            [add "Add attribute"
             (fn click-add-attribute [x]
+              ;; TODO: entities might not be either nodes or edges?
               (let [attribute (keyword (if (vector? id) "edge" "node") x)]
                 (reset! just-added attribute)
                 (add-attribute id attribute "")))]]
@@ -190,7 +191,7 @@
     [:li.row
      [:div.col-xs-3
       {:style {:text-align "right"}}
-      [add (str "Add " heading) add-entity]]]
+      [add "Add" add-entity]]]
     (for [[entity-name entity] (sort entities)]
       ^{:key entity-name}
       [:li.row
