@@ -13,6 +13,9 @@
       (assoc-in g [:adj a b] v))
     (la/add-attr g id k v)))
 
+(defn update-attr [g id k f & args]
+  (la/add-attr g id k (apply f (la/attr g id k) args)))
+
 (defn remove-attr [g id k]
   (la/remove-attr g id k))
 

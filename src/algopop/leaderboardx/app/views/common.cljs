@@ -3,8 +3,7 @@
             [reagent.core :as reagent]
             [reagent.dom :as dom]
             [cljs.test :as t :include-macros true :refer-macros [testing is]]
-            [devcards.core :as dc :refer-macros [defcard deftest]]
-            [clojure.string :as string]))
+            [devcards.core :as dc :refer-macros [defcard deftest]]))
 
 ;; TODO: doesn't belong here
 
@@ -100,28 +99,15 @@
                          (first v)
                          v)])))
 
-;; TODO: does this need editing?
-(defn selectable [path model editing options]
-  (if (or (= @editing options)
-          (not (get-in @model path)))
-    (into
-     [:select
-      {:default-value (get-in @model path)
-       :on-change
-       (fn selection [e]
-         (when-let [idx (.-selectedIndex (.-target e))]
-           (if (seq path)
-             (swap! model assoc-in path (options idx))
-             (reset! model (options idx)))
-           (reset! editing nil)))}]
-     (for [x options]
-       [:option x]))
-    [:span
-     {:on-click
-      (fn selectable-click [e]
-        (reset! editing options)
-        nil)}
-     (get-in @model path)]))
+(defn selectable [default-value write options]
+  (into
+    [:select
+     {:value default-value
+      :on-change
+      (fn selection-change [e]
+        (save write default-value (.. e -target -value)))}]
+    (for [x options]
+      [:option x])))
 
 (defn add [label write]
   (let [show? (reagent/atom false)]
@@ -156,14 +142,16 @@
             (swap! show? not))}
          label]))))
 
-(defn single-entity-editor [entity-name entity add-attribute remove-attribute]
+(defn single-entity-editor [id entity add-attribute remove-attribute schema]
   (let [just-added (reagent/atom nil)]
-    (fn a-single-entity-editor [entity-name entity add-attribute remove-attribute]
+    (fn a-single-entity-editor [id entity add-attribute remove-attribute schema]
       [:div.form-inline
        [:table.table.table-responsive
         [:tbody
          (doall
-           (for [[attribute value] (sort entity)]
+           (for [[attribute value] (sort entity)
+                 :let [options (get schema attribute)]
+                 :when (not= options :hide)]
              ^{:key attribute}
              [:tr
               [:td
@@ -173,12 +161,14 @@
                attribute ":"]
               [:td
                {:style {:width "60%"}}
-               [editable-string value #(add-attribute entity-name attribute %) (= attribute @just-added)]]
+               (if options
+                 [selectable value #(add-attribute id attribute %) options]
+                 [editable-string value #(add-attribute id attribute %) (= attribute @just-added)])]
               [:td
                [:button.close
                 {:on-click
                  (fn click-clear-attribute [e]
-                   (remove-attribute entity-name attribute))}
+                   (remove-attribute id attribute))}
                 "×"]]]))
          [:tr
           [:td
@@ -186,14 +176,14 @@
                     :width "40%"}}
            [add "Add attribute"
             (fn click-add-attribute [x]
-              (let [attribute (keyword x)]
+              (let [attribute (keyword (if (vector? id) "edge" "node") x)]
                 (reset! just-added attribute)
-                (add-attribute entity-name attribute "")))]]
+                (add-attribute id attribute "")))]]
           [:td]
           [:td]]]]])))
 
 ;; TODO: idea - have 3 text boxes, just like graph node entry but for entity/attrpairs
-(defn entity-editor [heading entities add-entity remove-entity add-attribute remove-attribute]
+(defn entity-editor [heading entities add-entity remove-entity add-attribute remove-attribute schema]
   [:div
    [:h3 heading]
    [:ul.list-unstyled
@@ -214,4 +204,4 @@
             (remove-entity entity-name))}
          "×"]
         [:strong entity-name]]
-       [:div.col-xs-9 [single-entity-editor entity-name entity add-attribute remove-attribute]]])]])
+       [:div.col-xs-9 [single-entity-editor entity-name entity add-attribute remove-attribute schema]]])]])

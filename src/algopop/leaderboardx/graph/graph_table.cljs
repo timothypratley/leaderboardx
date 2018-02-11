@@ -124,13 +124,14 @@
     (str (first id) " " (:edge/type entity) " " (second id))
     (str id)))
 
-(defn attribute-editor [g id]
-  (let [entity (graph/entity @g id)]
+(defn attribute-editor [g id schema]
+  (let [entity (graph/entity @g @id)]
     [:div
-     [:i (humanize-id id entity)]
-     [common/single-entity-editor id entity
+     [:i (humanize-id @id entity)]
+     [common/single-entity-editor @id entity
       #(swap! g graph/add-attr %1 %2 %3)
-      #(swap! g graph/remove-attr %1 %2)]]))
+      #(swap! g graph/remove-attr %1 %2)
+      @schema]]))
 
 (defn table [g selected-id node-types edge-types selected-node-type selected-edge-type callbacks]
   (let [nodes-by-rank (reaction

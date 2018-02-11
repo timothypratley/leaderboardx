@@ -11,7 +11,8 @@
     [reagent.core :as reagent]
     [reagent.ratom :refer [reaction]]
     [reagent.session :as session]
-    [loom.graph :as lg]))
+    [loom.graph :as lg]
+    [algopop.leaderboardx.graph.schema :as schema]))
 
 (defn title-input [title]
   (reagent/create-class
@@ -67,6 +68,10 @@
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         node-types (reaction (:node-types @g))
         edge-types (reaction (:edge-types @g))
+        schema (reaction {:edge/type (keys @edge-types)
+                          :edge/negate :hide
+                          :node/type (keys @node-types)
+                          :node/shape schema/shapes})
         next-edge-type (reaction
                          (zipmap (keys @edge-types)
                                  (rest (cycle (keys @edge-types)))))
@@ -84,16 +89,16 @@
 
          ;; TODO: omg don't pass shapes, but don't want to look up either
          :shift-click-node
-         (fn shift-click-node [a b shape next-shape]
+         (fn shift-click-node [a b]
            (if (= a b)
-             (swap! g graph/add-attr a :node/shape (get next-shape shape "triangle"))
+             (swap! g graph/update-attr a :node/shape schema/next-shape)
              (when-not (vector? a)
                (swap! g graph/with-edge a b @selected-edge-type))))
 
-         ;; TODO: passing next-shap is kinda silly... where do shapes belong?
          :double-click-node
-         (fn double-click-node [node-id shape next-shape]
-           #_(swap! g graph/add-attr node-id :node/shape (next-shape shape "triangle")))}]
+         (fn double-click-node [node-id])}]
+
+    ;; TODO: I think all the derefing in here defeats the purpose of reactions
     (reagent/create-class
       {:display-name "graph-editor"
        :reagent-render
@@ -109,7 +114,7 @@
             [:div.panel.panel-default.pull-left
              {:style {:position "absolute"
                       :width "25%"}}
-             [table/attribute-editor g @selected-id]])
+             [table/attribute-editor g selected-id schema]])
           [:div#d3g
            [graph-view/graph-view g node-types edge-types selected-id selected-edge-type callbacks]]
           [:div.panel.panel-default

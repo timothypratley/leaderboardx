@@ -20,3 +20,13 @@
       (has g (= 7 (count (graph/nodes g))))
       (has g (= 5 (count (graph/edges g))))
       (has g (= ["puppies" "sharks"] (keys (get (graph/in-edges g) "Tim"))))))
+
+(deftest graph-api
+  (is (= 4
+         (-> (graph/create)
+             (graph/add-node "a" {:k 1})
+             (atom)
+             (swap! graph/update-attr "a" :k + 3)
+             (graph/entity "a")
+             :k))
+      "Can update an attribute with a function"))

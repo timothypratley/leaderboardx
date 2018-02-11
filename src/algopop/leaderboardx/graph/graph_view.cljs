@@ -108,7 +108,7 @@
   [:circle
    (merge attrs {:r (max width height)})])
 
-(def shapes
+(def shape-dispatch
   {"circle" circle-background
    "ellipse" ellipse-background
    "triangle" triangle-background
@@ -117,16 +117,13 @@
    "rectangle" rectangle-background})
 
 (defn shape-background [shape dimensions node-color rank-scale selected?]
-  [(shapes shape circle-background)
+  [(shape-dispatch shape circle-background)
    {:fill node-color
     :stroke (if selected?
               "#6699aa"
               "#9ecae1")
     :style {:cursor "pointer"}}
    dimensions])
-
-(def next-shape
-  (zipmap (keys shapes) (rest (cycle (keys shapes)))))
 
 (defn email? [s]
   (and (string? s)
@@ -164,7 +161,7 @@
           rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
           ;; TODO: if pageranking... checkbox?
           r (scale-dist node-count rank-scale)
-          width (* size 2 (+ 4 (count node-id)))
+          width (* (or size 1) 2 (+ 4 (count node-id)))
           height 15]
       ^{:key node-id}
       [:g
@@ -174,7 +171,7 @@
         :tab-index "1"
         :on-double-click
         (fn node-double-clicked [e]
-          (double-click-node node-id shape next-shape)
+          (double-click-node node-id)
           ;;(reset! selected-id nil)
           (js-delete particle "fx")
           (js-delete particle "fy")
@@ -184,7 +181,7 @@
           (.stopPropagation e)
           (.preventDefault e)
           (when (and shift-click-node (.-shiftKey e) @selected-id node-id)
-            (shift-click-node @selected-id node-id shape next-shape))
+            (shift-click-node @selected-id node-id))
           (common/blur-active-input)
           (reset! selected-id node-id)
           (reset! mouse-down? true))}

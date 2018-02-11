@@ -104,6 +104,7 @@
    [:h1
     [common/editable-string (:name assess) editing]
     [:span " - "]
+    ;; TODO: refactor to use value/write
     [common/selectable [:selected] names editing (:names @names)]]
    [attributes template assess names editing]
    [:div
