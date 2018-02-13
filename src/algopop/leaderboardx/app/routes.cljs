@@ -27,7 +27,7 @@
     ;;    ["graph" {"" #'graph-editor/graph-editor-page}]
     ["graph-editor" #'graph-editor/graph-editor-page]
     ["forum" #'about/forum-page]
-    ["roster" #'roster/roster-page]
+    #_["roster" #'roster/roster-page]
     #_["assessments" {"" #'assess/assessments-view
                     ["/" :assessee "/" [keyword :type] "/" :date] #'assess/assess-view}]
     #_["coach" #'coach/coach-view]]])
