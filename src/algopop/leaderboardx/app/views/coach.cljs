@@ -11,7 +11,7 @@
 (defn goal-input [goal editing-id]
   (reagent/create-class
    {:display-name "node-input"
-    :component-did-mount common/focus-append
+    ;;:component-did-mount common/focus-append
     :reagent-render
     (fn a-goal-input [goal editing-id]
       [:input {:type "text"

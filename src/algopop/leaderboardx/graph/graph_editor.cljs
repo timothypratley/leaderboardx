@@ -14,23 +14,12 @@
     [loom.graph :as lg]
     [algopop.leaderboardx.graph.schema :as schema]))
 
-(defn title-input [title]
-  (reagent/create-class
-    {:display-name "title-input"
-     :component-did-mount common/focus-append
-     :reagent-render
-     (fn title-input-render [title]
-       [:input {:type "text"
-                :name "new-title"
-                :style {:width "550px"}
-                :default-value title}])}))
-
 (defn title-editor [g]
   (let [title (:title @g)]
     [:div.btn-group
      [:h4
       [common/editable-string (or title "Untitled")
-       (fn title-submit [v]
+       (fn write-title [v]
          (swap! g assoc :title v))]]]))
 
 (defn unselect [selected-id]

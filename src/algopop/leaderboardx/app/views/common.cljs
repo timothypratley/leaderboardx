@@ -5,27 +5,6 @@
             [cljs.test :as t :include-macros true :refer-macros [testing is]]
             [devcards.core :as dc :refer-macros [defcard deftest]]))
 
-;; TODO: doesn't belong here
-
-(defn focus-append [this]
-  (doto (dom/dom-node this)
-    (.focus)
-    (.setSelectionRange 100000 100000)))
-
-;; TODO: could probably just use auto-focus editable-string
-(defn focus-append-input [m]
-  (reagent/create-class
-   {:display-name "focus-append-component"
-    :component-did-mount focus-append
-    :reagent-render
-    (fn focus-append-input-render [m]
-      [:input
-       (merge-with merge
-        {:type "text"
-         :name "text"
-         :style {:width "100%"}}
-        m)])}))
-
 ;; TODO: advanced mode (set/map-invert (js->clj KeyCodes))
 (def key-code-name
   {13 "ENTER"
@@ -40,43 +19,44 @@
 
 (defn save [write a b]
   (when (and write (not= a b))
-    (write b))
-  (blur-active-input))
+    (write b)))
 
-(defn editable-string [default-value write autofocus]
+(defn editable-string [default-value write attrs]
   (let [visible-value (reagent/atom default-value)
-        focused (reagent/atom false)]
-    (fn an-editable-string [default-value write autofocus]
-      (when (not @focused)
+        current-default (reagent/atom default-value)]
+    (fn an-editable-string [default-value write attrs]
+      (when (not= default-value @current-default)
+        (reset! current-default default-value)
         (reset! visible-value default-value))
       [:input
-       {:type "text"
-        :auto-focus autofocus
-        :style {:width "100%"
-                :border "1px solid #f0f0f0"}
-        :value @visible-value
-        :on-focus
-        (fn editable-string-focus [e]
-          (reset! focused true))
-        :on-change
-        (fn editable-string-change [e]
-          (reset! visible-value (.. e -target -value)))
-        :on-blur
-        (fn editable-string-blur [e]
-          (reset! focused false)
-          (save write default-value @visible-value))
-        :on-key-down
-        (fn editable-string-key-down [e]
-          (.stopPropagation e)
-          (.stopImmediatePropagation (.-nativeEvent e))
-          (case (key-code-name (.-keyCode e))
-            "ESC" (do
-                    (reset! visible-value default-value)
-                    (blur-active-input))
-            "ENTER" (do
-                      (.preventDefault e)
-                      (save write default-value @visible-value))
-            nil))}])))
+       (merge-with
+         merge
+         {:type "text"
+          :style {:width "100%"
+                  :border "1px solid #f0f0f0"
+                  :background-color (if (= default-value @visible-value)
+                                      "white"
+                                      "#f8f8f8")}
+          :value @visible-value
+          :on-change
+          (fn editable-string-change [e]
+            (reset! visible-value (.. e -target -value)))
+          :on-blur
+          (fn editable-string-blur [e]
+            (save write default-value @visible-value))
+          :on-key-down
+          (fn editable-string-key-down [e]
+            (.stopPropagation e)
+            (.stopImmediatePropagation (.-nativeEvent e))
+            (case (key-code-name (.-keyCode e))
+              "ESC" (do
+                      (reset! visible-value default-value)
+                      (blur-active-input))
+              "ENTER" (do
+                        (.preventDefault e)
+                        (save write default-value @visible-value))
+              nil))}
+         attrs)])))
 
 (defcard editable-string-example
   "editable string"
@@ -113,28 +93,14 @@
   (let [show? (reagent/atom false)]
     (fn an-add [label write]
       (if @show?
-        [focus-append-input
-         {:style {:width "100%"
-                  :text-align "right"}
-          :on-blur
-          (fn editable-string-blur [e]
-            (swap! show? not)
-            (let [v (.. e -target -value)]
-              (when (seq v)
-                (write v))))
-          :on-key-down
-          (fn editable-string-key-down [e]
-            (.stopPropagation e)
-            (.stopImmediatePropagation (.-nativeEvent e))
-            (case (key-code-name (.-keyCode e))
-              "ESC" (swap! show? not)
-              "ENTER" (do
-                        (.preventDefault e)
-                        (let [v (.. e -target -value)]
-                          (when (and (seq v) write)
-                            (write v)))
-                        (swap! show? not))
-              nil))}]
+        [editable-string
+         ""
+         (fn [v]
+           (prn "hi?")
+           (swap! show? not)
+           (write v))
+         {:auto-focus true
+          :style {:text-align "right"}}]
         [:button.btn.btn-default.btn-sm
          {:style {:width "100%"}
           :on-click
@@ -165,7 +131,8 @@
                  (if (<= (count options) 1)
                    [:div value]
                    [selectable value #(add-attribute id attribute %) options])
-                 [editable-string value #(add-attribute id attribute %) (= attribute @just-added)])]
+                 [editable-string value #(add-attribute id attribute %)
+                  {:auto-focus (= attribute @just-added)}])]
               [:td
                [:button.close
                 {:on-click

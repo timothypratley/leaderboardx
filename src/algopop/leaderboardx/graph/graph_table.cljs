@@ -35,8 +35,8 @@
      reset-inputs (fn a-reset-inputs [id]
                     (when (not= @node-name-input js/document.activeElement)
                       (reset! search-term (or id "")))
-                    (reset! the-outs (string/join ", " (keys (@outs id))))
-                    (reset! the-ins (string/join ", " (keys (@ins id)))))
+                    (reset! the-outs (string/join ", " (sort-by string/lower-case (keys (@outs id)))))
+                    (reset! the-ins (string/join ", " (sort-by string/lower-case (keys (@ins id))))))
      watch (reagent/track!
              (fn []
                (if (vector? @selected-id)
@@ -136,7 +136,7 @@
 (defn table [g selected-id node-types edge-types selected-node-type selected-edge-type callbacks]
   (let [nodes-by-rank (reaction
                         ;; TODO: maybe share the reaction with graph-view?
-                        (sort-by #(vector (key %) (:node/rank (val %)))
+                        (sort-by #(vector (string/lower-case (key %)) (:node/rank (val %)))
                                  (filter
                                    (fn [[node-id {:keys [node/type]}]]
                                      (= type @selected-node-type))
@@ -155,40 +155,42 @@
           [:th [select-type @edge-types selected-edge-type]]
           [:th "Reciprocated by"]
           [:th "Rank"]]]
-        (into
-         [:tbody
-          [add-node g outs ins selected-id selected-node-type selected-edge-type search-term]]
-         (for [[node-id {:keys [node/rank node/name]}] @nodes-by-rank
-               :let [selected? (= node-id @selected-id)
-                     match? (and (seq @search-term)
-                                 (gstring/startsWith (or name node-id) @search-term))
-                     out-ids (keys (@outs node-id))
-                     in-ids (keys (@ins node-id))
-                     outs-string (string/join ", " out-ids)
-                     ins-string (string/join ", " in-ids)]]
-           [:tr
-            {:class (cond selected? "info"
-                          match? "warning")
-             :style {:cursor "pointer"}
-             :on-click
-             (fn table-row-click [e]
-               (when (and shift-click-node (.-shiftKey e) @selected-id node-id (not= @selected-id node-id))
-                 ;; TODO: don't care about shape here
-                 (shift-click-node @selected-id node-id nil nil))
-               (reset! selected-id node-id))}
-            [:td [common/editable-string (or name node-id)
-                  (fn update-node-name [v]
-                    (let [new-name (string/trim v)]
-                      (when (and (seq new-name)
-                                 (not= new-name (or name node-id)))
-                        (swap! g graph/rename-node node-id new-name)
-                        (reset! selected-id new-name))))]]
-            ;; TODO: names vs ids omg
-            [:td [common/editable-string outs-string
-                  (fn update-out-edges [v]
-                    ;; TODO: make edge type selection make sense
-                    (replace-edges g selected-id (or name node-id) @selected-node-type @selected-edge-type v ins-string))]]
-            [:td [common/editable-string ins-string
-                  (fn update-in-edges [v]
-                    (replace-edges g selected-id (or name node-id) @selected-node-type @selected-edge-type outs-string v))]]
-            [:td rank]]))]])))
+        [:tbody
+         [add-node g outs ins selected-id selected-node-type selected-edge-type search-term]
+         (doall
+           (for [[node-id {:keys [node/rank node/name]}] @nodes-by-rank
+                 :let [selected? (= node-id @selected-id)
+                       match? (and (seq @search-term)
+                                   (gstring/startsWith (or name node-id) @search-term))
+                       out-ids (keys (@outs node-id))
+                       in-ids (keys (@ins node-id))
+                       outs-string (string/join ", " (sort-by string/lower-case out-ids))
+                       ins-string (string/join ", " (sort-by string/lower-case in-ids))]]
+             [:tr
+              {:key node-id
+               :class (cond selected? "info"
+                            match? "warning")
+               :style {:cursor "pointer"}
+               :on-click
+               (fn table-row-click [e]
+                 (when (and shift-click-node (.-shiftKey e) @selected-id node-id (not= @selected-id node-id))
+                   ;; TODO: don't care about shape here
+                   (shift-click-node @selected-id node-id nil nil))
+                 (reset! selected-id node-id))}
+              [:td [common/editable-string (or name node-id)
+                    (fn update-node-name [v]
+                      (let [new-name (string/trim v)]
+                        (when (and (seq new-name)
+                                   (not= new-name (or name node-id)))
+                          (swap! g graph/rename-node node-id new-name)
+                          (reset! selected-id new-name))))
+                    ]]
+              ;; TODO: names vs ids omg
+              [:td [common/editable-string outs-string
+                    (fn update-out-edges [v]
+                      ;; TODO: make edge type selection make sense
+                      (replace-edges g selected-id (or name node-id) @selected-node-type @selected-edge-type v ins-string))]]
+              [:td [common/editable-string ins-string
+                    (fn update-in-edges [v]
+                      (replace-edges g selected-id (or name node-id) @selected-node-type @selected-edge-type outs-string v))]]
+              [:td rank]]))]]])))
