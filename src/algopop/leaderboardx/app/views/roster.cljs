@@ -10,7 +10,7 @@
 ;; TODO: would a vector of maps with types in them be better?
 ;; TODO: schema can define relations -> dropdown
 
-(def db
+(defonce db
   (reagent/atom {}))
 
 (defn set-simple-example! [db]
@@ -24,12 +24,12 @@
               "Library" {:start-time "13:00"}
               "Evening Bus" {:start-time "15:00"}}
      :days ["mon" "tues" "wed" "thurs" "fri"]
-     :people {"Kate" {:role "Coordinator"}
-              "Kim" {:role "Teacher"}
-              "Kirstin" {:role "Teacher"}
-              "Barry" {:role "Teacher"}
-              "Brian" {:role "Support"}
-              "Bob" {:role "Support"}}
+     :people {"Kate" {:node/role "Coordinator"}
+              "Kim" {:node/role "Teacher"}
+              "Kirstin" {:node/role "Teacher"}
+              "Barry" {:node/role "Teacher"}
+              "Brian" {:node/role "Support"}
+              "Bob" {:node/role "Support"}}
      :roles {"Support" {}
              "Teacher" {}
              "Coordinator" {}}
@@ -83,31 +83,31 @@
 
               "Evening Bus" {:start-time "15:00"}}
      :days ["mon" "tues" "wed" "thurs" "fri"]
-     :people {"Liz" {:role "Support"}
-              "Kristy" {:role "Teacher"}
-              "Jeremy" {:role "Teacher"}
-              "Mandy" {:role "Coordinator"}
-              "Amanda" {:role "Teacher"}
-              "Paul" {:role "Support"}
-              "Kelly" {:role "Coordinator"}
-              "Janelle" {:role "Teacher"}
-              "Irene" {:role "Support"}
-              "Amy" {:role "Teacher"}
-              "Bronwyn" {:role "Teacher"}
-              "Gloria" {:role "Teacher"}
-              "Jodie" {:role "Coordinator"}
-              "Jodi" {:role "Teacher"}
-              "Robyn" {:role "Teacher"}
-              "Violeta" {:role "Teacher"}
-              "Andrew" {:role "Coordinator"}
-              "Alison" {:role "Teacher"}
-              "Marina" {:role "Support"}
-              "Svet" {:role "Support"}
-              "Jon" {:role "Teacher"}
-              "Aminata" {:role "Teacher"}
-              "Rowena" {:role "Teacher"}
-              "Sheree" {:role "Support"}
-              "Terrence" {:role "Support"}}
+     :people {"Liz" {:node/role "Support"}
+              "Kristy" {:node/role "Teacher"}
+              "Jeremy" {:node/role "Teacher"}
+              "Mandy" {:node/role "Coordinator"}
+              "Amanda" {:node/role "Teacher"}
+              "Paul" {:node/role "Support"}
+              "Kelly" {:node/role "Coordinator"}
+              "Janelle" {:node/role "Teacher"}
+              "Irene" {:node/role "Support"}
+              "Amy" {:node/role "Teacher"}
+              "Bronwyn" {:node/role "Teacher"}
+              "Gloria" {:node/role "Teacher"}
+              "Jodie" {:node/role "Coordinator"}
+              "Jodi" {:node/role "Teacher"}
+              "Robyn" {:node/role "Teacher"}
+              "Violeta" {:node/role "Teacher"}
+              "Andrew" {:node/role "Coordinator"}
+              "Alison" {:node/role "Teacher"}
+              "Marina" {:node/role "Support"}
+              "Svet" {:node/role "Support"}
+              "Jon" {:node/role "Teacher"}
+              "Aminata" {:node/role "Teacher"}
+              "Rowena" {:node/role "Teacher"}
+              "Sheree" {:node/role "Support"}
+              "Terrence" {:node/role "Support"}}
      :roles {"Support" {}
              "Teacher" {}
              "Coordinator" {}}
@@ -127,6 +127,12 @@
 
 (defn valid? [duties people assignments]
   (and
+    ;; limit of two recess/lunch/afternoon duties per week
+    #_(every? true?
+            (for [[person person-assignments] (group-by last assignments)]
+              ;; TODO: how to nominate the duties?
+              (frequencies (map first person-assignments))))
+
     ;; only one duty per day per person
     (every? true?
             (for [[day assignments-that-day] (group-by second assignments)]
@@ -137,7 +143,7 @@
     (every?
       (fn [[duty-name day start-time person]]
         (if-let [roles (get-in duties [duty-name :roles])]
-          (contains? roles (get-in people [person :role]))
+          (contains? roles (get-in people [person :node/role]))
           true))
       assignments)))
 
@@ -168,7 +174,7 @@
         (first
           (filter
             #(valid? duties people %)
-            (take 100000
+            (take 1000
                   (repeatedly
                     #(randomly-assign duties days people)))))]
     ;; arrange by assignment
@@ -286,14 +292,11 @@
         (js/window.navigator.msSaveBlob b filename)
         (let [link (js/document.createElement "a")]
           (aset link "download" filename)
-          (if js/window.webkitURL
-            (aset link "href" (js/window.webkitURL.createObjectURL b))
-            (do
-              (aset link "href" (js/window.URL.createObjectURL b))
-              (aset link "onclick" (fn destroy-clicked [e]
-                                     (.removeChild (.-body js/document) (.-target e))))
-              (aset link "style" "display" "none")
-              (.appendChild (.-body js/document) link)))
+          (aset link "href" (js/window.URL.createObjectURL b))
+          (aset link "onclick" (fn destroy-clicked [e]
+                                 (.removeChild (.-body js/document) (.-target e))))
+          (aset link "style" "display" "none")
+          (.appendChild (.-body js/document) link)
           (.click link))))
     (log/error "Browser does not support Blob")))
 
@@ -385,7 +388,8 @@
        #(add-entity :people %)
        #(remove-entity :people %)
        #(add-attribute :people %1 %2 %3)
-       #(remove-attribute :people %1 %2)]]
+       #(remove-attribute :people %1 %2)
+       {:node/role (keys roles)}]]
      [:div.well {:style {:background-color "white"}}
       [common/entity-editor
        "Duties"

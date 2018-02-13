@@ -2,7 +2,6 @@
   (:require [algopop.leaderboardx.app.views.common :as common]
             [algopop.leaderboardx.app.db :as db]
             [algopop.leaderboardx.app.commands :as commands]
-            [algopop.leaderboardx.app.seed :as seed]
             [reagent.core :as reagent]
             [reagent.session :as session]
             [reagent.ratom :as ratom :refer-macros [reaction]]
@@ -105,6 +104,7 @@
    [:h1
     [common/editable-string (:name assess) editing]
     [:span " - "]
+    ;; TODO: refactor to use value/write
     [common/selectable [:selected] names editing (:names @names)]]
    [attributes template assess names editing]
    [:div

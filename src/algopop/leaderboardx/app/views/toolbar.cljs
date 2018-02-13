@@ -2,12 +2,12 @@
   (:require
     [algopop.leaderboardx.app.io.csv :as csv]
     [algopop.leaderboardx.app.io.dot :as dot]
-    [algopop.leaderboardx.app.seed :as seed]
-    [algopop.leaderboardx.app.views.graph-settings :as settings]
+    [algopop.leaderboardx.graph.seed :as seed]
+    [algopop.leaderboardx.graph.graph-settings :as settings]
     [algopop.leaderboardx.app.logging :as log]
     [clojure.string :as string]
     [reagent.core :as reagent]
-    [algopop.leaderboardx.app.graph :as graph]))
+    [algopop.leaderboardx.graph.graph :as graph]))
 
 (defn settings [show-settings?]
   [:div.btn-group
@@ -32,13 +32,12 @@
       [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
       [:li "To delete nodes and links, click on the graph or table and press the DELETE key."]
       [:li "Select one name and shift click another to add a link."]
-      ;;[:li "Shift click a selected node to change its shape."]
+      [:li "Shift click a selected node to change its shape."]
       [:li "Shift click a link to change the link type."]
       [:li "Drag nodes or edges around with the mouse."]
       [:li "Double click to unpin nodes and edges."]
       [:li "Click on the table row to edit."]
-      ;;[:li "If your names are email addresses, a Gravatar will be drawn."]
-      ]]]])
+      [:li "If your names are email addresses, a Gravatar will be drawn."]]]]])
 
 (defn save-file [filename t s]
   (if js/Blob
@@ -47,14 +46,11 @@
         (js/window.navigator.msSaveBlob b filename)
         (let [link (js/document.createElement "a")]
           (aset link "download" filename)
-          (if js/window.webkitURL
-            (aset link "href" (js/window.webkitURL.createObjectURL b))
-            (do
-              (aset link "href" (js/window.URL.createObjectURL b))
-              (aset link "onclick" (fn destroy-clicked [e]
-                                     (.removeChild (.-body js/document) (.-target e))))
-              (aset link "style" "display" "none")
-              (.appendChild (.-body js/document) link)))
+          (aset link "href" (js/window.URL.createObjectURL b))
+          (aset link "onclick" (fn destroy-clicked [e]
+                                 (.removeChild (.-body js/document) (.-target e))))
+          (aset link "style" "display" "none")
+          (.appendChild (.-body js/document) link)
           (.click link))))
     (log/error "Browser does not support Blob")))
 
@@ -101,7 +97,7 @@
     (string/replace svg #" data-reactid=\"[^\"]*\"" "")
     "</svg>"))
 
-(defn toolbar [g get-svg show-settings?]
+(defn toolbar [g get-svg show-settings? selected-id]
   [:div.btn-toolbar.pull-right {:role "toolbar"}
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle
@@ -111,13 +107,15 @@
     [:ul.dropdown-menu {:role "menu"}
      [action-button "Empty"
       (fn clear-click [e]
-        (reset! g {:nodes {}
-                   :edges {}}))]
+        (reset! selected-id nil)
+        (seed/set-empty! g ))]
      [action-button "Random"
       (fn random-click [e]
+        (reset! selected-id nil)
         (seed/set-rand! g))]
      [action-button "Example"
       (fn random-click [e]
+        (reset! selected-id nil)
         (seed/set-example! g))]
      [import-button "File (dot or txt)" ".dot,.txt" dot/read-graph g]]]
    [:div.btn-group
@@ -136,4 +134,4 @@
       (fn export-svg [e]
         (save-file (filename @g "svg") "image/svg+xml" (format-svg (get-svg))))]]]
    [help]
-   #_[settings show-settings?]])
+   [settings show-settings?]])

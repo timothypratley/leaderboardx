@@ -4,6 +4,7 @@
 
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/clojurescript "1.9.946" :scope "provided"]
+                 [aysylu/loom "1.0.0"]
                  [bidi "2.1.2"]
                  [cljsjs/bootstrap "3.3.6-1"]
                  [cljsjs/d3 "4.12.0-0"]

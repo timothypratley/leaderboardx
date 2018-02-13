@@ -1,5 +1,5 @@
 (ns algopop.leaderboardx.app.io.csv
-  (:require [algopop.leaderboardx.app.graph :as graph]
+  (:require [algopop.leaderboardx.graph.graph :as graph]
             [algopop.leaderboardx.app.io.common :as common]
             [algopop.leaderboardx.app.logging :as log]
             [instaparse.core :as insta]
@@ -21,27 +21,27 @@ eol : '\n' | '\r\n' | '\n\r'
   (insta/parser csv-gramma))
 
 (defn collect-row [g [_ from & tos]]
-  (-> g
-      (update-in [:nodes] graph/reverse-merge (zipmap tos (repeat {})))
-      (assoc-in [:nodes from] {})
-      (assoc-in [:edges from] (zipmap tos (repeat {})))))
+  (if (seq tos)
+    (graph/with-successors g from tos "likes")
+    (graph/add-node g from {:node/type "person"})))
 
 (defn read-graph [csv]
   (let [ast (parse-csv csv)]
     (if (insta/failure? ast)
       (log/error ast "Failed to parse CSV")
-      (reduce collect-row {} (nnext ast)))))
+      (reduce collect-row (graph/create) (nnext ast)))))
 
 (defn write-graph [g]
-  (str
-   (string/join
-    \newline
-    (cons
-     (string/join "," (map common/quote-escape
-                           ["Person" "Endorses"]))
-     (for [[k attrs] (sort-by (comp :rank val) (:nodes g))]
-       (string/join
-        ","
-        (map common/quote-escape
-             (cons k (sort (keys (get-in g [:edges k])))))))))
-   \newline))
+  (let [outs (graph/out-edges g)]
+    (str
+      (string/join
+        \newline
+        (cons
+          (string/join "," (map common/quote-escape
+                                ["Person" "Endorses"]))
+          (for [[k attrs] (sort (graph/nodes g))]
+            (string/join
+              ","
+              (map common/quote-escape
+                   (cons k (sort (get outs k))))))))
+      \newline)))

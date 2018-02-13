@@ -80,8 +80,3 @@ html, body {
 table td {
     border-top: none !important;
 }
-
-.remove {
-    border-radius: 50px;
-    background-color: white;
-}

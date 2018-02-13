@@ -1,6 +1,6 @@
 (ns algopop.leaderboardx.app.db
   (:require
-    [algopop.leaderboardx.app.pagerank :as pagerank]
+    [algopop.leaderboardx.graph.pagerank :as pagerank]
     [datascript.core :as d]
     [devcards.core :as dc :refer-macros [defcard deftest]]
     [reagent.ratom :as ratom :refer-macros [reaction]]
