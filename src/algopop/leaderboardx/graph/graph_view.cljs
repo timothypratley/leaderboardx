@@ -156,12 +156,12 @@
           x (.-x particle)
           y (.-y particle)
           defaults (get @node-types (:node/type node "person"))
-          {:keys [node/size node/color node/tags node/text node/pagerank node/shape uid]} (merge defaults node)
+          {:keys [node/size node/color node/tags node/text node/pagerank node/shape node/name-size uid]} (merge defaults node)
           selected? (= node-id @selected-id)
           rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
           ;; TODO: if pageranking... checkbox?
           r (scale-dist node-count rank-scale)
-          width (* (or size 1) 2 (+ 4 (count node-id)))
+          width (* (or size 1) 15)
           height 15]
       ^{:key node-id}
       [:g
@@ -190,7 +190,7 @@
          [shape-background shape [width height] (or color "white") rank-scale selected?])
        [:text.unselectable
         {:text-anchor "middle"
-         :font-size (min (max node-count 8) 22)
+         :font-size (* (or name-size 1) 5 (js/Math.sqrt node-count))
          :style {:pointer-events "none"
                  :dominant-baseline "central"}}
         node-id]

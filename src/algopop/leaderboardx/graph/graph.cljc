@@ -49,10 +49,11 @@
                                :node/text ""
                                :node/tags ""
                                :node/size 1
+                               :node/name-size 1
                                :node/color "white"}}
         :edge-types {"likes" {:edge/color "#9ecae1"
                               :edge/dasharray ""
-                              :edge/distance 30
+                              :edge/distance 50
                               :edge/weight 1
                               :edge/negate false}
                      "dislikes" {:edge/color "red"
