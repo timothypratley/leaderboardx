@@ -149,13 +149,13 @@
     (lg/remove-edges g [from to])
     (with-ranks)))
 
+(defn ^:private without-out-edges [g node-id outs]
+  (lg/remove-edges* g (for [to outs]
+                        [node-id to])))
+
 (defn ^:private without-in-edges [g node-id ins]
   (lg/remove-edges* g (for [from ins]
                         [from node-id])))
-
-;; TODO: make deep
-(defn ^:private reverse-merge [& maps]
-  (apply merge (reverse maps)))
 
 (defn with-successors [g node-id outs edge-type]
   (reduce (fn collect-ins [acc out]
@@ -170,13 +170,14 @@
           ins))
 
 (defn ^:private replace-out-edges [g outs node-id edge-type]
-  (let [old-ins (filter #(= edge-type (la/attr g % :edge/type)) (lg/successors g node-id))
-        removals (set/difference old-ins outs)
-        g (without-in-edges g node-id removals)]
+  (let [old-outs (set (filter #(= edge-type (la/attr g [node-id %] :edge/type))
+                              (lg/successors* g node-id)))
+        removals (set/difference old-outs outs)
+        g (without-out-edges g node-id removals)]
     (with-successors g node-id outs edge-type)))
 
 (defn ^:private replace-in-edges [g ins node-id edge-type]
-  (let [old-ins (filter #(= edge-type (la/attr g % :edge/type)) (lg/predecessors g node-id))
+  (let [old-ins (set (filter #(= edge-type (la/attr g [% node-id] :edge/type)) (lg/predecessors* g node-id)))
         removals (set/difference old-ins ins)
         g (without-in-edges g node-id removals)]
     (with-predecessors g node-id ins edge-type)))
