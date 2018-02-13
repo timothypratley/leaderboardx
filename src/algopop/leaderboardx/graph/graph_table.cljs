@@ -135,6 +135,8 @@
       @schema]]))
 
 (defn table [g selected-id node-types edge-types selected-node-type selected-edge-type callbacks]
+  ;; TODO: selected-node-type can be wrong if you were working on a graph with another type
+  ;; and then load one that doesn't have that type
   (let [nodes-by-rank (reaction
                         ;; TODO: maybe share the reaction with graph-view?
                         (sort-by #(vector (string/lower-case (key %)) (:node/rank (val %)))
