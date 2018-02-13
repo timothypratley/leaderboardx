@@ -70,7 +70,8 @@
         :on-key-down input-key-down
         :on-change
         (fn search-term-change [e]
-          (let [s (first (split (.. e -target -value)))]
+          ;; prevents commas in node ids to keep my sanity
+          (let [s (first (string/split (.. e -target -value) delimiter))]
             (when (not= s @search-term)
               (reset! search-term s)
               (if (seq @search-term)

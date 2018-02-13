@@ -92,7 +92,7 @@
 
 (defn square-background [attrs [width height]]
   [:rect
-   (let [r (max width height)]
+   (let [r height]
      (merge attrs
             {:x (- r)
              :y (- r)
@@ -106,7 +106,7 @@
 
 (defn circle-background [attrs [width height]]
   [:circle
-   (merge attrs {:r (max width height)})])
+   (merge attrs {:r height})])
 
 (def shape-dispatch
   {"circle" circle-background
@@ -161,8 +161,10 @@
           rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
           ;; TODO: if pageranking... checkbox?
           r (scale-dist node-count rank-scale)
-          width (* (or size 1) 15)
-          height 15]
+          count-factor (* (js/Math.sqrt node-count) 5)
+          name-font-size (* (or name-size 1) count-factor)
+          height (* (or size 1) count-factor)
+          width (* height (count node-id) 0.3)]
       ^{:key node-id}
       [:g
        {:transform (str "translate(" x "," y ")"
@@ -190,10 +192,11 @@
          [shape-background shape [width height] (or color "white") rank-scale selected?])
        [:text.unselectable
         {:text-anchor "middle"
-         :font-size (* (or name-size 1) 5 (js/Math.sqrt node-count))
+         :font-size name-font-size
          :style {:pointer-events "none"
                  :dominant-baseline "central"}}
         node-id]
+       ;; TODO: refactor all the riddiculous min/max node-count to use the count-factor above
        (when (seq text)
          (into
            [:g]
