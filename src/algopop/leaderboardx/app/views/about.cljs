@@ -7,8 +7,9 @@
     [:p "build graphs of relationships"]
     [:small "Contact timothypratley@gmail.com"]]
    [:div.well
-    [:p "Click " [:strong "graph-editor"] " in the top right navigation menu to get started."]
-    [:p "There is a help button in the graph-editor with usage instructions."]]
+    [:a.button.btn.btn-primary.btn-lg.btn-block
+     {:href "#/graph-editor"}
+     "Get started"]]
    [:div
     [:div.embed-responsive.embed-responsive-16by9
      [:iframe.embed-responsive-item

@@ -246,6 +246,12 @@
   ;; TODO: implement
   color)
 
+(defn upright [angle]
+  (cond
+    (< 90 angle) (- angle 180)
+    (< angle -90) (+ angle 180)
+    :else angle))
+
 (defn draw-edge
   [edge-types
    [[from to :as edge-id] edge]
@@ -259,9 +265,8 @@
           to-idx (idxs to)]
       ;; TODO: isolate data specific stuff here
       (when (and idx from-idx to-idx)
-        (let [
-              defaults (get @edge-types (:edge/type edge "person"))
-              {:keys [edge/weight edge/color edge/dasharray edge/negate]} (merge defaults edge)
+        (let [defaults (get @edge-types (:edge/type edge "person"))
+              {:keys [edge/label edge/weight edge/color edge/dasharray edge/negate]} (merge defaults edge)
               particle (aget (.nodes simulation) idx)
               x2 (.-x particle)
               from-particle (aget (.nodes simulation) from-idx)
@@ -330,13 +335,19 @@
                               (when selected?
                                 " scale(1.25,1.25)"))
               :style {:cursor "pointer"}}]
-            (when (not= 1 weight)
-              ;; TODO: 1 is boring, but is hiding it the answer?
-              [:text
-               {:fill "black"
-                :stroke "none"
-                :text-anchor "middle"}
-               weight])]])))))
+            [:text
+             {:fill "black"
+              :stroke "none"
+              :text-anchor "middle"
+              :transform (str "rotate("
+                              (upright (rise-over-run (- y3 y1) (- x3 x1)))
+                              ")"
+                              (when selected?
+                                " scale(1.25,1.25)"))}
+             (string/join ": "
+               (remove nil?
+                       [(when (not= 1 weight) weight)
+                        (when-not (string/blank? label) label)]))]]])))))
 
 (defn bounds [[minx miny maxx maxy] simulation-node]
   [(min minx (.-x simulation-node))
@@ -364,12 +375,12 @@
 (defn update-bounds [g simulation-nodes]
   (assoc g :bounds (normalize-bounds (reduce bounds (initial-bounds (first simulation-nodes)) simulation-nodes))))
 
-(defn draw-svg [node-types edge-types nodes edges snapshot simulation mouse-down? selected-id callbacks]
+(defn draw-svg [node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id callbacks]
   (let [{:keys [bounds]} @snapshot
         max-pagerank (reduce max (map :node/pagerank (vals @nodes)))
         node-count (count @nodes)]
     [:svg.unselectable
-     {:view-box (string/join " " bounds)
+     {:view-box (string/join " " (or zoom bounds))
       :style {:width "100%"
               :height "100%"}}
      ;; These are forced with parens instead of vector because the simulation updated
@@ -378,46 +389,78 @@
          (for [edge @edges]
            (draw-edge edge-types edge simulation mouse-down? selected-id callbacks))
          (for [node @nodes]
-           (draw-node node-types node node-count max-pagerank simulation mouse-down? selected-id callbacks))))]))
+           (draw-node node-types node node-count max-pagerank simulation mouse-down? selected-id callbacks))))
+     (when-let [[x y width height] zooming]
+       [:rect
+        {:stroke "black"
+         :fill "none"
+         :x x
+         :y y
+         :width width
+         :height height}])]))
 
 (defn draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root]
-  [:div
-   {:style {:height "60vh"}
-    :on-mouse-down
-    (fn graph-mouse-down [e]
-      (.preventDefault e)
-      (reset! mouse-down? true)
-      (reset! selected-id nil)
-      (common/blur-active-input))
-    :on-mouse-up
-    (fn graph-mouse-up [e]
-      (reset! mouse-down? nil))
-    :on-mouse-move
-    (fn graph-mouse-move [e]
-      (let [elem (dom/dom-node this)
-            r (.getBoundingClientRect elem)
-            left (.-left r)
-            top (.-top r)
-            width (.-width r)
-            height (.-height r)
-            [bx by bw bh] (:bounds @snapshot)
-            cx (+ bx (/ bw 2))
-            cy (+ by (/ bh 2))
-            scale (/ bw (min width height))
-            ex (.-clientX e)
-            ey (.-clientY e)
-            divx (- ex left (/ width 2))
-            divy (- ey top (/ height 2))
-            x (+ (* divx scale) cx)
-            y (+ (* divy scale) cy)]
-        (when (and @selected-id @mouse-down?)
-          (let [k @selected-id]
-            (when-let [idx (get (.-idxs simulation) k)]
-              (when-let [particle (aget (.nodes simulation) idx)]
-                (set! (.-fx particle) x)
-                (set! (.-fy particle) y)
-                (force/restart-simulation simulation)))))))}
-   [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root]])
+  (let [xx (reagent/atom nil)
+        yy (reagent/atom nil)
+        click-xx (reagent/atom nil)
+        click-yy (reagent/atom nil)
+        zoom (reagent/atom nil)
+        zooming (reagent/atom nil)]
+    (fn a-draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root]
+      [:div
+       {:style {:height "60vh"}
+        :on-mouse-down
+        (fn graph-mouse-down [e]
+          (reset! click-xx @xx)
+          (reset! click-yy @yy)
+          (.preventDefault e)
+          (reset! mouse-down? true)
+          (reset! selected-id nil)
+          (common/blur-active-input))
+        :on-mouse-up
+        (fn graph-mouse-up [e]
+          (let [width (js/Math.abs (- @click-xx @xx))
+                height (js/Math.abs (- @click-yy @yy))]
+            (if (and (< 100 width) (< 100 height))
+              (reset! zoom [(min @click-xx @xx) (min @click-yy @yy)
+                            width height])
+              (do (reset! click-xx nil)
+                  (reset! click-yy nil))))
+          (reset! mouse-down? nil))
+        :on-mouse-move
+        (fn graph-mouse-move [e]
+          (let [elem (dom/dom-node this)
+                r (.getBoundingClientRect elem)
+                left (.-left r)
+                top (.-top r)
+                width (.-width r)
+                height (.-height r)
+                [bx by bw bh] (:bounds @snapshot)
+                cx (+ bx (/ bw 2))
+                cy (+ by (/ bh 2))
+                scale (/ bw (min width height))
+                ex (.-clientX e)
+                ey (.-clientY e)
+                divx (- ex left (/ width 2))
+                divy (- ey top (/ height 2))
+                x (+ (* divx scale) cx)
+                y (+ (* divy scale) cy)]
+            (reset! xx x)
+            (reset! yy y)
+            (when @mouse-down?
+              (let [width (js/Math.abs (- @click-xx @xx))
+                    height (js/Math.abs (- @click-yy @yy))]
+                (reset! zooming
+                        [(min @click-xx @xx) (min @click-yy @yy)
+                         width height])))
+            (when (and @selected-id @mouse-down?)
+              (let [k @selected-id]
+                (when-let [idx (get (.-idxs simulation) k)]
+                  (when-let [particle (aget (.nodes simulation) idx)]
+                    (set! (.-fx particle) x)
+                    (set! (.-fy particle) y)
+                    (force/restart-simulation simulation)))))))}
+       [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? @zooming @zoom selected-id root]])))
 
 (defn graph-view [g node-types edge-types selected-id selected-edge-type callbacks]
   (reagent/with-let
