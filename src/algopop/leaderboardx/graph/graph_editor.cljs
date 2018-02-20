@@ -100,7 +100,7 @@
               [graph-settings/graph-settings g @node-types @edge-types]]])
           [title-editor g]
           (when @selected-id
-            [:div.panel.panel-default.pull-left
+            [:div.pull-left
              {:style {:position "absolute"
                       :width "25%"}}
              ;; TODO: when this covers a node, it causes the node to be grabbed
