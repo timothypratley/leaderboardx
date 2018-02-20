@@ -127,12 +127,13 @@
 
 (defn attribute-editor [g id schema]
   (let [entity (graph/entity @g @id)]
-    [:div
-     [:i (humanize-id @id entity)]
-     [common/single-entity-editor @id entity
-      #(swap! g graph/add-attr %1 %2 %3)
-      #(swap! g graph/remove-attr %1 %2)
-      @schema]]))
+    [common/single-entity-editor
+     @id
+     entity
+     (humanize-id @id entity)
+     #(swap! g graph/add-attr %1 %2 %3)
+     #(swap! g graph/remove-attr %1 %2)
+     @schema]))
 
 (defn table [g selected-id node-types edge-types selected-node-type selected-edge-type callbacks]
   ;; TODO: selected-node-type can be wrong if you were working on a graph with another type

@@ -96,7 +96,6 @@
         [editable-string
          ""
          (fn [v]
-           (prn "hi?")
            (swap! show? not)
            (write v))
          {:auto-focus true
@@ -108,11 +107,16 @@
             (swap! show? not))}
          label]))))
 
-(defn single-entity-editor [id entity add-attribute remove-attribute schema]
+(defn single-entity-editor [id entity title add-attribute remove-attribute schema]
+  ;; TODO: make collapsable??
   (let [just-added (reagent/atom nil)]
-    (fn a-single-entity-editor [id entity add-attribute remove-attribute schema]
+    (fn a-single-entity-editor [id entity title add-attribute remove-attribute schema]
       [:div.form-inline
-       [:table.table.table-responsive
+       [:table.table.table-responsive.panel.panel-default
+        [:thead
+         [:tr
+          [:td {:col-span 3}
+           [:h3 [:i title]]]]]
         [:tbody
          (doall
            (for [[attribute value] (sort entity)
@@ -167,13 +171,12 @@
       ^{:key entity-name}
       [:li.row
        {:style {:padding "10px"}}
-       [:div.col-xs-3
+       [:div.col-xs-11 [single-entity-editor entity-name entity entity-name add-attribute remove-attribute schema]]
+       [:div.col-xs-1
         {:style {:text-align "right"}}
         [:button.close
          {:style {:float "left"}
           :on-click
           (fn [e]
             (remove-entity entity-name))}
-         "×"]
-        [:strong entity-name]]
-       [:div.col-xs-9 [single-entity-editor entity-name entity add-attribute remove-attribute schema]]])]])
+         "×"]]])]])

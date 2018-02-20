@@ -378,9 +378,18 @@
 (defn draw-svg [node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id callbacks]
   (let [{:keys [bounds]} @snapshot
         max-pagerank (reduce max (map :node/pagerank (vals @nodes)))
-        node-count (count @nodes)]
+        node-count (count @nodes)
+        selected-zoom (when @selected-id
+                        (when-let [idxs (.-idxs simulation)]
+                          ;; TODO: this pattern is repeated in draw-edge and draw-node, DRY
+                          (let [particle (aget (.nodes simulation) (idxs @selected-id))
+                                x (.-x particle)
+                                y (.-y particle)]
+                            (when (and x y)
+                              [(- x 150) (- y 150) 300 300]))))]
     [:svg.unselectable
-     {:view-box (string/join " " (or zoom bounds))
+     ;; TODO: reanimated interpolate to
+     {:view-box (string/join " " (or selected-zoom #_zoom bounds))
       :style {:width "100%"
               :height "100%"}}
      ;; These are forced with parens instead of vector because the simulation updated
