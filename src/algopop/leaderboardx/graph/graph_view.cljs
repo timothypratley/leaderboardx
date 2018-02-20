@@ -460,6 +460,7 @@
                     (set! (.-fx particle) x)
                     (set! (.-fy particle) y)
                     (force/restart-simulation simulation)))))))}
+       ;; todo: don't deref here
        [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? @zooming @zoom selected-id root]])))
 
 (defn graph-view [g node-types edge-types selected-id selected-edge-type callbacks]
