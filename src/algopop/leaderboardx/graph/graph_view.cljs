@@ -6,6 +6,7 @@
     [clojure.string :as string]
     [reagent.core :as reagent]
     [reagent.dom :as dom]
+    [reanimated.core :as anim]
     [goog.crypt :as crypt]
     [devcards.core]
     [algopop.leaderboardx.graph.graph :as graph])
@@ -150,6 +151,7 @@
    simulation
    mouse-down?
    selected-id
+   zoom-factor
    {:keys [shift-click-node double-click-node]}]
   (when-let [idxs (.-idxs simulation)]
     (let [particle (aget (.nodes simulation) (idxs node-id))
@@ -185,7 +187,9 @@
           (when (and shift-click-node (.-shiftKey e) @selected-id node-id)
             (shift-click-node @selected-id node-id))
           (common/blur-active-input)
-          (reset! selected-id node-id)
+          (if (= @selected-id node-id)
+            (swap! zoom-factor #(if (= 1.5 %) 3 1.5))
+            (reset! selected-id node-id))
           (reset! mouse-down? true))}
        (if (email? node-id)
          [gravatar-background node-id [height height] node-id]
@@ -372,24 +376,17 @@
      (.-y simulation-node)]
     [0 0 0 0]))
 
-(defn update-bounds [g simulation-nodes]
-  (assoc g :bounds (normalize-bounds (reduce bounds (initial-bounds (first simulation-nodes)) simulation-nodes))))
+(defn update-bounds [snapshot simulation-nodes]
+  reduced
+  (assoc snapshot :bounds (normalize-bounds (reduce bounds (initial-bounds (first simulation-nodes)) simulation-nodes))))
 
-(defn draw-svg [node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id callbacks]
+(defn draw-svg [node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id zoom-factor callbacks]
   (let [{:keys [bounds]} @snapshot
         max-pagerank (reduce max (map :node/pagerank (vals @nodes)))
-        node-count (count @nodes)
-        selected-zoom (when @selected-id
-                        (when-let [idxs (.-idxs simulation)]
-                          ;; TODO: this pattern is repeated in draw-edge and draw-node, DRY
-                          (let [particle (aget (.nodes simulation) (idxs @selected-id))
-                                x (.-x particle)
-                                y (.-y particle)]
-                            (when (and x y)
-                              [(- x 150) (- y 150) 300 300]))))]
+        node-count (count @nodes)]
     [:svg.unselectable
      ;; TODO: reanimated interpolate to
-     {:view-box (string/join " " (or selected-zoom #_zoom bounds))
+     {:view-box (string/join " " (or zoom bounds))
       :style {:width "100%"
               :height "100%"}}
      ;; These are forced with parens instead of vector because the simulation updated
@@ -398,7 +395,7 @@
          (for [edge @edges]
            (draw-edge edge-types edge simulation mouse-down? selected-id callbacks))
          (for [node @nodes]
-           (draw-node node-types node node-count max-pagerank simulation mouse-down? selected-id callbacks))))
+           (draw-node node-types node node-count max-pagerank simulation mouse-down? selected-id zoom-factor callbacks))))
      (when-let [[x y width height] zooming]
        [:rect
         {:stroke "black"
@@ -413,64 +410,100 @@
         yy (reagent/atom nil)
         click-xx (reagent/atom nil)
         click-yy (reagent/atom nil)
-        zoom (reagent/atom nil)
-        zooming (reagent/atom nil)]
+        selection-box (reagent/atom nil)
+        selecting (reagent/atom nil)
+        ;; TODO: oh dear, such reaction
+        zoom-x (reagent/atom 0)
+        zoom-y (reagent/atom 0)
+        zoom-x-spring (anim/spring zoom-x {:damping 10.0})
+        zoom-y-spring (anim/spring zoom-y {:damping 10.0})
+        zoom-factor (reagent/atom 1)
+        zoom-factor-spring (anim/spring zoom-factor {:damping 10.0})]
     (fn a-draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root]
-      [:div
-       {:style {:height "60vh"}
-        :on-mouse-down
-        (fn graph-mouse-down [e]
-          (reset! click-xx @xx)
-          (reset! click-yy @yy)
-          (.preventDefault e)
-          (reset! mouse-down? true)
-          (reset! selected-id nil)
-          (common/blur-active-input))
-        :on-mouse-up
-        (fn graph-mouse-up [e]
-          (let [width (js/Math.abs (- @click-xx @xx))
-                height (js/Math.abs (- @click-yy @yy))]
-            (if (and (< 100 width) (< 100 height))
-              (reset! zoom [(min @click-xx @xx) (min @click-yy @yy)
-                            width height])
-              (do (reset! click-xx nil)
-                  (reset! click-yy nil))))
-          (reset! mouse-down? nil))
-        :on-mouse-move
-        (fn graph-mouse-move [e]
-          (let [elem (dom/dom-node this)
-                r (.getBoundingClientRect elem)
-                left (.-left r)
-                top (.-top r)
-                width (.-width r)
-                height (.-height r)
-                [bx by bw bh] (:bounds @snapshot)
-                cx (+ bx (/ bw 2))
-                cy (+ by (/ bh 2))
-                scale (/ bw (min width height))
-                ex (.-clientX e)
-                ey (.-clientY e)
-                divx (- ex left (/ width 2))
-                divy (- ey top (/ height 2))
-                x (+ (* divx scale) cx)
-                y (+ (* divy scale) cy)]
-            (reset! xx x)
-            (reset! yy y)
-            (when @mouse-down?
-              (let [width (js/Math.abs (- @click-xx @xx))
-                    height (js/Math.abs (- @click-yy @yy))]
-                (reset! zooming
-                        [(min @click-xx @xx) (min @click-yy @yy)
-                         width height])))
-            (when (and @selected-id @mouse-down?)
-              (let [k @selected-id]
-                (when-let [idx (get (.-idxs simulation) k)]
-                  (when-let [particle (aget (.nodes simulation) idx)]
-                    (set! (.-fx particle) x)
-                    (set! (.-fy particle) y)
-                    (force/restart-simulation simulation)))))))}
-       ;; todo: don't deref here
-       [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? @zooming @zoom selected-id root]])))
+      (let [[minx miny width height] (:bounds @snapshot)
+            midx (+ minx (/ width 2))
+            midy (+ miny (/ height 2))
+            selected-zoom (when (and (< 1 @zoom-factor-spring) @zoom-x @zoom-y)
+                            [(- @zoom-x-spring (/ width 2 @zoom-factor-spring))
+                             (- @zoom-y-spring (/ height 2 @zoom-factor-spring))
+                             (/ width @zoom-factor-spring)
+                             (/ height @zoom-factor-spring)])]
+        (or
+          (when @selected-id
+            (when-let [idxs (.-idxs simulation)]
+              ;; TODO: this pattern is repeated in draw-edge and draw-node, DRY
+              (let [particle (aget (.nodes simulation) (idxs @selected-id))]
+                (reset! zoom-x (.-x particle))
+                (reset! zoom-y (.-y particle)))))
+          (do (reset! zoom-x midx)
+              (reset! zoom-y midy)
+              (reset! zoom-factor 1)))
+        [:div
+         {:style {:height "60vh"}
+          :on-mouse-down
+          (fn graph-mouse-down [e]
+            (reset! click-xx @xx)
+            (reset! click-yy @yy)
+            (.preventDefault e)
+            (reset! mouse-down? true)
+            (reset! selected-id nil)
+            (common/blur-active-input))
+          :on-mouse-up
+          (fn graph-mouse-up [e]
+            (let [width (js/Math.abs (- @click-xx @xx))
+                  height (js/Math.abs (- @click-yy @yy))]
+              (if (and (< 100 width) (< 100 height))
+                (do
+                  (reset! selection-box [(min @click-xx @xx) (min @click-yy @yy)
+                                         width height])
+                  (reset! selecting false)
+                  (reset! click-xx nil)
+                  (reset! click-yy nil))
+                (do (reset! click-xx nil)
+                    (reset! click-yy nil))))
+            (reset! mouse-down? nil))
+          :on-mouse-leave
+          (fn graph-mouse-leave [e]
+            (reset! mouse-down? false)
+            (reset! click-xx nil)
+            (reset! click-yy nil)
+            (reset! selecting false))
+          :on-mouse-move
+          (fn graph-mouse-move [e]
+            ;; TODO: draging while so
+            (let [elem (dom/dom-node this)
+                  r (.getBoundingClientRect elem)
+                  left (.-left r)
+                  top (.-top r)
+                  width (.-width r)
+                  height (.-height r)
+                  [bx by bw bh] (:bounds @snapshot)
+                  cx (+ bx (/ bw 2))
+                  cy (+ by (/ bh 2))
+                  scale (/ bw (min width height))
+                  ex (.-clientX e)
+                  ey (.-clientY e)
+                  divx (- ex left (/ width 2))
+                  divy (- ey top (/ height 2))
+                  x (+ (* divx scale) cx)
+                  y (+ (* divy scale) cy)]
+              (reset! xx x)
+              (reset! yy y)
+              (when (and @mouse-down? (not @selected-id))
+                (let [width (js/Math.abs (- @click-xx @xx))
+                      height (js/Math.abs (- @click-yy @yy))]
+                  (reset! selecting
+                          [(min @click-xx @xx) (min @click-yy @yy)
+                           width height])))
+              (when (and @selected-id @mouse-down?)
+                (let [k @selected-id]
+                  (when-let [idx (get (.-idxs simulation) k)]
+                    (when-let [particle (aget (.nodes simulation) idx)]
+                      (set! (.-fx particle) x)
+                      (set! (.-fy particle) y)
+                      (force/restart-simulation simulation)))))))}
+         ;; todo: don't deref here
+         [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor root]]))))
 
 (defn graph-view [g node-types edge-types selected-id selected-edge-type callbacks]
   (reagent/with-let

@@ -8,16 +8,17 @@
             [clojure.set :as set]))
 
 (def dot-gramma
+  "see https://www.graphviz.org/doc/info/lang.html"
   "graph : <ws> [<'strict'> <ws>] ('graph' | 'digraph') <ws> [id <ws>] <'{'> stmt_list <'}'> <ws>
-<stmt_list> : <ws> (stmt <ws> [<';'> <ws>])*
+<stmt_list> : <ws> ( stmt <ws> [<';'> <ws>] )*
 <stmt> : node | edge | attr | eq | subgraph
 eq : id <ws> <'='> <ws> id
 attr : ('graph' | 'node' | 'edge') <ws> attr_list
-<attr_list> : (<'['> <ws> [a_list <ws>] <']'> <ws>)+
-<a_list> : a (<(';' | ',')> <ws> a)*
+<attr_list> : ( <'['> <ws> [a_list <ws>] <']'> <ws> )+
+<a_list> : a ( <(';' | ',')> <ws> a )*
 <a> : id <ws> <'='> <ws> id <ws>
 edge : (node_id | subgraph) <ws> edge_RHS [<ws> attr_list]
-<edge_RHS> : (<edge_op> <ws> (node_id | subgraph) <ws>)+
+<edge_RHS> : ( <edge_op> <ws> ( node_id | subgraph ) <ws> )+
 edge_op : '->' | '--'
 node : node_id [<ws> attr_list]
 <node_id> : id [<ws> port]
@@ -45,7 +46,6 @@ ws : #'\\s*'
   (into {}
         (for [[k v] m]
           [(keyword q (name k)) v])))
-
 
 (defn nest-attrs [m]
   (reduce
@@ -83,9 +83,9 @@ ws : #'\\s*'
                           (string? title) (assoc :title title))]
         (reduce collect-statement graph statements)))))
 
-(defn maybe-attrs [attrs]
+(defn maybe-attrs [label attrs]
   (when (seq attrs)
-    (str "graph ["
+    (str label " ["
          (string/join ", " (for [[k v] attrs]
                             (str (name k) " = " (pr-str v))))
          "]")))
@@ -95,12 +95,12 @@ ws : #'\\s*'
     (str (common/quote-escape from)
          " -> "
          (common/quote-escape to)
-         (maybe-attrs attrs)
+         (maybe-attrs "" attrs)
          ";")))
 
 (defn nodes [g]
   (for [[k attrs] (sort (walk/stringify-keys (graph/nodes g)))]
-    (str (common/quote-escape k) (maybe-attrs attrs) ";")))
+    (str (common/quote-escape k) (maybe-attrs "" attrs) ";")))
 
 (defn flat-attrs [g entity-type]
   (let [types (get g entity-type)
@@ -115,6 +115,7 @@ ws : #'\\s*'
        (string/join \newline
          (concat
            [(maybe-attrs
+              "graph"
               (concat
                 (flat-attrs g :node-types)
                 (flat-attrs g :edge-types)))]
