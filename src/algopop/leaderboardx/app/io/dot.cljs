@@ -99,11 +99,12 @@ ws : #'\\s*'
                           (string? title) (assoc :title title))]
         (reduce collect-statement graph statements)))))
 
+;; TODO: pretty print
 (defn maybe-attrs [label attrs]
   (when (seq attrs)
     (str label " ["
          (string/join ", " (for [[k v] attrs]
-                            (str (name k) " = " (pr-str v))))
+                            (str (pr-str (name k)) " = " (pr-str v))))
          "];")))
 
 (defn edges [g]
