@@ -175,22 +175,24 @@
         :tab-index "1"
         :on-double-click
         (fn node-double-clicked [e]
-          (double-click-node node-id)
-          ;;(reset! selected-id nil)
+          (reset! selected-id nil)
           (js-delete particle "fx")
           (js-delete particle "fy")
-          (force/restart-simulation simulation))
+          (force/restart-simulation simulation)
+          (when double-click-node
+            (double-click-node node-id)))
         :on-mouse-down
         (fn node-mouse-down [e]
           (.stopPropagation e)
           (.preventDefault e)
-          (when (and shift-click-node (.-shiftKey e) @selected-id node-id)
-            (shift-click-node @selected-id node-id))
+          (reset! mouse-down? true)
           (common/blur-active-input)
-          (if (= @selected-id node-id)
-            (swap! zoom-factor #(if (= 1.5 %) 3 1.5))
-            (reset! selected-id node-id))
-          (reset! mouse-down? true))}
+          (if (and shift-click-node (.-shiftKey e) @selected-id node-id)
+            (shift-click-node @selected-id node-id)
+            (when (= @selected-id node-id)
+              (swap! zoom-factor #(if (= 1.5 %) 3 1.5))))
+          (when (not= @selected-id node-id)
+            (reset! selected-id node-id)))}
        (if (email? node-id)
          [gravatar-background node-id [height height] node-id]
          [shape-background shape [width height] (or color "white") rank-scale selected?])
@@ -405,7 +407,7 @@
          :width width
          :height height}])]))
 
-(defn draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root]
+(defn draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
   (let [xx (reagent/atom nil)
         yy (reagent/atom nil)
         click-xx (reagent/atom nil)
@@ -417,9 +419,8 @@
         zoom-y (reagent/atom 0)
         zoom-x-spring (anim/spring zoom-x {:damping 10.0})
         zoom-y-spring (anim/spring zoom-y {:damping 10.0})
-        zoom-factor (reagent/atom 1)
         zoom-factor-spring (anim/spring zoom-factor {:damping 10.0})]
-    (fn a-draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id root]
+    (fn a-draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
       (let [[minx miny width height] (:bounds @snapshot)
             midx (+ minx (/ width 2))
             midy (+ miny (/ height 2))
@@ -459,7 +460,8 @@
                   (reset! selecting false)
                   (reset! click-xx nil)
                   (reset! click-yy nil))
-                (do (reset! click-xx nil)
+                (do (reset! selecting false)
+                    (reset! click-xx nil)
                     (reset! click-yy nil))))
             (reset! mouse-down? nil))
           :on-mouse-leave
@@ -477,7 +479,7 @@
                   top (.-top r)
                   width (.-width r)
                   height (.-height r)
-                  [bx by bw bh] (:bounds @snapshot)
+                  [bx by bw bh] (or selected-zoom (:bounds @snapshot))
                   cx (+ bx (/ bw 2))
                   cy (+ by (/ bh 2))
                   scale (/ bw (min width height))
@@ -503,9 +505,9 @@
                       (set! (.-fy particle) y)
                       (force/restart-simulation simulation)))))))}
          ;; todo: don't deref here
-         [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor root]]))))
+         [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor callbacks]]))))
 
-(defn graph-view [g node-types edge-types selected-id selected-edge-type callbacks]
+(defn graph-view [g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]
   (reagent/with-let
     [nodes (reaction (graph/nodes @g))
      matching-edges (reaction (graph/edges @g))
@@ -521,7 +523,7 @@
      _ (.on simulation "tick"
             (fn simulation-tick []
               (swap! snapshot update-bounds (.nodes simulation))))]
-    [draw-graph (reagent/current-component) node-types edge-types nodes matching-edges snapshot simulation mouse-down? selected-id callbacks]
+    [draw-graph (reagent/current-component) node-types edge-types nodes matching-edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
     (finally
       (reagent/dispose! watch)
       (.stop simulation))))

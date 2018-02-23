@@ -27,7 +27,7 @@
     (reset! selected-id source)))
 
 ;; TODO: the text boxes look funny when a different type is selected...
-(defn add-node [g outs ins selected-id selected-node-type selected-edge-type search-term]
+(defn add-node [g outs ins selected-id selected-node-type selected-edge-type search-term zoom-factor]
   (reagent/with-let
     [the-outs (reagent/atom "")
      the-ins (reagent/atom "")
@@ -77,6 +77,7 @@
               (if (seq @search-term)
                 (if (get (graph/nodes @g) @search-term)
                   (when (not= @selected-id @search-term)
+                    (reset! zoom-factor 1.5)
                     (reset! selected-id @search-term))
                   (when @selected-id
                     (reset! selected-id nil)))
@@ -135,7 +136,7 @@
      #(swap! g graph/remove-attr %1 %2)
      @schema]))
 
-(defn table [g selected-id node-types edge-types selected-node-type selected-edge-type callbacks]
+(defn table [g selected-id node-types edge-types selected-node-type selected-edge-type zoom-factor callbacks]
   ;; TODO: selected-node-type can be wrong if you were working on a graph with another type
   ;; and then load one that doesn't have that type
   (let [nodes-by-rank (reaction
@@ -150,7 +151,7 @@
                     (= type @selected-edge-type))
         outs (reaction (graph/out-edges @g filter-fn))
         ins (reaction (graph/in-edges @g filter-fn))]
-    (fn a-table [g selected-id node-types edge-types selected-node-type selected-edge-type {:keys [shift-click-node]}]
+    (fn a-table [g selected-id node-types edge-types selected-node-type selected-edge-type zoom-factor {:keys [shift-click-node]}]
       [:div
        [:table.table.table-responsive
         [:thead
@@ -160,7 +161,7 @@
           [:th "Reciprocated by"]
           [:th "Rank"]]]
         [:tbody
-         [add-node g outs ins selected-id selected-node-type selected-edge-type search-term]
+         [add-node g outs ins selected-id selected-node-type selected-edge-type search-term zoom-factor]
          (doall
            (for [[node-id {:keys [node/rank node/name]}] @nodes-by-rank
                  :let [selected? (= node-id @selected-id)
@@ -180,15 +181,17 @@
                  (when (and shift-click-node (.-shiftKey e) @selected-id node-id (not= @selected-id node-id))
                    ;; TODO: don't care about shape here
                    (shift-click-node @selected-id node-id nil nil))
-                 (reset! selected-id node-id))}
+                 (reset! selected-id node-id)
+                 (reset! zoom-factor 1.5))}
               [:td [common/editable-string (or name node-id)
                     (fn update-node-name [v]
-                      (let [new-name (string/trim v)]
-                        (when (and (seq new-name)
-                                   (not= new-name (or name node-id)))
-                          (swap! g graph/rename-node node-id new-name)
-                          (reset! selected-id new-name))))
-                    ]]
+                      (let [new-name (first (split v))]
+                        (if (empty? new-name)
+                          (do (swap! g graph/without-node node-id)
+                              (reset! selected-id nil))
+                          (when (not= new-name (or name node-id))
+                            (swap! g graph/rename-node node-id new-name)
+                            (reset! selected-id new-name)))))]]
               ;; TODO: names vs ids omg
               [:td [common/editable-string outs-string
                     (fn update-out-edges [v]

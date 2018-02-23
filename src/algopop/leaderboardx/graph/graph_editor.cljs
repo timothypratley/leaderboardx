@@ -67,6 +67,7 @@
         selected-node-type (reagent/atom (ffirst @node-types))
         selected-edge-type (reagent/atom (ffirst @edge-types))
         show-settings? (reagent/atom false)
+        zoom-factor (reagent/atom 1)
         keydown-handler
         (fn a-keydown-handler [e]
           (handle-keydown e selected-id g))
@@ -106,10 +107,10 @@
              ;; TODO: when this covers a node, it causes the node to be grabbed
              [table/attribute-editor g selected-id schema]])
           [:div#d3g
-           [graph-view/graph-view g node-types edge-types selected-id selected-edge-type callbacks]]
+           [graph-view/graph-view g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]]
           [:div.panel.panel-default
            [:div.panel-body
-            [table/table g selected-id node-types edge-types selected-node-type selected-edge-type callbacks]]]])
+            [table/table g selected-id node-types edge-types selected-node-type selected-edge-type zoom-factor callbacks]]]])
        :component-did-mount
        (fn graph-editor-did-mount [this]
          (.addEventListener js/document "keydown" keydown-handler))
