@@ -1,6 +1,6 @@
 (defproject algopop/leaderboardx "0.1.0-SNAPSHOT"
   :description "LeaderboardX"
-  :url "http://timothypratley.blogspot.com"
+  :url "http://leaderboardx.herokuapp.com"
 
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/clojurescript "1.9.946" :scope "provided"]
@@ -21,6 +21,7 @@
                  [posh "0.5.6"]
                  [reagent "0.7.0"]
                  [reagent-utils "0.2.1"]
+                 [reanimated "0.6.0"]
                  [recalcitrant "0.1.2"]]
 
   :plugins [[lein-cljsbuild "1.1.7"]

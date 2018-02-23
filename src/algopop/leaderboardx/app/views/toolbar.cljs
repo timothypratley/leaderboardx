@@ -28,16 +28,20 @@
     {:style {:width "550px"}}
     [:div.panel-body
      [:ul.list-unstyled
-      [:li "Enter a node name and press ENTER to add it."]
-      [:li "Enter a comma separated list of nodes to link to and press ENTER to add them."]
+      [:li "Enter a Person name and press ENTER to add them."]
+      [:li "When entering a Person name, you can press tab and enter a comma separated list of nodes to link to and press ENTER to add them."]
+      [:li "You can edit the lists of People and their links in the table."]
+      [:li "Click on the table row to edit and add/remove/update names."]
       [:li "To delete nodes and links, click on the graph or table and press the DELETE key."]
-      [:li "Select one name and shift click another to add a link."]
+      [:li "In the graph, select one name and shift click another to link them."]
       [:li "Shift click a selected node to change its shape."]
       [:li "Shift click a link to change the link type."]
       [:li "Drag nodes or edges around with the mouse."]
       [:li "Double click to unpin nodes and edges."]
-      [:li "Click on the table row to edit."]
-      [:li "If your names are email addresses, a Gravatar will be drawn."]]]]])
+      [:li "Email addresses will draw a Gravatar if one exists."]
+      [:li "Clicking on a selected Person will zoom closer to them."]
+      [:li "Click again to zoom closer, or click the background to unzoom and unselect."]
+      [:li "Click on the cog icon in the top right to edit node types and edge types."]]]]])
 
 (defn save-file [filename t s]
   (if js/Blob
@@ -117,7 +121,11 @@
       (fn random-click [e]
         (reset! selected-id nil)
         (seed/set-example! g))]
-     [import-button "File (dot or txt)" ".dot,.txt" dot/read-graph g]]]
+     [import-button "File (dot or txt)" ".dot,.txt"
+      (fn [x]
+        (reset! selected-id nil)
+        (dot/read-graph x))
+      g]]]
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle
      {:data-toggle "dropdown"

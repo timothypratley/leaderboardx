@@ -52,6 +52,7 @@
                                :node/name-size 1
                                :node/color "white"}}
         :edge-types {"likes" {:edge/color "#9ecae1"
+                              :edge/label ""
                               :edge/dasharray ""
                               :edge/distance 50
                               :edge/weight 1

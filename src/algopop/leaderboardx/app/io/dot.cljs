@@ -5,19 +5,21 @@
             [clojure.string :as string]
             [clojure.walk :as walk]
             [instaparse.core :as insta]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [cljs.tools.reader.edn :as edn]))
 
 (def dot-gramma
+  "see https://www.graphviz.org/doc/info/lang.html"
   "graph : <ws> [<'strict'> <ws>] ('graph' | 'digraph') <ws> [id <ws>] <'{'> stmt_list <'}'> <ws>
-<stmt_list> : <ws> (stmt <ws> [<';'> <ws>])*
+<stmt_list> : <ws> ( stmt <ws> [<';'> <ws>] )*
 <stmt> : node | edge | attr | eq | subgraph
 eq : id <ws> <'='> <ws> id
-attr : ('graph' | 'node' | 'edge') <ws> attr_list
-<attr_list> : (<'['> <ws> [a_list <ws>] <']'> <ws>)+
-<a_list> : a (<(';' | ',')> <ws> a)*
-<a> : id <ws> <'='> <ws> id <ws>
+attr : <('graph' | 'node' | 'edge')> <ws> attr_list
+<attr_list> : ( <'['> <ws> [a_list <ws>] <']'> <ws> )+
+<a_list> : a ( <( ';' | ',' )> <ws> a )*
+<a> : id <ws> <'='> <ws> value <ws>
 edge : (node_id | subgraph) <ws> edge_RHS [<ws> attr_list]
-<edge_RHS> : (<edge_op> <ws> (node_id | subgraph) <ws>)+
+<edge_RHS> : ( <edge_op> <ws> ( node_id | subgraph ) <ws> )+
 edge_op : '->' | '--'
 node : node_id [<ws> attr_list]
 <node_id> : id [<ws> port]
@@ -26,10 +28,13 @@ compass_pt  : 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw' | 'c' | '_'
 subgraph  : ['subgraph' [<ws> id] <ws>] <'{'> <ws> stmt_list <ws> <'}'>
 ws : #'\\s*'
 <id> : literal | number | quoted | html
+<value> : string | number | bool
 <literal> : #'[a-zA-Z\\200-\\377][a-zA-Z\\200-\\377\\_\\d]*'
 <quoted> : <'\"'> #'(?:[^\"\\\\]|\\\\.)*' <'\"'>
 <number> : #'-?([\\.]\\d+|\\d+(\\.\\d*)?)'
-<html> : #'<[^>]*>'")
+<html> : #'<[^>]*>'
+<string> : #'\"(?:[^\"\\\\]|\\\\.)*\"'
+<bool> : 'true' | 'false'")
 
 (def parse-dot
   (insta/parser dot-gramma))
@@ -41,11 +46,18 @@ ws : #'\\s*'
 (def prefix-flat
   (set/map-invert flat-prefix))
 
+(def qualifier
+  {"n" "node"
+   "e" "edge"})
+
+(defn qualify-keyword [q k]
+  (keyword q (string/replace (name k) #"_" "-")))
+
 (defn qualify-keywords [m q]
   (into {}
         (for [[k v] m]
-          [(keyword q (name k)) v])))
-
+          [(qualify-keyword q k)
+           (edn/read-string v)])))
 
 (defn nest-attrs [m]
   (reduce
@@ -53,9 +65,13 @@ ws : #'\\s*'
       (let [[_ prefix k1 k2 :as match] (re-matches #"(.+)__(.+)__(.+)" k)
             category (prefix-flat prefix)]
         (when match
-          (assoc-in acc [category k1 k2] v))))
+          (assoc-in acc [category k1 (qualify-keyword (qualifier prefix) k2)]
+                    (edn/read-string v)))))
     {}
     m))
+
+(defn as-map [attrs-body]
+  (nest-attrs (apply hash-map attrs-body)))
 
 (defn collect-statement [graph [statement-type & statement-body]]
   (condp = statement-type
@@ -65,7 +81,7 @@ ws : #'\\s*'
     :edge (let [[from to & attrs] statement-body
                 attr-map (qualify-keywords (apply hash-map attrs) "edge")]
             (graph/add-edge graph [from to] attr-map))
-    :attr (merge graph (nest-attrs (apply hash-map statement-body)))
+    :attr (merge graph (as-map statement-body))
     :eq graph
     :subgraph graph
     graph))
@@ -83,31 +99,31 @@ ws : #'\\s*'
                           (string? title) (assoc :title title))]
         (reduce collect-statement graph statements)))))
 
-(defn maybe-attrs [attrs]
+;; TODO: pretty print
+(defn maybe-attrs [label attrs]
   (when (seq attrs)
-    (str "graph ["
+    (str label " ["
          (string/join ", " (for [[k v] attrs]
-                            (str (name k) " = " (pr-str v))))
-         "]")))
+                            (str (pr-str (name k)) " = " (pr-str v))))
+         "];")))
 
 (defn edges [g]
   (for [[[from to] attrs] (sort (walk/stringify-keys (graph/edges g)))]
     (str (common/quote-escape from)
          " -> "
          (common/quote-escape to)
-         (maybe-attrs attrs)
-         ";")))
+         (maybe-attrs "" attrs))))
 
 (defn nodes [g]
   (for [[k attrs] (sort (walk/stringify-keys (graph/nodes g)))]
-    (str (common/quote-escape k) (maybe-attrs attrs) ";")))
+    (str (common/quote-escape k) (maybe-attrs "" attrs))))
 
 (defn flat-attrs [g entity-type]
   (let [types (get g entity-type)
         label (flat-prefix entity-type)]
     (for [[t m] types
           [k v] m]
-      [(str label "__" t "__" (name k)) v])))
+      [(str label "__" t "__" (string/replace (name k) #"-" "_")) v])))
 
 ;; TODO: why do sometimes ranks exist, sometimes not? not merging?
 (defn write-graph [g]
@@ -115,6 +131,7 @@ ws : #'\\s*'
        (string/join \newline
          (concat
            [(maybe-attrs
+              "graph"
               (concat
                 (flat-attrs g :node-types)
                 (flat-attrs g :edge-types)))]
