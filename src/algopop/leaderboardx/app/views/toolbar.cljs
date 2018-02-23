@@ -71,7 +71,8 @@
       (.readAsText reader file))
     (log/error "Browser does not support FileReader")))
 
-(defn import-button [label accept read-graph g]
+;; TODO: not sure I like and-then
+(defn import-button [label accept and-then g]
   [:li
    [:a.btn.btn-file
     label
@@ -86,7 +87,8 @@
         (when-let [file (aget e "target" "files" 0)]
           (if-let [r (cond (ends-with (.-name file) ".txt") csv/read-graph
                            (ends-with (.-name file) ".dot") dot/read-graph)]
-            (graph/with-ranks (read-file g file r))
+            (do (graph/with-ranks (read-file g file r))
+                (and-then))
             (log/error "Must supply a .dot or .txt file"))))}]]])
 
 (defn action-button [label f]
@@ -101,7 +103,7 @@
     (string/replace svg #" data-reactid=\"[^\"]*\"" "")
     "</svg>"))
 
-(defn toolbar [g get-svg show-settings? selected-id]
+(defn toolbar [g get-svg show-settings? selected-id selected-node-type selected-edge-type]
   [:div.btn-toolbar.pull-right {:role "toolbar"}
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle
@@ -111,20 +113,27 @@
     [:ul.dropdown-menu {:role "menu"}
      [action-button "Empty"
       (fn clear-click [e]
+        (seed/set-empty! g )
         (reset! selected-id nil)
-        (seed/set-empty! g ))]
+        (reset! selected-node-type (first (keys (:node-types @g))))
+        (reset! selected-edge-type (first (keys (:edge-types @g)))))]
      [action-button "Random"
       (fn random-click [e]
+        (seed/set-rand! g)
         (reset! selected-id nil)
-        (seed/set-rand! g))]
+        (reset! selected-node-type (first (keys (:node-types @g))))
+        (reset! selected-edge-type (first (keys (:edge-types @g)))))]
      [action-button "Example"
       (fn random-click [e]
+        (seed/set-example! g)
         (reset! selected-id nil)
-        (seed/set-example! g))]
+        (reset! selected-node-type (first (keys (:node-types @g))))
+        (reset! selected-edge-type (first (keys (:edge-types @g)))))]
      [import-button "File (dot or txt)" ".dot,.txt"
       (fn [x]
         (reset! selected-id nil)
-        (dot/read-graph x))
+        (reset! selected-node-type (first (keys (:node-types @g))))
+        (reset! selected-edge-type (first (keys (:edge-types @g)))))
       g]]]
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle

@@ -58,6 +58,7 @@
                               :edge/weight 1
                               :edge/negate false}
                      "dislikes" {:edge/color "red"
+                                 :edge/label ""
                                  :edge/dasharray ""
                                  :edge/distance 100
                                  :edge/weight 1

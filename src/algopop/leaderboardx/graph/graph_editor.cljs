@@ -94,7 +94,7 @@
        :reagent-render
        (fn graph-editor []
          [:div
-          [toolbar/toolbar g get-svg show-settings? selected-id]
+          [toolbar/toolbar g get-svg show-settings? selected-id selected-node-type selected-edge-type]
           (when @show-settings?
             [:div.panel.panel-default
              [:div.panel-body

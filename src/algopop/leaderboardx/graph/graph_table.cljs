@@ -106,20 +106,16 @@
     (finally
       (reagent/dispose! watch))))
 
+;; TODO: preserve capitalize types
 (defn select-type [types selected]
   (if (= 1 (count types))
     [:span (string/capitalize (first (keys types)))]
-    (into
-      [:select
-       {:on-change
-        (fn selection [e]
-          (when-let [v (.. e -target -value)]
-            (reset! selected v)
-            (common/blur-active-input)))}]
-      (for [type (keys types)]
-        [:option
-         {:value type}
-         (string/capitalize type)]))))
+    [common/selectable
+     @selected
+     (fn [v]
+       (reset! selected v)
+       (common/blur-active-input))
+     (keys types)]))
 
 (defn humanize-id [id entity]
   (if (vector? id)
