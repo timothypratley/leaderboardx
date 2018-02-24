@@ -22,4 +22,4 @@
     #(swap! g update :edge-types dissoc %1)
     #(swap! g update-in [:edge-types %1] assoc (keyword "edge" %2) %3)
     #(swap! g update-in [:edge-types %1] dissoc %2)
-    {:edge/negate ["false" "true"]}]])
+    {:edge/negate [false true]}]])

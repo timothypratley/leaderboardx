@@ -3,7 +3,8 @@
             [reagent.core :as reagent]
             [reagent.dom :as dom]
             [cljs.test :as t :include-macros true :refer-macros [testing is]]
-            [devcards.core :as dc :refer-macros [defcard deftest]]))
+            [devcards.core :as dc :refer-macros [defcard deftest]]
+            [cljs.tools.reader.edn :as edn]))
 
 ;; TODO: advanced mode (set/map-invert (js->clj KeyCodes))
 (def key-code-name
@@ -79,15 +80,15 @@
                          (first v)
                          v)])))
 
-(defn selectable [default-value write options]
+(defn selectable [default-value write values labels]
   (into
     [:select
      {:value default-value
       :on-change
       (fn selection-change [e]
-        (save write default-value (.. e -target -value)))}]
-    (for [x options]
-      [:option x])))
+        (save write default-value (edn/read-string (.. e -target -value))))}]
+    (for [[value label] (map vector values (or labels (map str values)))]
+      [:option {:value (pr-str value)} label])))
 
 (defn add [label write]
   (let [show? (reagent/atom false)]

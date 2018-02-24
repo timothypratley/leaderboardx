@@ -114,6 +114,8 @@
      [action-button "Empty"
       (fn clear-click [e]
         (seed/set-empty! g )
+        ;; maybe only if doesn't exist anymore
+        ;; maybe centralize
         (reset! selected-id nil)
         (reset! selected-node-type (first (keys (:node-types @g))))
         (reset! selected-edge-type (first (keys (:edge-types @g)))))]

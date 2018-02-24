@@ -115,7 +115,9 @@
      (fn [v]
        (reset! selected v)
        (common/blur-active-input))
-     (keys types)]))
+     (keys types)
+     (for [k (keys types)]
+       (string/capitalize (str k)))]))
 
 (defn humanize-id [id entity]
   (if (vector? id)
