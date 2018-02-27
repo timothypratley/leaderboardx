@@ -83,7 +83,7 @@
 (defn selectable [default-value write values labels]
   (into
     [:select
-     {:value default-value
+     {:value (pr-str default-value)
       :on-change
       (fn selection-change [e]
         (save write default-value (edn/read-string (.. e -target -value))))}]
