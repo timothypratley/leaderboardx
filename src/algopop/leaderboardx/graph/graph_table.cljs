@@ -124,6 +124,7 @@
     (str (first id) " " (:edge/type entity) " " (second id))
     (str id)))
 
+;; TODO: value entry not focused when attribute added!!! :(
 (defn attribute-editor [g id schema]
   (let [entity (graph/entity @g @id)]
     [common/single-entity-editor

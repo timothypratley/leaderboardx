@@ -7,6 +7,7 @@
     [algopop.leaderboardx.graph.graph-view :as graph-view]
     [algopop.leaderboardx.graph.graph-table :as table]
     [algopop.leaderboardx.graph.graph-settings :as graph-settings]
+    [algopop.leaderboardx.graph.shortest-path :as sp]
     [algopop.leaderboardx.app.views.toolbar :as toolbar]
     [reagent.core :as reagent]
     [reagent.ratom :refer [reaction]]
@@ -108,6 +109,15 @@
              [table/attribute-editor g selected-id schema]])
           [:div#d3g
            [graph-view/graph-view g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]]
+          [:div
+           "Shortest Path"
+           [:input]
+           [:input]
+           [:button.btn.btn--clear
+            {:on-click
+             (fn [e]
+               (sp/shortest-path g "A" "G" (atom true)))}
+            "Search"]]
           [:div.panel.panel-default
            [:div.panel-body
             [table/table g selected-id node-types edge-types selected-node-type selected-edge-type zoom-factor callbacks]]]])
