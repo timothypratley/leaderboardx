@@ -98,7 +98,7 @@
 (defn visualize-fail [g]
   (swap! vis assoc
          :status "No path found"))
-partition
+
 (defn slow-trampoline
   ([t searching? f]
    (when @searching?

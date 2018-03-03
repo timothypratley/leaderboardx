@@ -8,6 +8,8 @@
             [clojure.set :as set]
             [cljs.tools.reader.edn :as edn]))
 
+;; TODO: make an edn graph reader/writer
+
 (def dot-gramma
   "see https://www.graphviz.org/doc/info/lang.html"
   "graph : <ws> [<'strict'> <ws>] ('graph' | 'digraph') <ws> [id <ws>] <'{'> stmt_list <'}'> <ws>
@@ -101,9 +103,10 @@ ws : #'\\s*'
 
 ;; TODO: pretty print
 (defn maybe-attrs [label attrs]
-  (when (seq attrs)
+  (when (seq (remove nil? (vals attrs)))
     (str label " ["
-         (string/join ", " (for [[k v] attrs]
+         (string/join ", " (for [[k v] attrs
+                                 :when (not (nil? v))]
                             (str (pr-str (name k)) " = " (pr-str v))))
          "];")))
 
@@ -130,6 +133,7 @@ ws : #'\\s*'
   (str "digraph " (common/quote-escape (:title g "untitled")) " {" \newline
        (string/join \newline
          (concat
+           ;; TODO: save :show-pageranks?
            [(maybe-attrs
               "graph"
               (concat
