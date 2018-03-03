@@ -17,6 +17,14 @@
        (swap! show-settings? not))}
     [:span.glyphicon.glyphicon-cog {:aria-hidden "true"}]]])
 
+(defn algo [show-algo?]
+  [:div.btn-group
+   [:button.btn.btn-default.dropdown-toggle
+    {:on-click
+     (fn settings-click [e]
+       (swap! show-algo? not))}
+    [:span.glyphicon.glyphicon-education {:aria-hidden "true"}]]])
+
 ;; TODO: make this open a panel like settings
 (defn help []
   [:div.btn-group
@@ -103,7 +111,7 @@
     (string/replace svg #" data-reactid=\"[^\"]*\"" "")
     "</svg>"))
 
-(defn toolbar [g get-svg show-settings? selected-id selected-node-type selected-edge-type]
+(defn toolbar [g get-svg show-settings? show-algo? selected-id selected-node-type selected-edge-type]
   [:div.btn-toolbar.pull-right {:role "toolbar"}
    [:div.btn-group
     [:button.btn.btn-default.dropdown-toggle
@@ -153,4 +161,5 @@
       (fn export-svg [e]
         (save-file (filename @g "svg") "image/svg+xml" (format-svg (get-svg))))]]]
    [help]
+   [algo show-algo?]
    [settings show-settings?]])

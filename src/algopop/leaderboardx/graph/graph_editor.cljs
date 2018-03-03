@@ -2,6 +2,7 @@
   (:require
     ;;[algopop.leaderboardx.app.db :as db]
     ;;[algopop.leaderboardx.app.db-firebase :as db-firebase]
+    [algopop.leaderboardx.graph.algo :as algo]
     [algopop.leaderboardx.graph.graph :as graph]
     [algopop.leaderboardx.app.views.common :as common]
     [algopop.leaderboardx.graph.graph-view :as graph-view]
@@ -68,6 +69,7 @@
         selected-node-type (reagent/atom (ffirst @node-types))
         selected-edge-type (reagent/atom (ffirst @edge-types))
         show-settings? (reagent/atom false)
+        show-algo? (reagent/atom false)
         zoom-factor (reagent/atom 1)
         keydown-handler
         (fn a-keydown-handler [e]
@@ -95,7 +97,7 @@
        :reagent-render
        (fn graph-editor []
          [:div
-          [toolbar/toolbar g get-svg show-settings? selected-id selected-node-type selected-edge-type]
+          [toolbar/toolbar g get-svg show-settings? show-algo? selected-id selected-node-type selected-edge-type]
           (when @show-settings?
             [:div.panel.panel-default
              [:div.panel-body
@@ -109,15 +111,10 @@
              [table/attribute-editor g selected-id schema]])
           [:div#d3g
            [graph-view/graph-view g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]]
-          [:div
-           "Shortest Path"
-           [:input]
-           [:input]
-           [:button.btn.btn--clear
-            {:on-click
-             (fn [e]
-               (sp/shortest-path g "A" "G" (atom true)))}
-            "Search"]]
+          (when @show-algo?
+            [:div.panel.panel-default
+             [:div.panel-body
+              [algo/algos g selected-id]]])
           [:div.panel.panel-default
            [:div.panel-body
             [table/table g selected-id node-types edge-types selected-node-type selected-edge-type zoom-factor callbacks]]]])
