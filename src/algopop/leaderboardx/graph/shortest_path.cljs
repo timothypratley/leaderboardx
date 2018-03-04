@@ -66,13 +66,8 @@
         ;; timeout
         :else (recur g distance-result to target-node v candidates)))))
 
-(defn shortest-path [g start-node target-node searching?]
+(defn shortest-path [g start-node target-node step-ms searching?]
   ;;(prn "SP" (shortest-path-step g 0 start-node target-node {start-node nil} {}))
-  (visualize/slow-trampoline 2000 searching? start g start-node target-node))
-
-(task/tlet
-  [])
-
-
+  (visualize/slow-trampoline step-ms searching? start g start-node target-node))
 
 ;; TODO: edge/distance and distance is confusing

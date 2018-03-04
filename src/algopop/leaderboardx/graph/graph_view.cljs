@@ -192,6 +192,7 @@
        (if (email? node-id)
          [gravatar-background node-id [height height] node-id]
          [shape-background shape [width height] (or color "white") rank-scale selected?])
+       ;; TODO: why can't you click on text to select the node???
        [:text.unselectable
         {:text-anchor "middle"
          :font-size name-font-size

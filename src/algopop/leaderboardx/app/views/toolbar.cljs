@@ -95,8 +95,10 @@
         (when-let [file (aget e "target" "files" 0)]
           (if-let [r (cond (ends-with (.-name file) ".txt") csv/read-graph
                            (ends-with (.-name file) ".dot") dot/read-graph)]
-            (do (graph/with-ranks (read-file g file r))
-                (and-then))
+            (do
+              (some-> (read-file g file r)
+                      (graph/with-ranks))
+              (and-then))
             (log/error "Must supply a .dot or .txt file"))))}]]])
 
 (defn action-button [label f]

@@ -10,6 +10,7 @@
   (reagent/with-let
     [from (reagent/atom "")
      to (reagent/atom "")
+     step-ms (reagent/atom "2000")
      watch (ratom/reaction
              (when (string? @selected-id)
                (if (string/blank? @from)
@@ -31,10 +32,17 @@
         :on-change
         (fn [e]
           (reset! to (.. e -target -value)))}]]
+     [:label
+      "Step time (ms)"
+      [:input.form-control
+       {:value @step-ms
+        :on-change
+        (fn [e]
+          (reset! step-ms (.. e -target -value)))}]]
      [:button.btn.btn-default
       {:on-click
        (fn [e]
-         (sp/shortest-path g @from @to (atom true)))}
+         (sp/shortest-path g @from @to (js/parseInt @step-ms) (atom true)))}
       "Search"]]))
 
 (defn page-rank [g selected-id]
@@ -43,7 +51,7 @@
     [:label.form-check-label
      [:input.form-check-input
       {:type "checkbox"
-       :value (:show-pageranks? @g)
+       :checked (:show-pageranks? @g)
        :on-change
        (fn [e]
          (swap! g assoc :show-pageranks? (.. e -target -checked)))}]

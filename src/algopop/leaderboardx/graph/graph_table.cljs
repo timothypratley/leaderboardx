@@ -155,6 +155,7 @@
        [:table.table.table-responsive
         [:thead
          [:tr
+          ;; TODO: add sort column, direction button
           [:th [select-type @node-types selected-node-type]]
           [:th [select-type @edge-types selected-edge-type]]
           [:th "Reciprocated by"]
