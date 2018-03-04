@@ -2,9 +2,10 @@
   (:require [reagent.core :as reagent]
             [clojure.set :as set]
             [clojure.string :as string]
-            [algopop.leaderboardx.graph.graph :as graph]))
+            [algopop.leaderboardx.graph.graph :as graph]
+            [cljs.pprint :as pprint]))
 
-(def vis
+(defonce vis
   (reagent/atom nil))
 
 ;; TODO: add a class to nodes?
@@ -19,11 +20,11 @@
    :purple "#8959a8"})
 
 (defn visualize-start [g start-node target-node]
-  (reset! vis {:distance 0
-               :status (str "Initialize search from " start-node " to " target-node)
-               :edge nil
-               :visited {}
-               :candidates {}})
+  (reset! vis {:status (str "Initialize search from " start-node " to " target-node)
+               :currently-visiting nil
+               :cost 0
+               :candidates {}
+               :visited {}})
   ;; TODO: switch to loom
   (doseq [node-id (keys (graph/nodes @g))]
     (swap! g graph/add-attr node-id :node/color
@@ -43,8 +44,8 @@
                         (if (seq new-candidates)
                           (string/join ", " (sort new-candidates))
                           "none"))
-           :visited visited
-           :candidates expanded-candidates)
+           :candidates expanded-candidates
+           :visited visited)
     (doseq [node-id (keys expanded-candidates)]
       (swap! g graph/add-attr node-id :node/color
              (if (new-candidates node-id)
@@ -56,13 +57,12 @@
                (:aqua2 colors)
                (:aqua colors))))))
 
-(defn visualize-visit [g closest-node predecessor visited candidates distance]
+(defn visualize-visit [g closest-node predecessor visited candidates cost]
   (swap! vis assoc
          :status (str "Visit closest candidate: " closest-node " via " predecessor)
-         :edge [predecessor closest-node]
-         :visited visited
+         :currently-visiting closest-node
          :candidates candidates
-         :distance distance)
+         :cost cost)
   (doseq [[to from] visited
           :when from]
     (swap! g graph/add-attr to :node/color
@@ -74,7 +74,7 @@
              (:orange colors)
              (:yellow colors)))))
 
-(defn backtrack [g visited [to & more :as path]]
+(defn backtrack [g visited [to :as path]]
   (if-let [from (visited to)]
     (do
       (swap! vis assoc
@@ -85,13 +85,13 @@
       #(backtrack g visited (cons from path)))
     (swap! vis assoc
            :status (str "Found path: "
-                        (string/join ", " path)))))
+                        (string/join " → " path)))))
 
-(defn visualize-solution [g visited target-node distance]
+(defn visualize-solution [g visited target-node cost]
   (swap! vis assoc
-         :visited visited
-         :distance distance
-         :status (str "Found target node " target-node))
+         :status (str "Found target node " target-node)
+         :cost cost
+         :visited visited)
   (swap! g assoc-in [:nodes target-node :node/color] (:blue colors))
   #(backtrack g visited (list target-node)))
 
@@ -110,3 +110,16 @@
   ([t searching? f & args]
    (slow-trampoline t searching? #(apply f args))))
 
+(defn inspect []
+  [:div
+   (doall
+     (for [[k v] @vis]
+       ^{:key k}
+       [:div
+        [:h4 k]
+        ;; TODO: don't use pprint
+        [:pre
+         [:code
+          (if (string? v)
+            v
+            (with-out-str (pprint/pprint v)))]]]))])

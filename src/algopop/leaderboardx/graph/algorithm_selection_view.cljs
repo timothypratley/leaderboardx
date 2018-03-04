@@ -1,4 +1,4 @@
-(ns algopop.leaderboardx.graph.algo
+(ns algopop.leaderboardx.graph.algorithm-selection-view
   (:require [algopop.leaderboardx.graph.shortest-path :as sp]
             [reagent.core :as reagent]
             [reagent.ratom :as ratom]
@@ -58,7 +58,7 @@
      "Scale by pagerank?"]]])
 
 (defn algos [g selected-id]
-  [:table
+  [:table.table.table-responsive
    [:tbody
     [:tr
      [:td {:style {:text-align "right"}}

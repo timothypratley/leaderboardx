@@ -2,19 +2,19 @@
   (:require
     ;;[algopop.leaderboardx.app.db :as db]
     ;;[algopop.leaderboardx.app.db-firebase :as db-firebase]
-    [algopop.leaderboardx.graph.algo :as algo]
-    [algopop.leaderboardx.graph.graph :as graph]
     [algopop.leaderboardx.app.views.common :as common]
+    [algopop.leaderboardx.app.views.toolbar :as toolbar]
+    [algopop.leaderboardx.graph.algorithm-selection-view :as algo]
+    [algopop.leaderboardx.graph.graph :as graph]
     [algopop.leaderboardx.graph.graph-view :as graph-view]
     [algopop.leaderboardx.graph.graph-table :as table]
     [algopop.leaderboardx.graph.graph-settings :as graph-settings]
-    [algopop.leaderboardx.graph.shortest-path :as sp]
-    [algopop.leaderboardx.app.views.toolbar :as toolbar]
+    [algopop.leaderboardx.graph.schema :as schema]
+    [algopop.leaderboardx.graph.shortest-path-visualize :as spv]
     [reagent.core :as reagent]
     [reagent.ratom :refer [reaction]]
     [reagent.session :as session]
-    [loom.graph :as lg]
-    [algopop.leaderboardx.graph.schema :as schema]))
+    [loom.graph :as lg]))
 
 (defn title-editor [g]
   (let [title (:title @g)]
@@ -102,6 +102,10 @@
             [:div.panel.panel-default
              [:div.panel-body
               [graph-settings/graph-settings g @node-types @edge-types]]])
+          (when @show-algo?
+            [:div.panel.panel-default
+             [:div.panel-body
+              [algo/algos g selected-id]]])
           [title-editor g]
           (when @selected-id
             [:div.pull-left
@@ -109,12 +113,21 @@
                       :width "25%"}}
              ;; TODO: when this covers a node, it causes the node to be grabbed
              [table/attribute-editor g selected-id schema]])
-          [:div#d3g
-           [graph-view/graph-view g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]]
-          (when @show-algo?
-            [:div.panel.panel-default
-             [:div.panel-body
-              [algo/algos g selected-id]]])
+          [:div {:style (when @show-algo?
+                          {:display "grid"
+                           :grid-template-columns "3fr 2fr"
+                           :grid-template-areas "'graphView sideView'"
+                           :grid-gap "10px"})}
+           [:div#d3g
+            {:style {:grid-area "graphView"}}
+            [graph-view/graph-view g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]]
+           [:div.panel.panel-default
+            {:style {:grid-area "sideView"}}
+            [:div.panel-body
+             (when @show-algo?
+               [:div
+                {:style {:grid-area "sideView"}}
+                [spv/inspect]])]]]
           [:div.panel.panel-default
            [:div.panel-body
             [table/table g selected-id node-types edge-types selected-node-type selected-edge-type zoom-factor callbacks]]]])
