@@ -127,7 +127,7 @@
               [:div.panel-body
                [:div
                 {:style {:grid-area "sideView"}}
-                [spv/inspect]]]])]]
+                [spv/inspect]]]])]
           [:div.panel.panel-default
            [:div.panel-body
             [table/table g selected-id node-types edge-types selected-node-type selected-edge-type zoom-factor callbacks]]]])
