@@ -268,7 +268,7 @@
           to-idx (idxs to)]
       ;; TODO: isolate data specific stuff here
       (when (and idx from-idx to-idx)
-        (let [defaults (get @edge-types (:edge/type edge "person"))
+        (let [defaults (get @edge-types (:edge/type edge "likes"))
               {:keys [edge/label edge/weight edge/color edge/dasharray edge/negate]} (merge defaults edge)
               particle (aget (.nodes simulation) idx)
               x2 (.-x particle)
