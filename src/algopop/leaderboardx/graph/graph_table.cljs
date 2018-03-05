@@ -124,6 +124,7 @@
     (str (first id) " " (:edge/type entity) " " (second id))
     (str id)))
 
+;; TODO: value entry not focused when attribute added!!! :(
 (defn attribute-editor [g id schema]
   (let [entity (graph/entity @g @id)]
     [common/single-entity-editor
@@ -154,6 +155,7 @@
        [:table.table.table-responsive
         [:thead
          [:tr
+          ;; TODO: add sort column, direction button
           [:th [select-type @node-types selected-node-type]]
           [:th [select-type @edge-types selected-edge-type]]
           [:th "Reciprocated by"]

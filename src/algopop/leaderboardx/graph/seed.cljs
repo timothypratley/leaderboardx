@@ -36,14 +36,17 @@
 ;;TODO: attrs?
 (defn rand-graph []
   (let [ks (take 10 (shuffle names))]
-    (graph/create
-      (into {}
-            (for [k ks]
-              [k {:node/type "person"}]))
-      (into {}
-            (for [from ks
-                  to (take 2 (shuffle (remove #{from} ks)))]
-              [[from to] {:edge/type "likes"}])))))
+    (->
+      (graph/create
+        (into {}
+              (for [k ks]
+                [k {:node/type "person"}]))
+        (into {}
+              (for [from ks
+                    to (take 2 (shuffle (remove #{from} ks)))]
+                [[from to] {:edge/type "likes"}])))
+      (graph/with-ranks)
+      (assoc :show-pageranks? true))))
 
 (defn set-rand! [g]
   (reset! g (rand-graph)))
@@ -74,14 +77,17 @@
               "Liam" ["Matt", "Jayden", "William"],
               "Rachelle" ["Abigail", "Sophia", "Emma"],
               "Mason" ["Alex", "Daniel", "Toby"]}]
-    (graph/create
-      (into {}
-            (for [k (keys outs)]
-              [k {:node/type "person"}]))
-      (into {}
-            (for [[from tos] outs
-                  to tos]
-              [[from to] {:edge/type "likes"}])))))
+    (->
+      (graph/create
+        (into {}
+              (for [k (keys outs)]
+                [k {:node/type "person"}]))
+        (into {}
+              (for [[from tos] outs
+                    to tos]
+                [[from to] {:edge/type "likes"}])))
+      (graph/with-ranks)
+      (assoc :show-pageranks? true))))
 
 (defn set-example! [g]
   (reset! g (example-graph)))
