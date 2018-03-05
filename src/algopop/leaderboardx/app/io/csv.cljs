@@ -43,5 +43,5 @@ eol : '\n' | '\r\n' | '\n\r'
             (string/join
               ","
               (map common/quote-escape
-                   (cons k (sort (get outs k))))))))
+                   (cons k (sort (keys (get outs k)))))))))
       \newline)))
