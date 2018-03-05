@@ -106,8 +106,21 @@
                       :width "25%"}}
              ;; TODO: when this covers a node, it causes the node to be grabbed
              [table/attribute-editor g selected-id schema]])
-          [:div#d3g
-           [graph-view/graph-view g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]]
+          [:div {:style (when @show-algo?
+                          {:display "grid"
+                           :grid-template-columns "3fr 2fr"
+                           :grid-template-areas "'graphView sideView'"
+                           :grid-gap "10px"})}
+           [:div#d3g
+            {:style {:grid-area "graphView"}}
+            [graph-view/graph-view g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]]
+           (when @show-algo?
+             [:div.panel.panel-default
+              {:style {:grid-area "sideView"}}
+              [:div.panel-body
+               [:div
+                {:style {:grid-area "sideView"}}
+                [spv/inspect]]]])]
           [:div.panel.panel-default
            [:div.panel-body
             [table/table g selected-id node-types edge-types selected-node-type selected-edge-type zoom-factor callbacks]]]])
