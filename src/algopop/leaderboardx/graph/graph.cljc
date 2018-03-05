@@ -116,19 +116,15 @@
            (edges g))))
 
 (defn with-ranks [g]
-  g
-  #_(when-let [node-ids (seq (keys (:nodes g)))]
-    (let [ranks (pagerank/ranks node-ids
-                                ;; TODO: edges should just be the id->id; props in another spot
-                                (into {}
-                                      (for [[k m] (:edges g)
-                                            :let [es (set (keys m))]]
-                                        [k es])))]
-      ;; TODO: be less riddic
-      (update g :nodes #(merge-with merge %1 %2) (into {}
-                                                       (for [[k pr r] ranks]
-                                                         [k {:node/pagerank pr
-                                                             :node/rank r}]))))))
+  (when-let [node-ids (seq (lg/nodes g))]
+    (let [ranks (pagerank/ranks node-ids (lg/edges g))]
+      (reduce
+        (fn [acc km]
+          (add-attrs acc km))
+        g
+        (for [[k pr r] ranks]
+          [k {:node/pagerank pr
+              :node/rank r}])))))
 
 (defn update-edge [g edge-id k v]
   (-> g

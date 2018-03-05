@@ -8,6 +8,8 @@
             [clojure.set :as set]
             [cljs.tools.reader.edn :as edn]))
 
+;; TODO: make an edn graph reader/writer
+
 (def dot-gramma
   "see https://www.graphviz.org/doc/info/lang.html"
   "graph : <ws> [<'strict'> <ws>] ('graph' | 'digraph') <ws> [id <ws>] <'{'> stmt_list <'}'> <ws>
@@ -50,8 +52,11 @@ ws : #'\\s*'
   {"n" "node"
    "e" "edge"})
 
-(defn qualify-keyword [q k]
-  (keyword q (string/replace (name k) #"_" "-")))
+(defn kebab [s]
+  (string/replace (name s) #"_" "-"))
+
+(defn qualify-keyword [q s]
+  (keyword q (kebab s)))
 
 (defn qualify-keywords [m q]
   (into {}
@@ -59,19 +64,20 @@ ws : #'\\s*'
           [(qualify-keyword q k)
            (edn/read-string v)])))
 
-(defn nest-attrs [m]
+(defn nest-attrs [kvs]
   (reduce
     (fn nest-flat-kvs [acc [k v]]
       (let [[_ prefix k1 k2 :as match] (re-matches #"(.+)__(.+)__(.+)" k)
             category (prefix-flat prefix)]
-        (when match
+        (if match
           (assoc-in acc [category k1 (qualify-keyword (qualifier prefix) k2)]
-                    (edn/read-string v)))))
+                    (edn/read-string v))
+          (assoc acc (keyword (kebab k)) (edn/read-string v)))))
     {}
-    m))
+    kvs))
 
 (defn as-map [attrs-body]
-  (nest-attrs (apply hash-map attrs-body)))
+  (nest-attrs (partition 2 attrs-body)))
 
 (defn collect-statement [graph [statement-type & statement-body]]
   (condp = statement-type
@@ -101,9 +107,10 @@ ws : #'\\s*'
 
 ;; TODO: pretty print
 (defn maybe-attrs [label attrs]
-  (when (seq attrs)
+  (when (seq (remove nil? (vals attrs)))
     (str label " ["
-         (string/join ", " (for [[k v] attrs]
+         (string/join ", " (for [[k v] attrs
+                                 :when (not (nil? v))]
                             (str (pr-str (name k)) " = " (pr-str v))))
          "];")))
 
@@ -130,9 +137,11 @@ ws : #'\\s*'
   (str "digraph " (common/quote-escape (:title g "untitled")) " {" \newline
        (string/join \newline
          (concat
+           ;; TODO: save :show-pageranks?
            [(maybe-attrs
               "graph"
               (concat
+                (select-keys g [:show-pageranks?])
                 (flat-attrs g :node-types)
                 (flat-attrs g :edge-types)))]
            (nodes g)

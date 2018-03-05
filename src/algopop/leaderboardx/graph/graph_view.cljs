@@ -2,17 +2,15 @@
   (:require
     [algopop.leaderboardx.app.views.common :as common]
     [algopop.leaderboardx.graph.d3-force-layout :as force]
+    [algopop.leaderboardx.graph.graph :as graph]
     [cljs.test]
     [clojure.string :as string]
+    [devcards.core :refer [defcard-rg]]
     [reagent.core :as reagent]
     [reagent.dom :as dom]
+    [reagent.ratom :as ratom]
     [reanimated.core :as anim]
-    [goog.crypt :as crypt]
-    [devcards.core]
-    [algopop.leaderboardx.graph.graph :as graph])
-  (:require-macros
-    [devcards.core :refer [defcard-rg]]
-    [reagent.ratom :refer [reaction]])
+    [goog.crypt :as crypt])
   (:import
     [goog.crypt Md5]))
 
@@ -160,13 +158,11 @@
           defaults (get @node-types (:node/type node "person"))
           {:keys [node/size node/color node/tags node/text node/pagerank node/shape node/name-size uid]} (merge defaults node)
           selected? (= node-id @selected-id)
-          rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
-          ;; TODO: if pageranking... checkbox?
-          r (scale-dist node-count rank-scale)
+          rank-scale (if max-pagerank (/ pagerank max-pagerank 0.5) 1)
           count-factor (* (js/Math.sqrt node-count) 5)
           name-font-size (* (or name-size 1) count-factor)
-          height (* (or size 1) count-factor)
-          width (* height (count node-id) 0.3)]
+          height (* (or size 1) count-factor rank-scale)
+          width (* height (count node-id) 0.3 rank-scale)]
       ^{:key node-id}
       [:g
        {:transform (str "translate(" x "," y ")"
@@ -196,6 +192,7 @@
        (if (email? node-id)
          [gravatar-background node-id [height height] node-id]
          [shape-background shape [width height] (or color "white") rank-scale selected?])
+       ;; TODO: why can't you click on text to select the node???
        [:text.unselectable
         {:text-anchor "middle"
          :font-size name-font-size
@@ -382,9 +379,10 @@
   reduced
   (assoc snapshot :bounds (normalize-bounds (reduce bounds (initial-bounds (first simulation-nodes)) simulation-nodes))))
 
-(defn draw-svg [node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id zoom-factor callbacks]
+(defn draw-svg [show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id zoom-factor callbacks]
   (let [{:keys [bounds]} @snapshot
-        max-pagerank (reduce max (map :node/pagerank (vals @nodes)))
+        max-pagerank (when @show-pageranks?
+                       (reduce max (map :node/pagerank (vals @nodes))))
         node-count (count @nodes)]
     [:svg.unselectable
      ;; TODO: reanimated interpolate to
@@ -407,7 +405,7 @@
          :width width
          :height height}])]))
 
-(defn draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+(defn draw-graph [this show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
   (let [xx (reagent/atom nil)
         yy (reagent/atom nil)
         click-xx (reagent/atom nil)
@@ -420,7 +418,7 @@
         zoom-x-spring (anim/spring zoom-x {:damping 10.0})
         zoom-y-spring (anim/spring zoom-y {:damping 10.0})
         zoom-factor-spring (anim/spring zoom-factor {:damping 10.0})]
-    (fn a-draw-graph [this node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+    (fn a-draw-graph [this show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
       (let [[minx miny width height] (:bounds @snapshot)
             midx (+ minx (/ width 2))
             midy (+ miny (/ height 2))
@@ -505,16 +503,17 @@
                       (set! (.-fy particle) y)
                       (force/restart-simulation simulation)))))))}
          ;; todo: don't deref here
-         [draw-svg node-types edge-types nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor callbacks]]))))
+         [draw-svg show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor callbacks]]))))
 
 (defn graph-view [g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]
   (reagent/with-let
-    [nodes (reaction (graph/nodes @g))
-     matching-edges (reaction (graph/edges @g))
+    [nodes (ratom/reaction (graph/nodes @g))
+     matching-edges (ratom/reaction (graph/edges @g))
      snapshot (reagent/atom {:bounds [0 0 0 0]
                              :particles @nodes})
      simulation (force/create-simulation)
      mouse-down? (reagent/atom nil)
+     show-pageranks? (ratom/reaction (:show-pageranks? @g))
      watch (reagent/track!
              (fn a-graph-watcher []
                (force/update-simulation simulation @nodes @matching-edges node-types edge-types)
@@ -523,7 +522,7 @@
      _ (.on simulation "tick"
             (fn simulation-tick []
               (swap! snapshot update-bounds (.nodes simulation))))]
-    [draw-graph (reagent/current-component) node-types edge-types nodes matching-edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+    [draw-graph (reagent/current-component) show-pageranks? node-types edge-types nodes matching-edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
     (finally
       (reagent/dispose! watch)
       (.stop simulation))))
