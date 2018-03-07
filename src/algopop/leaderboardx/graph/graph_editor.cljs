@@ -61,6 +61,7 @@
         edge-types (reaction (:edge-types @g))
         schema (reaction {:edge/type (keys @edge-types)
                           :edge/negate :hide
+                          :edge/weight :number
                           :node/type (keys @node-types)
                           :node/shape schema/shapes})
         next-edge-type (reaction

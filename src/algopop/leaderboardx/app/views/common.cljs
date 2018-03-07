@@ -22,17 +22,18 @@
   (when (and write (not= a b))
     (write b)))
 
-(defn editable-string [default-value write attrs]
+(defn editable-string [default-value write attrs input-type]
   (let [visible-value (reagent/atom default-value)
         current-default (reagent/atom default-value)]
-    (fn an-editable-string [default-value write attrs]
+    (fn an-editable-string [default-value write attrs input-type]
       (when (not= default-value @current-default)
         (reset! current-default default-value)
         (reset! visible-value default-value))
       [:input
        (merge-with
          merge
-         {:type "text"
+         ;; TODO: what about decimal numbers?
+         {:type input-type
           :style {:width "100%"
                   :border "1px solid #f0f0f0"
                   :background-color (if (= default-value @visible-value)
@@ -41,7 +42,10 @@
           :value @visible-value
           :on-change
           (fn editable-string-change [e]
-            (reset! visible-value (.. e -target -value)))
+            (reset! visible-value
+                    ;; TODO: is this the right way to get numbers? /shrug seems to work
+                    (cond-> (.. e -target -value)
+                      (= input-type "number") (js/parseFloat))))
           :on-blur
           (fn editable-string-blur [e]
             (save write default-value @visible-value))
@@ -132,10 +136,18 @@
                attribute ":"]
               [:td
                {:style {:width "60%"}}
-               (if options
+               (cond
+                 (seq? options)
                  (if (<= (count options) 1)
                    [:div value]
                    [selectable value #(add-attribute id attribute %) options])
+
+                 (= options :number)
+                 [editable-string value #(add-attribute id attribute %)
+                  {:auto-focus (= attribute @just-added)}
+                  "number"]
+
+                 :else
                  [editable-string value #(add-attribute id attribute %)
                   {:auto-focus (= attribute @just-added)}])]
               [:td

@@ -1,12 +1,13 @@
 (ns algopop.leaderboardx.app.io.dot
   (:require [algopop.leaderboardx.app.io.common :as common]
-            [algopop.leaderboardx.app.logging :as log]
+            #?(:cljs [algopop.leaderboardx.app.logging :as log])
             [algopop.leaderboardx.graph.graph :as graph]
             [clojure.string :as string]
             [clojure.walk :as walk]
             [instaparse.core :as insta]
             [clojure.set :as set]
-            [cljs.tools.reader.edn :as edn]))
+            #?(:cljs [cljs.tools.reader.edn :as edn]
+               :clj [clojure.edn :as edn])))
 
 ;; TODO: make an edn graph reader/writer
 
@@ -31,7 +32,7 @@ subgraph  : ['subgraph' [<ws> id] <ws>] <'{'> <ws> stmt_list <ws> <'}'>
 ws : #'\\s*'
 <id> : literal | number | quoted | html
 <value> : string | number | bool
-<literal> : #'[a-zA-Z\\200-\\377][a-zA-Z\\200-\\377\\_\\d]*'
+<literal> : #'[a-zA-Z200-377][a-zA-Z200-377\\_\\d]*'
 <quoted> : <'\"'> #'(?:[^\"\\\\]|\\\\.)*' <'\"'>
 <number> : #'-?([\\.]\\d+|\\d+(\\.\\d*)?)'
 <html> : #'<[^>]*>'
@@ -95,7 +96,8 @@ ws : #'\\s*'
 (defn read-graph [s]
   (let [ast (parse-dot s)]
     (if (insta/failure? ast)
-      (log/error ast "Failed to parse dot file")
+      #?(:cljs (log/error ast "Failed to parse dot file")
+         :clj (println ast "Failed to parse dot file"))
       (let [[_ _ & statements] ast
             [title] statements
             statements (if (string? title)
@@ -107,7 +109,7 @@ ws : #'\\s*'
 
 ;; TODO: pretty print
 (defn maybe-attrs [label attrs]
-  (when (seq (remove nil? (vals attrs)))
+  (when (seq (remove nil? (map second attrs)))
     (str label " ["
          (string/join ", " (for [[k v] attrs
                                  :when (not (nil? v))]
@@ -137,7 +139,6 @@ ws : #'\\s*'
   (str "digraph " (common/quote-escape (:title g "untitled")) " {" \newline
        (string/join \newline
          (concat
-           ;; TODO: save :show-pageranks?
            [(maybe-attrs
               "graph"
               (concat

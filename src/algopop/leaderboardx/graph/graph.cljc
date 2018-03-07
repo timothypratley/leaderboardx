@@ -5,12 +5,35 @@
     [loom.graph :as lg]
     [loom.attr :as la]))
 
+(defonce edge-types
+  {"likes" {:edge/color "#9ecae1"
+            :edge/label ""
+            :edge/dasharray ""
+            :edge/distance 50
+            :edge/weight 1
+            :edge/negate false}
+   "dislikes" {:edge/color "red"
+               :edge/label ""
+               :edge/dasharray ""
+               :edge/distance 100
+               :edge/weight 1
+               :edge/negate true}})
+
+(defonce node-types
+  {"person" {:node/shape "circle"
+             :node/text ""
+             :node/tags ""
+             :node/size 1
+             :node/name-size 1
+             :node/color "white"}})
+
+(defn add-weight [g [a b] w]
+  (assoc-in g [:adj a b] w))
+
 (defn add-attr [g id k v]
-  ;; TODO: yuck do not want
   (if (= k :edge/weight)
-    (let [[a b] id
-          #?(:cljs v) #?(:cljs(js/parseFloat v))]
-      (assoc-in g [:adj a b] v))
+    (let [[a b] id]
+      (add-weight g [a b] v))
     (la/add-attr g id k v)))
 
 (defn update-attr [g id k f & args]
@@ -25,7 +48,7 @@
 (defn add-attrs [g [id attrs]]
   (reduce
     (fn [acc2 [k v]]
-      (la/add-attr acc2 id k v))
+      (add-attr acc2 id k v))
     g
     attrs))
 
@@ -35,34 +58,16 @@
 (defn add-edge [g id attrs]
   (add-attrs (lg/add-edges g id) [id attrs]))
 
-(defn add-weight [g [a b] w]
-  (assoc-in g [:adj a b] w))
-
 (defn add-many-attrs [g entities]
   (reduce add-attrs g entities))
 
 ;; TODO: with-ranks
 (defn create
   ([] (assoc (lg/weighted-digraph)
+        :title "untitled"
         ;; TODO: not always appropriate when loading from a file (might have been removed)
-        :node-types {"person" {:node/shape "circle"
-                               :node/text ""
-                               :node/tags ""
-                               :node/size 1
-                               :node/name-size 1
-                               :node/color "white"}}
-        :edge-types {"likes" {:edge/color "#9ecae1"
-                              :edge/label ""
-                              :edge/dasharray ""
-                              :edge/distance 50
-                              :edge/weight 1
-                              :edge/negate false}
-                     "dislikes" {:edge/color "red"
-                                 :edge/label ""
-                                 :edge/dasharray ""
-                                 :edge/distance 100
-                                 :edge/weight 1
-                                 :edge/negate true}}))
+        :node-types node-types
+        :edge-types edge-types))
   ([nodes edges]
    (-> (create)
        (lg/add-nodes* (keys nodes))
@@ -99,7 +104,7 @@
   ([g filter-fn]
    (reduce (fn [acc [[from to] v]]
              (if (filter-fn v)
-               (update-in acc [from to] v)
+               (assoc-in acc [from to] v)
                acc))
            {}
            (edges g))))
@@ -172,6 +177,7 @@
                               (lg/successors* g node-id)))
         removals (set/difference old-outs outs)
         g (without-out-edges g node-id removals)]
+    ;; TODO: looks like they are added without a node-type???
     (with-successors g node-id outs edge-type)))
 
 (defn ^:private replace-in-edges [g ins node-id edge-type]
