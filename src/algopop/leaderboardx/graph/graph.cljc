@@ -5,7 +5,9 @@
     [loom.graph :as lg]
     [loom.attr :as la]))
 
-(defonce edge-types
+;; TODO: defaults for things like edge/color regardless of type
+
+(def edge-types
   {"likes" {:edge/color "#9ecae1"
             :edge/label ""
             :edge/dasharray ""
@@ -19,13 +21,20 @@
                :edge/weight 1
                :edge/negate true}})
 
-(defonce node-types
+(def node-types
   {"person" {:node/shape "circle"
              :node/text ""
              :node/tags ""
              :node/size 1
              :node/name-size 1
              :node/color "white"}})
+
+(def edge-modifiers
+  {:edge/bi-directional? {:edge/color "#a6e22e"}
+   :edge/negate {:edge/color "#ff0000"}})
+
+(def node-modifiers
+  {})
 
 (defn add-weight [g [a b] w]
   (assoc-in g [:adj a b] w))
@@ -67,7 +76,9 @@
         :title "untitled"
         ;; TODO: not always appropriate when loading from a file (might have been removed)
         :node-types node-types
-        :edge-types edge-types))
+        :edge-types edge-types
+        :node-modifiers node-modifiers
+        :edge-modifiers edge-modifiers))
   ([nodes edges]
    (-> (create)
        (lg/add-nodes* (keys nodes))
@@ -80,12 +91,39 @@
         (for [node-id (lg/nodes g)]
           [node-id (or (la/attrs g node-id) {})])))
 
-(defn edges [g]
+(defn attrs-with-weight [g edge]
+  (assoc (la/attrs g edge)
+    :edge/weight (lg/weight g edge)))
+
+(defn bi-directional-edges [g]
+  (loop [[edge & more-edges] (lg/edges g)
+         bis #{}
+         result {}]
+    (if edge
+      (let [attrs (attrs-with-weight g edge)
+            bi? (and
+                  (apply lg/has-edge? g (reverse edge))
+                  (= attrs
+                     (attrs-with-weight g (vec (reverse edge)))))]
+        (recur
+          more-edges
+          (if bi?
+            (conj bis (set edge))
+            bis)
+          (if (contains? bis (set edge))
+            result
+            (assoc result edge (cond-> attrs bi? (assoc :edge/bi-directional? true))))))
+      result)))
+
+(defn uni-directional-edges [g]
   (into {}
         (for [edge (lg/edges g)]
-          [edge (assoc (or (la/attrs g edge) {})
-                  ;; TODO: hmmm not sure I like just overwritting it but meh
-                  :edge/weight (lg/weight g edge))])))
+          [edge (attrs-with-weight g edge)])))
+
+(defn edges [g]
+  (if (:bi-directional? g)
+    (bi-directional-edges g)
+    (uni-directional-edges g)))
 
 ;; TODO: might be better to rely on nodes/edges, need to get everything pointing to the same stuff maybe
 (defn entity [g id]

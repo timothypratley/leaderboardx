@@ -57,9 +57,25 @@
          (swap! g assoc :show-pageranks? (.. e -target -checked)))}]
      "Scale by pagerank?"]]])
 
+(defn bi-directional? [g selected-id]
+  [:div
+   [:div.form-check
+    [:label.form-check-label
+     [:input.form-check-input
+      {:type "checkbox"
+       :checked (:bi-directional? @g)
+       :on-change
+       (fn [e]
+         (swap! g assoc :bi-directional? (.. e -target -checked)))}]
+     "Collapse reciprocated links?"]]])
+
 (defn algos [g selected-id]
   [:table.table.table-responsive
    [:tbody
+    [:tr
+     [:td {:style {:text-align "right"}}
+      [:h4 "Bi-directional:"]]
+     [:td [bi-directional? g selected-id]]]
     [:tr
      [:td {:style {:text-align "right"}}
       [:h4 "Pagerank: "]]

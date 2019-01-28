@@ -44,14 +44,18 @@ ws : #'\\s*'
 
 (def flat-prefix
   {:node-types "n"
-   :edge-types "e"})
+   :edge-types "e"
+   :node-modifiers "nm"
+   :edge-modifiers "em"})
 
 (def prefix-flat
   (set/map-invert flat-prefix))
 
 (def qualifier
   {"n" "node"
-   "e" "edge"})
+   "e" "edge"
+   "em" "edge"
+   "nm" "node"})
 
 (defn kebab [s]
   (string/replace (name s) #"_" "-"))
@@ -71,7 +75,12 @@ ws : #'\\s*'
       (let [[_ prefix k1 k2 :as match] (re-matches #"(.+)__(.+)__(.+)" k)
             category (prefix-flat prefix)]
         (if match
-          (assoc-in acc [category k1 (qualify-keyword (qualifier prefix) k2)]
+          (assoc-in acc [category
+                         ;; TODO: should types be namespaced???
+                         (if (contains? #{:node-types :edge-types} category)
+                           k1
+                           (qualify-keyword (qualifier prefix) k1))
+                         (qualify-keyword (qualifier prefix) k2)]
                     (edn/read-string v))
           (assoc acc (keyword (kebab k)) (edn/read-string v)))))
     {}
@@ -117,11 +126,11 @@ ws : #'\\s*'
          "];")))
 
 (defn edges [g]
-  (for [[[from to] attrs] (sort (walk/stringify-keys (graph/edges g)))]
+  (for [[[from to] attrs] (sort (walk/stringify-keys (graph/edges (dissoc g :bi-directional?))))]
     (str (common/quote-escape from)
          " -> "
          (common/quote-escape to)
-         (maybe-attrs "" attrs))))
+         (maybe-attrs "" (dissoc attrs "bi-directional?")))))
 
 (defn nodes [g]
   (for [[k attrs] (sort (walk/stringify-keys (graph/nodes g)))]
@@ -132,7 +141,7 @@ ws : #'\\s*'
         label (flat-prefix entity-type)]
     (for [[t m] types
           [k v] m]
-      [(str label "__" t "__" (string/replace (name k) #"-" "_")) v])))
+      [(str label "__" (name t) "__" (string/replace (name k) #"-" "_")) v])))
 
 ;; TODO: why do sometimes ranks exist, sometimes not? not merging?
 (defn write-graph [g]
@@ -142,9 +151,11 @@ ws : #'\\s*'
            [(maybe-attrs
               "graph"
               (concat
-                (select-keys g [:show-pageranks?])
+                (select-keys g [:show-pageranks? :bi-directional?])
                 (flat-attrs g :node-types)
-                (flat-attrs g :edge-types)))]
+                (flat-attrs g :edge-types)
+                (flat-attrs g :node-modifiers)
+                (flat-attrs g :edge-modifiers)))]
            (nodes g)
            (edges g)))
        \newline "}"))

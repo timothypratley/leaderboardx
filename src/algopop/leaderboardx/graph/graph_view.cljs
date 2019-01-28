@@ -143,6 +143,7 @@
 
 (defn draw-node
   [node-types
+   node-modifiers
    [node-id node]
    node-count
    max-pagerank
@@ -156,7 +157,9 @@
           x (.-x particle)
           y (.-y particle)
           defaults (get @node-types (:node/type node "person"))
-          {:keys [node/size node/color node/tags node/text node/pagerank node/shape node/name-size uid]} (merge defaults node)
+          ;; TODO: this makes sense for boolean flags, but what about nominals like color?
+          modifiers (apply merge (vals (select-keys @node-modifiers (keys node))))
+          {:keys [node/size node/color node/tags node/text node/pagerank node/shape node/name-size uid]} (merge defaults modifiers node)
           selected? (= node-id @selected-id)
           rank-scale (if max-pagerank (/ pagerank max-pagerank 0.5) 1)
           count-factor (* (js/Math.sqrt node-count) 5)
@@ -257,6 +260,7 @@
 
 (defn draw-edge
   [edge-types
+   edge-modifiers
    [[from to :as edge-id] edge]
    simulation
    mouse-down?
@@ -269,7 +273,8 @@
       ;; TODO: isolate data specific stuff here
       (when (and idx from-idx to-idx)
         (let [defaults (get @edge-types (:edge/type edge "likes"))
-              {:keys [edge/label edge/weight edge/color edge/dasharray edge/negate]} (merge defaults edge)
+              modifiers (apply merge (vals (select-keys @edge-modifiers (keys edge))))
+              {:keys [edge/label edge/weight edge/color edge/dasharray edge/negate edge/bi-directional?]} (merge defaults modifiers edge)
               particle (aget (.nodes simulation) idx)
               x2 (.-x particle)
               from-particle (aget (.nodes simulation) from-idx)
@@ -305,8 +310,7 @@
               (common/blur-active-input)
               (when (and shift-click-edge (.-shiftKey e))
                 (shift-click-edge edge-id edge)))
-            ;; TODO: negate color should be paramatarizable
-            :stroke (cond-> (or (when negate "#ff0000") color "#9ecae1")
+            :stroke (cond-> (or color "#9ecae1")
                             selected? (darken))}
            ;; TODO: what about weights greater than 3?
            (when (not= 2 weight)
@@ -331,9 +335,10 @@
            [:g
             {:transform (str "translate(" midx "," midy ")")}
             [:polygon
-             {:points "0,-5 0,5 12,0"
-              :fill (cond-> (or color "#9ecae1")
-                      selected? (darken))
+             {:points (if bi-directional?
+                        "0,0 -12,-5 -12,5 0,0 12,5 12,-5"
+                        "0,-5 0,5 12,0")
+              :fill (cond-> (or color "#7eaae1"))
               :transform (str "rotate(" (rise-over-run (- y3 y1) (- x3 x1)) ")"
                               (when selected?
                                 " scale(1.25,1.25)"))
@@ -379,7 +384,7 @@
   reduced
   (assoc snapshot :bounds (normalize-bounds (reduce bounds (initial-bounds (first simulation-nodes)) simulation-nodes))))
 
-(defn draw-svg [show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id zoom-factor callbacks]
+(defn draw-svg [show-pageranks? node-types edge-types node-modifiers edge-modifiers nodes edges snapshot simulation mouse-down? zooming zoom selected-id zoom-factor callbacks]
   (let [{:keys [bounds]} @snapshot
         max-pagerank (when @show-pageranks?
                        (reduce max (map :node/pagerank (vals @nodes))))
@@ -393,9 +398,9 @@
      (doall
        (concat
          (for [edge @edges]
-           (draw-edge edge-types edge simulation mouse-down? selected-id callbacks))
+           (draw-edge edge-types edge-modifiers edge simulation mouse-down? selected-id callbacks))
          (for [node @nodes]
-           (draw-node node-types node node-count max-pagerank simulation mouse-down? selected-id zoom-factor callbacks))))
+           (draw-node node-types node-modifiers node node-count max-pagerank simulation mouse-down? selected-id zoom-factor callbacks))))
      (when-let [[x y width height] zooming]
        [:rect
         {:stroke "black"
@@ -405,7 +410,7 @@
          :width width
          :height height}])]))
 
-(defn draw-graph [this show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+(defn draw-graph [this show-pageranks? node-types edge-types node-modifiers edge-modifiers nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
   (let [xx (reagent/atom nil)
         yy (reagent/atom nil)
         click-xx (reagent/atom nil)
@@ -418,7 +423,14 @@
         zoom-x-spring (anim/spring zoom-x {:damping 10.0})
         zoom-y-spring (anim/spring zoom-y {:damping 10.0})
         zoom-factor-spring (anim/spring zoom-factor {:damping 10.0})]
-    (fn a-draw-graph [this show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+    (fn a-draw-graph [this show-pageranks? node-types edge-types node-modifiers edge-modifiers nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+      ;; If an edge was just collapsed into a bi-directional edge, the selected-id may point to the removed edge
+      (when (and (vector? @selected-id)
+                 (not (contains? edges @selected-id)))
+        (let [bi-directional-edge (vec (reverse @selected-id))]
+          (when-let [{:keys [edge/bi-directional?]} (get @edges bi-directional-edge)]
+            (when bi-directional?
+              (reset! selected-id (vec (reverse @selected-id)))))))
       (let [[minx miny width height] (:bounds @snapshot)
             midx (+ minx (/ width 2))
             midy (+ miny (/ height 2))
@@ -503,9 +515,9 @@
                       (set! (.-fy particle) y)
                       (force/restart-simulation simulation)))))))}
          ;; todo: don't deref here
-         [draw-svg show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor callbacks]]))))
+         [draw-svg show-pageranks? node-types edge-types node-modifiers edge-modifiers nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor callbacks]]))))
 
-(defn graph-view [g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]
+(defn graph-view [g node-types edge-types node-modifiers edge-modifiers selected-id selected-edge-type zoom-factor callbacks]
   (reagent/with-let
     [nodes (ratom/reaction (graph/nodes @g))
      matching-edges (ratom/reaction (graph/edges @g))
@@ -522,7 +534,7 @@
      _ (.on simulation "tick"
             (fn simulation-tick []
               (swap! snapshot update-bounds (.nodes simulation))))]
-    [draw-graph (reagent/current-component) show-pageranks? node-types edge-types nodes matching-edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+    [draw-graph (reagent/current-component) show-pageranks? node-types edge-types node-modifiers edge-modifiers nodes matching-edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
     (finally
       (reagent/dispose! watch)
       (.stop simulation))))
@@ -534,9 +546,11 @@
                            :edges {:from 0 :to 1}})
           node-types (reagent/atom {})
           edge-types (reagent/atom {})
+          node-modifiers (reagent/atom {})
+          edge-modifiers (reagent/atom {})
           selected-id (reagent/atom nil)
           callbacks {}]
       (fn []
         [:div
          {:style {:border "1px solid black"}}
-         [graph-view g node-types edge-types selected-id callbacks]]))))
+         [graph-view g node-types edge-types node-modifiers edge-modifiers selected-id callbacks]]))))
