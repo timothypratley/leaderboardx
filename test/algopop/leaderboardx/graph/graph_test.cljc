@@ -33,7 +33,16 @@
       ;; Remove an in edge
       (graph/replace-edges "Tim" "person" "likes" ["chocolate"] ["sharks"])
       (has g (= ["sharks"] (keys (get (graph/in-edges g) "Tim"))))
-      (has g (= 3 (count (graph/edges g))))))
+      (has g (= 3 (count (graph/edges g))))
+
+      ;; Reciprocal edges
+      (graph/with-edge "to" "from" "likes")
+      (has g (= 3 (count (graph/edges-collapsed g))))
+      (has g (= 4 (count (graph/edges g))))
+      (has g (and (get (graph/out-edges g) "to")
+                  (get (graph/out-edges g) "from")
+                  (get (graph/in-edges g) "to")
+                  (get (graph/in-edges g) "from")))))
 
 (deftest graph-api
   (is (= 4

@@ -258,6 +258,14 @@
     (< angle -90) (+ angle 180)
     :else angle))
 
+;; TODO: improve this with expressions and apply to nodes
+;; TODO: explicit priority?
+(defn f [types k e default-type ms]
+  (let [inherited (get types (get e k default-type))
+        e (merge inherited e)
+        modifiers (apply merge (vals (select-keys ms (reverse (sort-by name (filter e (keys e)))))))]
+    (merge inherited e modifiers)))
+
 (defn draw-edge
   [edge-types
    edge-modifiers
@@ -272,9 +280,7 @@
           to-idx (idxs to)]
       ;; TODO: isolate data specific stuff here
       (when (and idx from-idx to-idx)
-        (let [defaults (get @edge-types (:edge/type edge "likes"))
-              modifiers (apply merge (vals (select-keys @edge-modifiers (keys edge))))
-              {:keys [edge/label edge/weight edge/color edge/dasharray edge/negate edge/bi-directional?]} (merge defaults modifiers edge)
+        (let [{:keys [edge/label edge/weight edge/color edge/dasharray edge/negate edge/reciprocated?]} (f @edge-types :edge/type edge "likes" @edge-modifiers)
               particle (aget (.nodes simulation) idx)
               x2 (.-x particle)
               from-particle (aget (.nodes simulation) from-idx)
@@ -335,7 +341,7 @@
            [:g
             {:transform (str "translate(" midx "," midy ")")}
             [:polygon
-             {:points (if bi-directional?
+             {:points (if reciprocated?
                         "0,0 -12,-5 -12,5 0,0 12,5 12,-5"
                         "0,-5 0,5 12,0")
               :fill (cond-> (or color "#7eaae1"))
@@ -424,12 +430,12 @@
         zoom-y-spring (anim/spring zoom-y {:damping 10.0})
         zoom-factor-spring (anim/spring zoom-factor {:damping 10.0})]
     (fn a-draw-graph [this show-pageranks? node-types edge-types node-modifiers edge-modifiers nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
-      ;; If an edge was just collapsed into a bi-directional edge, the selected-id may point to the removed edge
       (when (and (vector? @selected-id)
                  (not (contains? edges @selected-id)))
-        (let [bi-directional-edge (vec (reverse @selected-id))]
-          (when-let [{:keys [edge/bi-directional?]} (get @edges bi-directional-edge)]
-            (when bi-directional?
+        ;; If an edge was just collapsed into a reciprocal edge, the selected-id may point to the removed edge
+        (let [reciprocal (vec (reverse @selected-id))]
+          (when-let [{:keys [edge/reciprocated?]} (get @edges reciprocal)]
+            (when reciprocated?
               (reset! selected-id (vec (reverse @selected-id)))))))
       (let [[minx miny width height] (:bounds @snapshot)
             midx (+ minx (/ width 2))
@@ -514,13 +520,18 @@
                       (set! (.-fx particle) x)
                       (set! (.-fy particle) y)
                       (force/restart-simulation simulation)))))))}
-         ;; todo: don't deref here
+         ;; TODO: don't deref here
          [draw-svg show-pageranks? node-types edge-types node-modifiers edge-modifiers nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor callbacks]]))))
+
+(defn visible-edges [g]
+  (if (:collapse-reciprocal? g)
+    (graph/edges-collapsed g)
+    (graph/edges g)))
 
 (defn graph-view [g node-types edge-types node-modifiers edge-modifiers selected-id selected-edge-type zoom-factor callbacks]
   (reagent/with-let
     [nodes (ratom/reaction (graph/nodes @g))
-     matching-edges (ratom/reaction (graph/edges @g))
+     matching-edges (ratom/reaction (visible-edges @g))
      snapshot (reagent/atom {:bounds [0 0 0 0]
                              :particles @nodes})
      simulation (force/create-simulation)

@@ -63,10 +63,10 @@
         edge-modifiers (reaction (:edge-modifiers @g))
         schema (reaction {:edge/type (keys @edge-types)
                           :edge/negate :hide
+                          :edge/reciprocated? :hide
                           :edge/weight :number
                           :node/type (keys @node-types)
-                          :node/shape schema/shapes
-                          :edge/bi-directional? :hide})
+                          :node/shape schema/shapes})
         next-edge-type (reaction
                          (zipmap (keys @edge-types)
                                  (rest (cycle (keys @edge-types)))))

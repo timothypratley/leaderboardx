@@ -39,4 +39,4 @@
     #(swap! g update :edge-modifiers dissoc %1)
     #(swap! g update-in [:edge-modifiers %1] assoc (keyword "edge" %2) %3)
     #(swap! g update-in [:edge-modifiers %1] dissoc %2)
-    {:edge/bi-directional? [true false]}]])
+    {:edge/reciprocated? [true false]}]])

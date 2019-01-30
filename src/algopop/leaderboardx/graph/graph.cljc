@@ -30,7 +30,7 @@
              :node/color "white"}})
 
 (def edge-modifiers
-  {:edge/bi-directional? {:edge/color "#a6e22e"}
+  {:edge/reciprocated? {:edge/color "#a6e22e"}
    :edge/negate {:edge/color "#ff0000"}})
 
 (def node-modifiers
@@ -95,7 +95,9 @@
   (assoc (la/attrs g edge)
     :edge/weight (lg/weight g edge)))
 
-(defn bi-directional-edges [g]
+(defn edges-collapsed
+  "Returns the edges of g, but with reciprocal edges collapsed into a single edge."
+  [g]
   (loop [[edge & more-edges] (lg/edges g)
          bis #{}
          result {}]
@@ -112,18 +114,13 @@
             bis)
           (if (contains? bis (set edge))
             result
-            (assoc result edge (cond-> attrs bi? (assoc :edge/bi-directional? true))))))
+            (assoc result edge (cond-> attrs bi? (assoc :edge/reciprocated? true))))))
       result)))
 
-(defn uni-directional-edges [g]
+(defn edges [g]
   (into {}
         (for [edge (lg/edges g)]
           [edge (attrs-with-weight g edge)])))
-
-(defn edges [g]
-  (if (:bi-directional? g)
-    (bi-directional-edges g)
-    (uni-directional-edges g)))
 
 ;; TODO: might be better to rely on nodes/edges, need to get everything pointing to the same stuff maybe
 (defn entity [g id]

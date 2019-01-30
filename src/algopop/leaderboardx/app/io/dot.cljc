@@ -126,11 +126,11 @@ ws : #'\\s*'
          "];")))
 
 (defn edges [g]
-  (for [[[from to] attrs] (sort (walk/stringify-keys (graph/edges (dissoc g :bi-directional?))))]
+  (for [[[from to] attrs] (sort (walk/stringify-keys (graph/edges g)))]
     (str (common/quote-escape from)
          " -> "
          (common/quote-escape to)
-         (maybe-attrs "" (dissoc attrs "bi-directional?")))))
+         (maybe-attrs "" attrs))))
 
 (defn nodes [g]
   (for [[k attrs] (sort (walk/stringify-keys (graph/nodes g)))]
@@ -151,7 +151,7 @@ ws : #'\\s*'
            [(maybe-attrs
               "graph"
               (concat
-                (select-keys g [:show-pageranks? :bi-directional?])
+                (select-keys g [:show-pageranks? :collapse-reciprocal?])
                 (flat-attrs g :node-types)
                 (flat-attrs g :edge-types)
                 (flat-attrs g :node-modifiers)
