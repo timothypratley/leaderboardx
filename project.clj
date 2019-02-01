@@ -40,8 +40,6 @@
    {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
 
   :cljsbuild {:builds {:app {:compiler {:output-to "resources/public/js/compiled/app.js"
-                                        :output-dir "resources/public/js/compiled/out"
-                                        :asset-path "js/compiled/out"
                                         :externs ["externs.js"]}}}}
 
   :profiles
@@ -55,6 +53,8 @@
                                           :on-jsload "algopop.leaderboardx.app.main/mount-root"}
                                :compiler {:main "dev.main"
                                           :optimizations :none
+                                          :output-dir "resources/public/js/compiled/out"
+                                          :asset-path "js/compiled/out"
                                           :source-map true
                                           :pretty-print true}}}}}
 
@@ -70,5 +70,7 @@
                           {:main prod.main
                            :optimizations :advanced
                            :infer-externs true
-                           :source-map "resources/public/js/compiled/app.js.map"
+                           ;; If you want source maps, source must be available
+                           ;; :output-dir "resources/public/js/compiled/out"
+                           ;; :source-map "resources/public/js/compiled/app.js.map"
                            :pretty-print false}}}}}})
