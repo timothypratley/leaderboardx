@@ -71,7 +71,12 @@ ws : #'\\s*'
       (let [[_ prefix k1 k2 :as match] (re-matches #"(.+)__(.+)__(.+)" k)
             category (prefix-flat prefix)]
         (if match
-          (assoc-in acc [category k1 (qualify-keyword (qualifier prefix) k2)]
+          (assoc-in acc [category
+                         ;; TODO: should types be namespaced???
+                         (if (contains? #{:node-types :edge-types} category)
+                           k1
+                           (qualify-keyword (qualifier prefix) k1))
+                         (qualify-keyword (qualifier prefix) k2)]
                     (edn/read-string v))
           (assoc acc (keyword (kebab k)) (edn/read-string v)))))
     {}
@@ -132,7 +137,7 @@ ws : #'\\s*'
         label (flat-prefix entity-type)]
     (for [[t m] types
           [k v] m]
-      [(str label "__" t "__" (string/replace (name k) #"-" "_")) v])))
+      [(str label "__" (name t) "__" (string/replace (name k) #"-" "_")) v])))
 
 ;; TODO: why do sometimes ranks exist, sometimes not? not merging?
 (defn write-graph [g]
@@ -142,7 +147,7 @@ ws : #'\\s*'
            [(maybe-attrs
               "graph"
               (concat
-                (select-keys g [:show-pageranks?])
+                (select-keys g [:show-pageranks? :collapse-reciprocal?])
                 (flat-attrs g :node-types)
                 (flat-attrs g :edge-types)))]
            (nodes g)

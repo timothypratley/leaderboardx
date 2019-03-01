@@ -46,12 +46,13 @@
                     to (take 2 (shuffle (remove #{from} ks)))]
                 [[from to] {:edge/type "likes"}])))
       (graph/with-ranks)
-      (assoc :show-pageranks? true))))
+      (assoc :show-pageranks? true
+             :collapse-reciprocal? true))))
 
 (defn set-rand! [g]
   (reset! g (rand-graph)))
 
-(defn example-graph []
+(defn basic-example-graph []
   (let [outs {"Amy" ["Lily", "Abigail", "Emma"],
               "Rhys" ["William", "Liam", "Matt"],
               "Noah" ["William", "Matt"],
@@ -86,8 +87,15 @@
               (for [[from tos] outs
                     to tos]
                 [[from to] {:edge/type "likes"}])))
+      (graph/with-edge "Jayden" "Liam" "dislikes")
+      (graph/with-edge "Liam" "Jayden" "dislikes")
+      (graph/with-edge "Jayden" "Michael" "dislikes"))))
+
+(defn example-graph []
+  (-> (basic-example-graph)
       (graph/with-ranks)
-      (assoc :show-pageranks? true))))
+      (assoc :show-pageranks? true
+             :collapse-reciprocal? true)))
 
 (defn set-example! [g]
   (reset! g (example-graph)))

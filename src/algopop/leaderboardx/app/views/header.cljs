@@ -38,7 +38,7 @@
        [:span.icon-bar]
        [:span.icon-bar]]
       [:a.navbar-brand {:href "#/"}
-       [:panel
+       [:div.card
         [:img {:src "img/brand.png"
                :height "40px"}]
         "  Leaderboard"

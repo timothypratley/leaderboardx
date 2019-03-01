@@ -155,8 +155,8 @@
     (let [particle (aget (.nodes simulation) (idxs node-id))
           x (.-x particle)
           y (.-y particle)
-          defaults (get @node-types (:node/type node "person"))
-          {:keys [node/size node/color node/tags node/text node/pagerank node/shape node/name-size uid]} (merge defaults node)
+          inherited (get @node-types (:node/type node "person"))
+          {:keys [node/size node/color node/tags node/text node/pagerank node/shape node/name-size]} (merge inherited node)
           selected? (= node-id @selected-id)
           rank-scale (if max-pagerank (/ pagerank max-pagerank 0.5) 1)
           count-factor (* (js/Math.sqrt node-count) 5)
@@ -266,11 +266,8 @@
     (let [idx (idxs edge-id)
           from-idx (idxs from)
           to-idx (idxs to)]
-      ;; TODO: isolate data specific stuff here
       (when (and idx from-idx to-idx)
-        (let [defaults (get @edge-types (:edge/type edge "likes"))
-              {:keys [edge/label edge/weight edge/color edge/dasharray edge/negate]} (merge defaults edge)
-              particle (aget (.nodes simulation) idx)
+        (let [particle (aget (.nodes simulation) idx)
               x2 (.-x particle)
               from-particle (aget (.nodes simulation) from-idx)
               y2 (.-y particle)
@@ -286,7 +283,9 @@
               yo2 (* yo 3)
               midx (/ (+ x1 x2 x2 x3) 4)
               midy (/ (+ y1 y2 y2 y3) 4)
-              selected? (= edge-id @selected-id)]
+              selected? (= edge-id @selected-id)
+              inherited (get @edge-types (get edge :edge/type "likes"))
+              {:keys [edge/label edge/weight edge/color edge/dasharray edge/negate edge/reciprocated?]} (merge inherited edge)]
           ^{:key edge-id}
           [:g
            {:on-double-click
@@ -305,8 +304,10 @@
               (common/blur-active-input)
               (when (and shift-click-edge (.-shiftKey e))
                 (shift-click-edge edge-id edge)))
-            ;; TODO: negate color should be paramatarizable
-            :stroke (cond-> (or (when negate "#ff0000") color "#9ecae1")
+            :stroke (cond-> (or (when (and (not negate) reciprocated?)
+                                  "green")
+                                color
+                                "#9ecae1")
                             selected? (darken))}
            ;; TODO: what about weights greater than 3?
            (when (not= 2 weight)
@@ -331,9 +332,10 @@
            [:g
             {:transform (str "translate(" midx "," midy ")")}
             [:polygon
-             {:points "0,-5 0,5 12,0"
-              :fill (cond-> (or color "#9ecae1")
-                      selected? (darken))
+             {:points (if reciprocated?
+                        "0,0 -12,-5 -12,5 0,0 12,5 12,-5"
+                        "0,-5 0,5 12,0")
+              :fill (cond-> (or color "#7eaae1"))
               :transform (str "rotate(" (rise-over-run (- y3 y1) (- x3 x1)) ")"
                               (when selected?
                                 " scale(1.25,1.25)"))
@@ -419,6 +421,13 @@
         zoom-y-spring (anim/spring zoom-y {:damping 10.0})
         zoom-factor-spring (anim/spring zoom-factor {:damping 10.0})]
     (fn a-draw-graph [this show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+      (when (and (vector? @selected-id)
+                 (not (contains? edges @selected-id)))
+        ;; If an edge was just collapsed into a reciprocal edge, the selected-id may point to the removed edge
+        (let [reciprocal (vec (reverse @selected-id))]
+          (when-let [{:keys [edge/reciprocated?]} (get @edges reciprocal)]
+            (when reciprocated?
+              (reset! selected-id (vec (reverse @selected-id)))))))
       (let [[minx miny width height] (:bounds @snapshot)
             midx (+ minx (/ width 2))
             midy (+ miny (/ height 2))
@@ -502,13 +511,18 @@
                       (set! (.-fx particle) x)
                       (set! (.-fy particle) y)
                       (force/restart-simulation simulation)))))))}
-         ;; todo: don't deref here
+         ;; TODO: don't deref here
          [draw-svg show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor callbacks]]))))
+
+(defn visible-edges [g]
+  (if (:collapse-reciprocal? g true)
+    (graph/edges-collapsed g)
+    (graph/edges g)))
 
 (defn graph-view [g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]
   (reagent/with-let
     [nodes (ratom/reaction (graph/nodes @g))
-     matching-edges (ratom/reaction (graph/edges @g))
+     matching-edges (ratom/reaction (visible-edges @g))
      snapshot (reagent/atom {:bounds [0 0 0 0]
                              :particles @nodes})
      simulation (force/create-simulation)

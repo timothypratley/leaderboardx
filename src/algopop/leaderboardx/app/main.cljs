@@ -8,19 +8,15 @@
     [goog.dom :as dom]
     [goog.events :as events]
     [goog.history.EventType :as EventType]
-    [reagent.core :as reagent]
-    [reagent.session :as session]
-    [recalcitrant.core :refer [error-boundary]])
+    [reagent.core :as reagent])
   (:import
     goog.History))
 
 (defn container []
-  [error-boundary
-   [:div.container
-    [header/header]
-    [:div.well
-     [error-boundary
-      [routes/current-page]]]]])
+  [:div.container
+   [header/header]
+   [:div.well
+    [routes/current-page]]])
 
 (defonce history
   (doto (History.)
