@@ -63,7 +63,7 @@
     [:label.form-check-label
      [:input.form-check-input
       {:type "checkbox"
-       :checked (:collapse-reciprocal? @g)
+       :checked (:collapse-reciprocal? @g true)
        :on-change
        (fn [e]
          (swap! g assoc :collapse-reciprocal? (.. e -target -checked)))}]

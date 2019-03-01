@@ -59,8 +59,6 @@
                         (:selected-id (session/put! :selected-id (reagent/atom nil))))
         node-types (reaction (:node-types @g))
         edge-types (reaction (:edge-types @g))
-        node-modifiers (reaction (:node-modifiers @g))
-        edge-modifiers (reaction (:edge-modifiers @g))
         schema (reaction {:edge/type (keys @edge-types)
                           :edge/negate :hide
                           :edge/reciprocated? :hide
@@ -105,7 +103,7 @@
           (when @show-settings?
             [:div.panel.panel-default
              [:div.panel-body
-              [graph-settings/graph-settings g @node-types @edge-types @node-modifiers @edge-modifiers]]])
+              [graph-settings/graph-settings g @node-types @edge-types]]])
           (when @show-algo?
             [:div.panel.panel-default
              [:div.panel-body
@@ -124,7 +122,7 @@
                            :grid-gap "10px"})}
            [:div#d3g
             {:style {:grid-area "graphView"}}
-            [graph-view/graph-view g node-types edge-types node-modifiers edge-modifiers selected-id selected-edge-type zoom-factor callbacks]]
+            [graph-view/graph-view g node-types edge-types selected-id selected-edge-type zoom-factor callbacks]]
            (when @show-algo?
              [:div.panel.panel-default
               {:style {:grid-area "sideView"}}

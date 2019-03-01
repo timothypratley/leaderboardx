@@ -7,7 +7,7 @@
 
 ;; TODO: defaults for things like edge/color regardless of type
 
-(def edge-types
+(defonce edge-types
   {"likes" {:edge/color "#9ecae1"
             :edge/label ""
             :edge/dasharray ""
@@ -21,20 +21,13 @@
                :edge/weight 1
                :edge/negate true}})
 
-(def node-types
+(defonce node-types
   {"person" {:node/shape "circle"
              :node/text ""
              :node/tags ""
              :node/size 1
              :node/name-size 1
              :node/color "white"}})
-
-(def edge-modifiers
-  {:edge/reciprocated? {:edge/color "#a6e22e"}
-   :edge/negate {:edge/color "#ff0000"}})
-
-(def node-modifiers
-  {})
 
 (defn add-weight [g [a b] w]
   (assoc-in g [:adj a b] w))
@@ -76,9 +69,7 @@
         :title "untitled"
         ;; TODO: not always appropriate when loading from a file (might have been removed)
         :node-types node-types
-        :edge-types edge-types
-        :node-modifiers node-modifiers
-        :edge-modifiers edge-modifiers))
+        :edge-types edge-types))
   ([nodes edges]
    (-> (create)
        (lg/add-nodes* (keys nodes))

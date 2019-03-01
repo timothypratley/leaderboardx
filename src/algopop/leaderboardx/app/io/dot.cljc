@@ -44,9 +44,7 @@ ws : #'\\s*'
 
 (def flat-prefix
   {:node-types "n"
-   :edge-types "e"
-   :node-modifiers "nm"
-   :edge-modifiers "em"})
+   :edge-types "e"})
 
 (def prefix-flat
   (set/map-invert flat-prefix))
@@ -153,9 +151,7 @@ ws : #'\\s*'
               (concat
                 (select-keys g [:show-pageranks? :collapse-reciprocal?])
                 (flat-attrs g :node-types)
-                (flat-attrs g :edge-types)
-                (flat-attrs g :node-modifiers)
-                (flat-attrs g :edge-modifiers)))]
+                (flat-attrs g :edge-types)))]
            (nodes g)
            (edges g)))
        \newline "}"))
