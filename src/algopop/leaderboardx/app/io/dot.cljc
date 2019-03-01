@@ -51,9 +51,7 @@ ws : #'\\s*'
 
 (def qualifier
   {"n" "node"
-   "e" "edge"
-   "em" "edge"
-   "nm" "node"})
+   "e" "edge"})
 
 (defn kebab [s]
   (string/replace (name s) #"_" "-"))
