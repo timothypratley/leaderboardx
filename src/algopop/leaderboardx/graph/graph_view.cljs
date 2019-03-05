@@ -478,7 +478,7 @@
             (reset! click-yy nil)
             (reset! selecting false))
           :on-mouse-move
-          (fn graph-mouse-move [e]
+          (fn graph-mouse-move [^js/MouseEvent e]
             ;; TODO: draging while so
             (let [elem (dom/dom-node this)
                   r (.getBoundingClientRect elem)
@@ -508,8 +508,8 @@
                 (let [k @selected-id]
                   (when-let [idx (get (.-idxs simulation) k)]
                     (when-let [particle (aget (.nodes simulation) idx)]
-                      (set! (.-fx particle) x)
-                      (set! (.-fy particle) y)
+                      (aset particle "fx" x)
+                      (aset particle "fy" y)
                       (force/restart-simulation simulation)))))))}
          ;; TODO: don't deref here
          [draw-svg show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor callbacks]]))))

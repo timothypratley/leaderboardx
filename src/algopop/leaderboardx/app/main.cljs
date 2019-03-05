@@ -12,6 +12,8 @@
   (:import
     goog.History))
 
+(set! *warn-on-infer* true)
+
 (defn container []
   [:div.container
    [header/header]
