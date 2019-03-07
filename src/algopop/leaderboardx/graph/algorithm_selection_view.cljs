@@ -51,7 +51,7 @@
     [:label.form-check-label
      [:input.form-check-input
       {:type "checkbox"
-       :checked (:show-pageranks? @g)
+       :checked (:show-pageranks? @g true)
        :on-change
        (fn [e]
          (swap! g assoc :show-pageranks? (.. e -target -checked)))}]
@@ -69,6 +69,18 @@
          (swap! g assoc :collapse-reciprocal? (.. e -target -checked)))}]
      "Collapse reciprocal links?"]]])
 
+(defn straight-edges? [g selected-id]
+  [:div
+   [:div.form-check
+    [:label.form-check-label
+     [:input.form-check-input
+      {:type "checkbox"
+       :checked (:straight-edges? @g false)
+       :on-change
+       (fn [e]
+         (swap! g assoc :straight-edges? (.. e -target -checked)))}]
+     "Draw straight edges?"]]])
+
 (defn algos [g selected-id]
   [:table.table.table-responsive
    [:tbody
@@ -83,4 +95,8 @@
     [:tr
      [:td {:style {:text-align "right"}}
       [:h4 "Shortest path: "]]
-     [:td [shortest-path g selected-id]]]]])
+     [:td [shortest-path g selected-id]]]
+    [:tr
+     [:td {:style {:text-align "right"}}
+      [:h4 "Straight edges: "]]
+     [:td [straight-edges? g selected-id]]]]])
