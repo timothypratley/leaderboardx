@@ -10,7 +10,8 @@
     [reagent.dom :as dom]
     [reagent.ratom :as ratom]
     [reanimated.core :as anim]
-    [goog.crypt :as crypt])
+    [goog.crypt :as crypt]
+    [algopop.leaderboardx.app.io.common :as io.common])
   (:import
     [goog.crypt Md5]))
 
@@ -261,6 +262,7 @@
    simulation
    mouse-down?
    selected-id
+   {:keys [straight-edges?]}
    {:keys [shift-click-edge]}]
   (when-let [idxs (.-idxs simulation)]
     (let [idx (idxs edge-id)
@@ -268,14 +270,18 @@
           to-idx (idxs to)]
       (when (and idx from-idx to-idx)
         (let [particle (aget (.nodes simulation) idx)
-              x2 (.-x particle)
               from-particle (aget (.nodes simulation) from-idx)
-              y2 (.-y particle)
+              to-particle (aget (.nodes simulation) to-idx)
               x1 (.-x from-particle)
               y1 (.-y from-particle)
-              to-particle (aget (.nodes simulation) to-idx)
               x3 (.-x to-particle)
               y3 (.-y to-particle)
+              x2 (if straight-edges?
+                   (/ (+ x1 x3) 2)
+                   (.-x particle))
+              y2 (if straight-edges?
+                   (/ (+ y1 y3) 2)
+                   (.-y particle))
               phi (+ (js/Math.atan2 (- y3 y1) (- x3 x1)) (/ js/Math.PI 2))
               xo (* 2 (js/Math.cos phi))
               yo (* 2 (js/Math.sin phi))
@@ -381,9 +387,9 @@
   reduced
   (assoc snapshot :bounds (normalize-bounds (reduce bounds (initial-bounds (first simulation-nodes)) simulation-nodes))))
 
-(defn draw-svg [show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id zoom-factor callbacks]
+(defn draw-svg [{:keys [show-pageranks?] :as options} node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id zoom-factor callbacks]
   (let [{:keys [bounds]} @snapshot
-        max-pagerank (when @show-pageranks?
+        max-pagerank (when show-pageranks?
                        (reduce max (map :node/pagerank (vals @nodes))))
         node-count (count @nodes)]
     [:svg.unselectable
@@ -395,7 +401,7 @@
      (doall
        (concat
          (for [edge @edges]
-           (draw-edge edge-types edge simulation mouse-down? selected-id callbacks))
+           (draw-edge edge-types edge simulation mouse-down? selected-id options callbacks))
          (for [node @nodes]
            (draw-node node-types node node-count max-pagerank simulation mouse-down? selected-id zoom-factor callbacks))))
      (when-let [[x y width height] zooming]
@@ -407,7 +413,7 @@
          :width width
          :height height}])]))
 
-(defn draw-graph [this show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+(defn draw-graph [this options node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
   (let [xx (reagent/atom nil)
         yy (reagent/atom nil)
         click-xx (reagent/atom nil)
@@ -420,7 +426,7 @@
         zoom-x-spring (anim/spring zoom-x {:damping 10.0})
         zoom-y-spring (anim/spring zoom-y {:damping 10.0})
         zoom-factor-spring (anim/spring zoom-factor {:damping 10.0})]
-    (fn a-draw-graph [this show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+    (fn a-draw-graph [this options node-types edge-types nodes edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
       (when (and (vector? @selected-id)
                  (not (contains? edges @selected-id)))
         ;; If an edge was just collapsed into a reciprocal edge, the selected-id may point to the removed edge
@@ -512,7 +518,7 @@
                       (aset particle "fy" y)
                       (force/restart-simulation simulation)))))))}
          ;; TODO: don't deref here
-         [draw-svg show-pageranks? node-types edge-types nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor callbacks]]))))
+         [draw-svg options node-types edge-types nodes edges snapshot simulation mouse-down? @selecting selected-zoom selected-id zoom-factor callbacks]]))))
 
 (defn visible-edges [g]
   (if (:collapse-reciprocal? g true)
@@ -527,7 +533,7 @@
                              :particles @nodes})
      simulation (force/create-simulation)
      mouse-down? (reagent/atom nil)
-     show-pageranks? (ratom/reaction (:show-pageranks? @g))
+     options (ratom/reaction (select-keys @g io.common/option-keys))
      watch (reagent/track!
              (fn a-graph-watcher []
                (force/update-simulation simulation @nodes @matching-edges node-types edge-types)
@@ -536,7 +542,7 @@
      _ (.on simulation "tick"
             (fn simulation-tick []
               (swap! snapshot update-bounds (.nodes simulation))))]
-    [draw-graph (reagent/current-component) show-pageranks? node-types edge-types nodes matching-edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
+    [draw-graph (reagent/current-component) @options node-types edge-types nodes matching-edges snapshot simulation mouse-down? selected-id zoom-factor callbacks]
     (finally
       (reagent/dispose! watch)
       (.stop simulation))))

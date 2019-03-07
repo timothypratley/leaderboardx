@@ -147,7 +147,7 @@ ws : #'\\s*'
            [(maybe-attrs
               "graph"
               (concat
-                (select-keys g [:show-pageranks? :collapse-reciprocal?])
+                (select-keys g common/option-keys)
                 (flat-attrs g :node-types)
                 (flat-attrs g :edge-types)))]
            (nodes g)
