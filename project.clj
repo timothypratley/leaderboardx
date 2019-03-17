@@ -34,7 +34,7 @@
 
   :main algopop.leaderboardx.server.main
 
-  :clean-targets ^{:protect false} ["resources/public/js/compiled"]
+  :clean-targets ^{:protect false} ["resources/public/js/compiled" :target-path]
 
   :minify-assets
   {:assets
