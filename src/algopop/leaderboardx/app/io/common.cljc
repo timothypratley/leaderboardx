@@ -3,3 +3,6 @@
 
 (defn quote-escape [s]
   (str \" (string/replace s #"\"" "\\\"") \"))
+
+(def option-keys
+  [:show-pageranks? :straight-edges? :collapse-reciprocal?])

@@ -10,6 +10,7 @@
     node-types
     ;; TODO: maybe merge instead
     ;; TODO: these all look the same except the parent key?
+    ;; TODO: DRY ME
     #(swap! g update :node-types assoc %1 %2)
     #(swap! g update :node-types dissoc %1)
     #(swap! g update-in [:node-types %1] assoc (keyword "node" %2) %3)

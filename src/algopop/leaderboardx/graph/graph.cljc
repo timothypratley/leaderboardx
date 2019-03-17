@@ -5,6 +5,8 @@
     [loom.graph :as lg]
     [loom.attr :as la]))
 
+;; TODO: defaults for things like edge/color regardless of type
+
 (defonce edge-types
   {"likes" {:edge/color "#9ecae1"
             :edge/label ""
@@ -80,12 +82,36 @@
         (for [node-id (lg/nodes g)]
           [node-id (or (la/attrs g node-id) {})])))
 
+(defn attrs-with-weight [g edge]
+  (assoc (la/attrs g edge)
+    :edge/weight (lg/weight g edge)))
+
+(defn edges-collapsed
+  "Returns the edges of g, but with reciprocal edges collapsed into a single edge."
+  [g]
+  (loop [[edge & more-edges] (lg/edges g)
+         bis #{}
+         result {}]
+    (if edge
+      (let [attrs (attrs-with-weight g edge)
+            bi? (and
+                  (apply lg/has-edge? g (reverse edge))
+                  (= attrs
+                     (attrs-with-weight g (vec (reverse edge)))))]
+        (recur
+          more-edges
+          (if bi?
+            (conj bis (set edge))
+            bis)
+          (if (contains? bis (set edge))
+            result
+            (assoc result edge (cond-> attrs bi? (assoc :edge/reciprocated? true))))))
+      result)))
+
 (defn edges [g]
   (into {}
         (for [edge (lg/edges g)]
-          [edge (assoc (or (la/attrs g edge) {})
-                  ;; TODO: hmmm not sure I like just overwritting it but meh
-                  :edge/weight (lg/weight g edge))])))
+          [edge (attrs-with-weight g edge)])))
 
 ;; TODO: might be better to rely on nodes/edges, need to get everything pointing to the same stuff maybe
 (defn entity [g id]

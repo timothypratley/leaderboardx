@@ -66,10 +66,10 @@
              (.equalTo (get v "from"))))
        ;; TODO: not quite right (pollutes top level because child returned without key)
        ;; Need it for information about the nodes
-       #_(fn get-the-from-nodes [r k v])
-         (-> r
-            (.orderByKey
-             (.equalTo (get v "from")))))]
+       #_(fn get-the-from-nodes [r k v]
+           (-> r
+               (.orderByKey
+                 (.equalTo (get v "from"))))))]
     (finally
       (unlisten a reference-tree))))
 

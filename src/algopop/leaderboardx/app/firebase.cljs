@@ -66,21 +66,22 @@
   (.onAuthStateChanged
     (js/firebase.auth)
     (fn auth-state-changed [firebase-user]
-      (let [uid (.-uid firebase-user)
-            display-name (.-displayName firebase-user)
-            photo-url (.-photoURL firebase-user)
-            provider-data (.-providerData firebase-user)]
-        (if uid
-          (do
-            (db-set ["users" uid "settings"]
-                    {:photo-url photo-url
-                     :display-name display-name})
-            (reset! user {:photo-url photo-url
-                          :display-name display-name
-                          :uid uid
-                          :provider-data provider-data}))
-          (when @user
-            (reset! user nil)))))
+      (when firebase-user
+        (let [uid (.-uid firebase-user)
+              display-name (.-displayName firebase-user)
+              photo-url (.-photoURL firebase-user)
+              provider-data (.-providerData firebase-user)]
+          (if uid
+            (do
+              (db-set ["users" uid "settings"]
+                      {:photo-url photo-url
+                       :display-name display-name})
+              (reset! user {:photo-url photo-url
+                            :display-name display-name
+                            :uid uid
+                            :provider-data provider-data}))
+            (when @user
+              (reset! user nil))))))
     (fn auth-error [error]
       (js/alert error))))
 
@@ -138,7 +139,8 @@
 (defn watch-graph [a path]
   (reagent/with-let [graph-ref (db-ref path)
                      nodes-ref (db-ref (conj path "nodes"))
-                     edges-ref (db-ref (conj path "edges"))]
+                     edges-ref (db-ref (conj path "edges"))
+                     entity-refs (atom {})]
     (.on graph-ref "value"
          (fn [x]
            (reset! a (s/firebase->clj (.val x)))))
@@ -147,19 +149,21 @@
              (fn [x]
                (let [k (.-key x)
                      v (.val x)]
-                 (let [r (user-entities k)]
+                 (let [r (db-ref (conj user-entities-path k))]
                    (.on r "value"
                         (fn [z]
                           ;;TODO
                           ))
-                   (swap! refs conj r)))
+                   (swap! entity-refs assoc k r)))
                ))
         (.on "child_changed"
              (fn []
                ))
         (.on "child_removed"
-             (fn []
-               )))
+             (fn [x]
+               (let [k (.-key x)]
+                 (.off (get @entity-refs k))
+                 (swap! entity-refs dissoc k)))))
     (-> edges-ref
         (.on "child_added"
              (fn []
@@ -173,7 +177,11 @@
                #_(.off))))
     nil
     (finally
-      (.off @r))))
+      (.off @graph-ref)
+      (.off @nodes-ref)
+      (.off @edges-ref)
+      (doseq [[k v] @entity-refs]
+        (.off v)))))
 
 (defn aeon
   "Given an atom a,
