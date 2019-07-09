@@ -365,6 +365,31 @@
         (save-file (filename @db "txt") "text/csv" (pr-str @db)))]]]
    [help]])
 
+(defn roster-summary [db]
+  (let [{:keys [assignments duties days people]} @db]
+    [:div.well {:style {:background-color "white"}}
+     (let [counts (frequencies (vals assignments))
+           cumulative (frequencies (for [[[day shift] name] assignments]
+                                     [day name]))]
+       [:table.table
+        [:thead
+         [:tr
+          [:th "Person"]
+          (for [day days]
+            ^{:key day}
+            [:th day])
+          [:th "Assignments"]]]
+
+        (into [:tbody]
+              (for [name (sort (keys people))]
+                [:tr
+                 [:td name]
+                 (for [day days]
+                   ^{:key day}
+                   [:td (or (get cumulative [day name]) 0)])
+                 [:td {:style {:text-align "right"}}
+                  (or (get counts name) 0)]]))])]))
+
 (defn roster-page []
   (let [{:keys [people duties roles rules assignments]} @db]
     [:div
@@ -381,6 +406,7 @@
          (solve! solve-csp))}
       "Randomize (CSP)"]
      [roster db]
+     [roster-summary db]
      [:div.well {:style {:background-color "white"}}
       [common/entity-editor
        "People"
