@@ -115,6 +115,12 @@
              "Duties per day" {:rule [:<= [:match :people :duties :day-of-week] 1]}
              "Total duties" {:rule [:<= [:match :people :duties] 4]}}}))
 
+(defn infinite-shuffle [xs]
+  (lazy-seq
+   (concat
+    (shuffle xs)
+    (infinite-shuffle xs))))
+
 (defn randomly-assign [duties days people]
   (apply concat
     (for [day days]
@@ -216,59 +222,88 @@
   (let [{:keys [assignments duties days]} @db]
     (for [[col day] (col-headings days)
           [row start-time duty-name] (row-labels duties)]
-      [col row (get assignments [day duty-name])])))
+      [col row (get assignments [day duty-name]) [day duty-name]])))
+
+(defn swap-keys [m k1 k2]
+  (assoc m
+    k1 (get m k2)
+    k2 (get m k1)))
 
 (defn roster [db]
-  (let [{:keys [assignments duties days people]} @db]
-    (into
-      [:div.well {:style {:display "grid"
-                          :grid-template-columns "repeat(7, 1fr)"
-                          :grid-gap "10px"
-                          :background-color "white"}}
-       [:div {:style {:grid-column 1
-                      :grid-row 1
-                      :border-bottom "solid black 1px"}}
-        [:strong "Duty"]]
-       [:div {:style {:grid-column 2
-                      :grid-row 1
-                      :border-bottom "solid black 1px"}}
-        [:strong "Start"]]]
-      (concat
-        (for [[col day] (col-headings days)]
-          [:div {:style {:grid-column (+ col 3)
+  (let [selected (reagent/atom nil)
+        on-select (fn [x]
+                    (if @selected
+                      (do
+                        (swap! db update :assignments swap-keys @selected x)
+                        (reset! selected nil))
+                      (reset! selected x)))]
+    (fn [db]
+      (let [{:keys [assignments duties days people]} @db]
+        (into
+         [:div.well {:style {:display "grid"
+                             :grid-template-columns "repeat(7, 1fr)"
+                             :grid-gap "10px"
+                             :background-color "white"}}
+          [:div {:style {:grid-column 1
                          :grid-row 1
                          :border-bottom "solid black 1px"}}
-           [:strong day]])
-        (for [[row start-time duty-name] (row-labels duties)]
-          [:div {:style {:grid-column 1
-                         :grid-row (+ row 2)}}
-           duty-name])
-        (for [[row start-time duty-name] (row-labels duties)]
+           [:strong "Duty"]]
           [:div {:style {:grid-column 2
-                         :grid-row (+ row 2)}}
-           start-time])
-        (for [[col row person] (assignments-grid db)]
-          [:div {:style {:grid-column (+ col 3)
-                         :grid-row (+ row 2)}
-                 :on-drag-start
-                 (fn [e]
-                   (prn "hi"))}
-           person])
-
-        [[:div {:style {:grid-column 1
-                        :grid-row (+ (count duties) 3)}}
-          "Available"]]
-        (for [[col day] (col-headings days)]
-          [:div {:style {:grid-column (+ col 3)
-                         :grid-row (+ (count duties) 3)}}
-           (string/join ", "
-             (sort
-               (set/difference
-                 (set (keys people))
-                 (set (map val
-                           (filter (fn [[[d duty-name] person]]
-                                     (= d day))
-                                   assignments))))))])))))
+                         :grid-row 1
+                         :border-bottom "solid black 1px"}}
+           [:strong "Start"]]]
+         (concat
+          (for [[col day] (col-headings days)]
+            [:div {:style {:grid-column (+ col 3)
+                           :grid-row 1
+                           :border-bottom "solid black 1px"}}
+             [:strong day]])
+          (for [[row start-time duty-name] (row-labels duties)]
+            [:div {:style {:grid-column 1
+                           :grid-row (+ row 2)}}
+             duty-name])
+          (for [[row start-time duty-name] (row-labels duties)]
+            [:div {:style {:grid-column 2
+                           :grid-row (+ row 2)}}
+             start-time])
+          (for [[col row person label] (assignments-grid db)]
+            [:div {:style {:grid-column (+ col 3)
+                           :grid-row (+ row 2)
+                           :background-color (if (= label @selected)
+                                               "lightgrey"
+                                               "white")}
+                   :on-click
+                   (fn [e]
+                     (on-select label))
+                   :on-drag-start
+                   (fn [e]
+                     (prn "hi"))}
+             person])
+          [[:div {:style {:grid-column 1
+                          :grid-row (+ (count duties) 3)}}
+            "Available"]]
+          (for [[col day] (col-headings days)]
+            (let [available
+                  (sort
+                   (set/difference
+                    (set (keys people))
+                    (set (map val
+                              (filter (fn [[[d duty-name] person]]
+                                        (= d day))
+                                      assignments)))))]
+              (into
+               [:div {:style {:grid-column (+ col 3)
+                              :grid-row (+ (count duties) 3)}}]
+               (for [person available]
+                 (let [label [day "Available"]]
+                   ^{:key person}
+                   [:div.card {:style {:background-color (if (= label @selected)
+                                                           "lightgrey"
+                                                           "white")}
+                               :on-click
+                               (fn [e]
+                                 (on-select label))}
+                    person])))))))))))
 
 ;; TODO: make this open a panel like settings
 (defn help []
