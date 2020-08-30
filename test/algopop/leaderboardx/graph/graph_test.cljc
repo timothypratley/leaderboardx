@@ -1,14 +1,16 @@
 (ns algopop.leaderboardx.graph.graph-test
-  (:require
-    [clojure.test :refer :all]
-    [algopop.leaderboardx.graph.graph :as graph]))
+  (:require [clojure.test :refer [deftest is]]
+            [algopop.leaderboardx.graph.graph :as graph])
+  #?(:cljs
+     (:require-macros [algopop.leaderboardx.graph.graph-test :refer [has]])))
 
-(defmacro has
-  ([actual sym form]
-   `(has ~actual ~sym ~form nil))
-  ([actual sym form msg]
-   `(doto ~actual
-      (as-> ~sym (is ~form ~msg)))))
+#?(:clj
+   (defmacro has
+     ([actual sym form]
+      `(has ~actual ~sym ~form nil))
+     ([actual sym form msg]
+      `(doto ~actual
+         (as-> ~sym (is ~form ~msg))))))
 
 (deftest graph-operations
   (-> (graph/create)

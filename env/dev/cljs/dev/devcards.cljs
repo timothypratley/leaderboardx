@@ -1,11 +1,6 @@
 (ns dev.devcards
-  (:require
-   [algopop.leaderboardx.app.views.common :as common]
-   [algopop.leaderboardx.app.views.assess :as assess]
-   [devcards.core :as dc :refer-macros [defcard]]
-   [reagent.core :as reagent]))
-
-(enable-console-print!)
-
-(defcard
-  "# Test")
+  (:require [devcards.core]
+            [algopop.leaderboardx.app.views.assess-test]
+            [algopop.leaderboardx.app.views.common-test]
+            [algopop.leaderboardx.app.views.db-entity-editor-test]
+            [algopop.leaderboardx.app.views.schema-test]))

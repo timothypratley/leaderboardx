@@ -10,9 +10,9 @@
     [algopop.leaderboardx.graph.graph-editor :as graph-editor]
     [algopop.leaderboardx.graph.graph-table :as graph-table]
     [algopop.leaderboardx.app.views.graph-list :as graph-list]
-    [algopop.leaderboardx.app.views.roster :as roster]
+    [algopop.leaderboardx.roster.roster :as roster]
     [algopop.leaderboardx.app.views.settings :as settings]
-    [algopop.leaderboardx.app.views.schema :as schema]
+    [algopop.leaderboardx.app.views.types :as schema]
     [bidi.bidi :as bidi]
     [reagent.session :as session]
     [algopop.leaderboardx.app.firebase :as firebase]))

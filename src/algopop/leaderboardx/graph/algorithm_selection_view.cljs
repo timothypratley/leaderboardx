@@ -2,7 +2,7 @@
   (:require [algopop.leaderboardx.graph.shortest-path :as sp]
             [reagent.core :as reagent]
             [reagent.ratom :as ratom]
-            [clojure.string :as string]))
+            [clojure.string :as str]))
 
 ;; TODO: show a sidebar of the state of the search
 ;; TODO: show the candidates as a set and as a priority queue
@@ -13,7 +13,7 @@
      step-ms (reagent/atom "2000")
      watch (ratom/reaction
              (when (string? @selected-id)
-               (if (string/blank? @from)
+               (if (str/blank? @from)
                  (reset! from @selected-id)
                  (reset! to @selected-id))))]
     @watch

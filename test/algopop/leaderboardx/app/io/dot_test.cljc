@@ -1,5 +1,5 @@
 (ns algopop.leaderboardx.app.io.dot-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is]]
             [algopop.leaderboardx.app.io.dot :as dot]
             [algopop.leaderboardx.graph.seed :as seed]))
 

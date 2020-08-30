@@ -3,7 +3,7 @@
             [algopop.leaderboardx.app.io.common :as common]
             #?(:cljs [algopop.leaderboardx.app.logging :as log])
             [instaparse.core :as insta]
-            [clojure.string :as string]))
+            [clojure.string :as str]))
 
 (def csv-gramma
   "csv : [row] {<eol> row}
@@ -68,13 +68,13 @@ eol : '\n' | '\r\n' | '\n\r'
 (defn write-graph [g]
   (let [outs (graph/out-edges g)]
     (str
-      (string/join
+      (str/join
         \newline
         (cons
-          (string/join "," (map common/quote-escape
+          (str/join "," (map common/quote-escape
                                 ["Person" "Endorses"]))
           (for [[k attrs] (sort (graph/nodes g))]
-            (string/join
+            (str/join
               ","
               (map common/quote-escape
                    (cons k (with-types (get outs k))))))))

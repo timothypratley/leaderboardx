@@ -4,7 +4,7 @@
     [algopop.leaderboardx.graph.d3-force-layout :as force]
     [algopop.leaderboardx.graph.graph :as graph]
     [cljs.test]
-    [clojure.string :as string]
+    [clojure.string :as str]
     [devcards.core :refer [defcard-rg]]
     [reagent.core :as reagent]
     [reagent.dom :as dom]
@@ -38,7 +38,7 @@
     (crypt/byteArrayToHex (.digest md5))))
 
 (defn gravatar-background [id [width height] email]
-  (let [guid (md5-hash (string/trim email))
+  (let [guid (md5-hash (str/trim email))
         r (max width height)]
     [:g
      [:defs
@@ -59,8 +59,8 @@
 (defn stringify-points [points]
   (->> points
        (partition-all 2)
-       (map #(string/join "," %))
-       (string/join " ")))
+       (map #(str/join "," %))
+       (str/join " ")))
 
 (defn polygon-background [attrs points]
   [:polygon
@@ -128,8 +128,8 @@
 (defn email? [s]
   (and (string? s)
        (->> s
-            (string/trim)
-            (string/upper-case)
+            (str/trim)
+            (str/upper-case)
             (re-matches #"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}"))))
 
 (defn lines [s width]
@@ -139,8 +139,8 @@
         (conj lines word)
         (update lines (dec (count lines)) str " " word)))
     [""]
-    (-> (string/split s #"\s+")
-        (->> (map string/trim)))))
+    (-> (str/split s #"\s+")
+        (->> (map str/trim)))))
 
 (defn draw-node
   [node-types
@@ -237,8 +237,8 @@
                   :style {:pointer-events "none"
                           :dominant-baseline "central"}}
                  tag]])
-             (-> (string/split tags #",")
-                 (->> (map string/trim))))))])))
+             (-> (str/split tags #",")
+                 (->> (map str/trim))))))])))
 
 (defn average [& args]
   (/ (apply + args) (count args)))
@@ -355,10 +355,10 @@
                               ")"
                               (when selected?
                                 " scale(1.25,1.25)"))}
-             (string/join ": "
+             (str/join ": "
                (remove nil?
                        [(when (not= 1 weight) weight)
-                        (when-not (string/blank? label) label)]))]]])))))
+                        (when-not (str/blank? label) label)]))]]])))))
 
 (defn bounds [[minx miny maxx maxy] simulation-node]
   [(min minx (.-x simulation-node))
@@ -394,7 +394,7 @@
         node-count (count @nodes)]
     [:svg.unselectable
      ;; TODO: reanimated interpolate to
-     {:view-box (string/join " " (or zoom bounds))
+     {:view-box (str/join " " (or zoom bounds))
       :style {:width "100%"
               :height "100%"}}
      ;; These are forced with parens instead of vector because the simulation updated

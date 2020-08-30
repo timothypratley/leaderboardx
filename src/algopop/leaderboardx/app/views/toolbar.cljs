@@ -5,7 +5,7 @@
     [algopop.leaderboardx.graph.seed :as seed]
     [algopop.leaderboardx.graph.graph-settings :as settings]
     [algopop.leaderboardx.app.logging :as log]
-    [clojure.string :as string]
+    [clojure.string :as str]
     [reagent.core :as reagent]
     [algopop.leaderboardx.graph.graph :as graph]))
 
@@ -110,7 +110,7 @@
 (defn format-svg [svg]
   (str
     "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
-    (string/replace svg #" data-reactid=\"[^\"]*\"" "")
+    (str/replace svg #" data-reactid=\"[^\"]*\"" "")
     "</svg>"))
 
 (defn toolbar [g get-svg show-settings? show-algo? selected-id selected-node-type selected-edge-type]

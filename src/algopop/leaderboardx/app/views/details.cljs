@@ -2,9 +2,9 @@
   (:require
     [reagent.core :as reagent]
     [reagent.session :as session]
-    [clojure.string :as string]
+    [clojure.string :as str]
     [clojure.set :as set]
-    [algopop.leaderboardx.app.db :as db]
+    [algopop.leaderboardx.app.model.db :as db]
     [algopop.leaderboardx.app.views.common :as common])
   (:require-macros
     [reagent.ratom :as ratom]))
@@ -39,7 +39,7 @@
            ;; TODO: putting v in the path is wierd
            (swap! model assoc-in (conj path
                                        (if (map? v)
-                                         (string/join "," (keys v))
+                                         (str/join "," (keys v))
                                          v)) {}))}
         "nest"]]])))
 

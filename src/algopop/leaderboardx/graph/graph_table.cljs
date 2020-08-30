@@ -3,7 +3,7 @@
     [algopop.leaderboardx.graph.graph :as graph]
     [algopop.leaderboardx.app.views.common :as common]
     [goog.string :as gstring]
-    [clojure.string :as string]
+    [clojure.string :as str]
     [reagent.core :as reagent]
     [reagent.ratom :refer [reaction]]))
 
@@ -12,7 +12,7 @@
 (def delimiter #"[,;]")
 
 (defn split [s]
-  (filter seq (map string/trim (string/split s delimiter))))
+  (filter seq (map str/trim (str/split s delimiter))))
 
 ;; TODO: centralize in model?
 (defn replace-edges [g selected-id source node-type edge-type outs ins]
@@ -35,8 +35,8 @@
      reset-inputs (fn a-reset-inputs [id]
                     (when (not= @node-name-input js/document.activeElement)
                       (reset! search-term (or id "")))
-                    (reset! the-outs (string/join ", " (sort-by string/lower-case (keys (@outs id)))))
-                    (reset! the-ins (string/join ", " (sort-by string/lower-case (keys (@ins id))))))
+                    (reset! the-outs (str/join ", " (sort-by str/lower-case (keys (@outs id)))))
+                    (reset! the-ins (str/join ", " (sort-by str/lower-case (keys (@ins id))))))
      watch (reagent/track!
              (fn []
                (if (vector? @selected-id)
@@ -71,7 +71,7 @@
         :on-change
         (fn search-term-change [e]
           ;; prevents commas in node ids to keep my sanity
-          (let [s (first (string/split (.. e -target -value) delimiter))]
+          (let [s (first (str/split (.. e -target -value) delimiter))]
             (when (not= s @search-term)
               (reset! search-term s)
               (if (seq @search-term)
@@ -109,7 +109,7 @@
 ;; TODO: preserve capitalize types
 (defn select-type [types selected]
   (if (= 1 (count types))
-    [:span (string/capitalize (first (keys types)))]
+    [:span (str/capitalize (first (keys types)))]
     [common/selectable
      @selected
      (fn [v]
@@ -117,7 +117,7 @@
        (common/blur-active-input))
      (keys types)
      (for [k (keys types)]
-       (string/capitalize (str k)))]))
+       (str/capitalize (str k)))]))
 
 (defn humanize-id [id entity]
   (if (vector? id)
@@ -140,7 +140,7 @@
   ;; and then load one that doesn't have that type
   (let [nodes-by-rank (reaction
                         ;; TODO: maybe share the reaction with graph-view?
-                        (sort-by #(vector (string/lower-case (key %)) (:node/rank (val %)))
+                        (sort-by #(vector (str/lower-case (key %)) (:node/rank (val %)))
                                  (filter
                                    (fn [[node-id {:keys [node/type]}]]
                                      (= type @selected-node-type))
@@ -169,8 +169,8 @@
                                    (gstring/startsWith (or name node-id) @search-term))
                        out-ids (keys (@outs node-id))
                        in-ids (keys (@ins node-id))
-                       outs-string (string/join ", " (sort-by string/lower-case out-ids))
-                       ins-string (string/join ", " (sort-by string/lower-case in-ids))]]
+                       outs-string (str/join ", " (sort-by str/lower-case out-ids))
+                       ins-string (str/join ", " (sort-by str/lower-case in-ids))]]
              [:tr
               {:key node-id
                :class (cond selected? "info"

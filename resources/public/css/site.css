@@ -60,23 +60,14 @@ html, body {
     display: block;
 }
 
-.editable {
-    position: relative;
-    display: block;
-    background: white;
-    border: 1px solid lightgray;
-    margin: 2px;
-    width: 100%
-}
-.editable .edit {
-    display: none;
-    position: absolute;
-    left: -15px;
-}
-.editable:hover .edit {
-    display: block;
+.table>tbody>tr>td {
+    border-top: none !important;
+    padding: 1px !important;
 }
 
-table td {
-    border-top: none !important;
+.editable {
+    width: 100%;
+    border: 1px solid #f0f0f0;
+    padding-left: 6px;
+    padding-right: 6px;
 }

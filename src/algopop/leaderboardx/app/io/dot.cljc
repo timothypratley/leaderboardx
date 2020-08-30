@@ -2,7 +2,7 @@
   (:require [algopop.leaderboardx.app.io.common :as common]
             #?(:cljs [algopop.leaderboardx.app.logging :as log])
             [algopop.leaderboardx.graph.graph :as graph]
-            [clojure.string :as string]
+            [clojure.string :as str]
             [clojure.walk :as walk]
             [instaparse.core :as insta]
             [clojure.set :as set]
@@ -54,7 +54,7 @@ ws : #'\\s*'
    "e" "edge"})
 
 (defn kebab [s]
-  (string/replace (name s) #"_" "-"))
+  (str/replace (name s) #"_" "-"))
 
 (defn qualify-keyword [q s]
   (keyword q (kebab s)))
@@ -116,7 +116,7 @@ ws : #'\\s*'
 (defn maybe-attrs [label attrs]
   (when (seq (remove nil? (map second attrs)))
     (str label " ["
-         (string/join ", " (for [[k v] attrs
+         (str/join ", " (for [[k v] attrs
                                  :when (not (nil? v))]
                             (str (pr-str (name k)) " = " (pr-str v))))
          "];")))
@@ -137,12 +137,12 @@ ws : #'\\s*'
         label (flat-prefix entity-type)]
     (for [[t m] types
           [k v] m]
-      [(str label "__" (name t) "__" (string/replace (name k) #"-" "_")) v])))
+      [(str label "__" (name t) "__" (str/replace (name k) #"-" "_")) v])))
 
 ;; TODO: why do sometimes ranks exist, sometimes not? not merging?
 (defn write-graph [g]
   (str "digraph " (common/quote-escape (:title g "untitled")) " {" \newline
-       (string/join \newline
+       (str/join \newline
          (concat
            [(maybe-attrs
               "graph"

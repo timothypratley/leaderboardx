@@ -1,25 +1,18 @@
 (ns algopop.leaderboardx.app.views.assess
   (:require [algopop.leaderboardx.app.views.common :as common]
-            [algopop.leaderboardx.app.db :as db]
+            [algopop.leaderboardx.app.model.db :as db]
             [algopop.leaderboardx.app.commands :as commands]
             [reagent.core :as reagent]
             [reagent.session :as session]
             [reagent.ratom :as ratom :refer-macros [reaction]]
             [cljs.test :as t :refer-macros [testing is]]
-            [clojure.string :as string]
-            [devcards.core :as dc :refer-macros [defcard defcard-rg deftest]]))
+            [clojure.string :as str]))
 
 (defn attr2title [attr]
-  (string/capitalize (string/join " " (string/split (name attr) "-"))))
+  (str/capitalize (str/join " " (str/split (name attr) "-"))))
 
 (defn title2attr [title]
-  (keyword "assessment" (string/replace (string/lower-case title) " " "-")))
-
-(deftest titles-test
-  (is (= :assessment/group-hug-please
-         (title2attr "Group hug please")))
-  (is (= "Group hug please"
-         (attr2title :assessment/group-hug-please))))
+  (keyword "assessment" (str/replace (str/lower-case title) " " "-")))
 
 (defn group [title model path editing ks]
   (prn "SUP FIX ME" (get-in @model path) ks)
@@ -156,9 +149,6 @@
         names (reagent/atom {:names ["tim" "foo" "bar"]})]
     (fn an-assessment-example []
       [assess-form assesment-template assess names editing selected-id])))
-
-(defcard-rg assessment-card
-  [assessment-example])
 
 (defn assessments-view []
   [:div

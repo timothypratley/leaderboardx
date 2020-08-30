@@ -1,7 +1,7 @@
 (ns algopop.leaderboardx.app.views.coach
   (:require [algopop.leaderboardx.app.views.common :as common]
-            [algopop.leaderboardx.app.db :as db]
-            [clojure.string :as string]
+            [algopop.leaderboardx.app.model.db :as db]
+            [clojure.string :as str]
             [reagent.core :as reagent]))
 
 (defonce goals
@@ -24,7 +24,7 @@
 (defn goal-form [goal editing-id]
   [:form
    {:on-submit (fn rename-node-submit [e]
-                 (let [new-goal (string/trim (:new-goal (common/form-data e)))]
+                 (let [new-goal (str/trim (:new-goal (common/form-data e)))]
                    (if (seq new-goal)
                      (swap! goals assoc @editing-id new-goal)
                      (swap! goals dissoc @editing-id)))

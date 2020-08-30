@@ -2,7 +2,7 @@
   (:require
     [algopop.leaderboardx.app.firebase-serialization :as s]
     [cljsjs.firebase]
-    [clojure.string :as string]
+    [clojure.string :as str]
     [reagent.core :as reagent]))
 
 (defonce user
@@ -24,7 +24,7 @@
       (:provider-data firebase-user))))
 
 (defn db-path [path]
-  (string/join "/" (map s/escape path)))
+  (str/join "/" (map s/escape path)))
 
 (defn db-ref
   ([]

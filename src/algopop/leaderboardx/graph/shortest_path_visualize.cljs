@@ -1,7 +1,7 @@
 (ns algopop.leaderboardx.graph.shortest-path-visualize
   (:require [reagent.core :as reagent]
             [clojure.set :as set]
-            [clojure.string :as string]
+            [clojure.string :as str]
             [algopop.leaderboardx.graph.graph :as graph]
             [cljs.pprint :as pprint]))
 
@@ -42,7 +42,7 @@
     (swap! vis assoc
            :status (str "Expand to new candidates: "
                         (if (seq new-candidates)
-                          (string/join ", " (sort new-candidates))
+                          (str/join ", " (sort new-candidates))
                           "none"))
            :candidates expanded-candidates
            :visited visited)
@@ -79,13 +79,13 @@
     (do
       (swap! vis assoc
              :status (str "Backtrack from " from " to " to ". Path is: "
-                          (string/join ", " path)))
+                          (str/join ", " path)))
       (swap! g graph/add-attr from :node/color (:blue colors))
       (swap! g graph/add-attr [from to] :edge/color (:blue colors))
       #(backtrack g visited (cons from path)))
     (swap! vis assoc
            :status (str "Found path: "
-                        (string/join " → " path)))))
+                        (str/join " → " path)))))
 
 (defn visualize-solution [g visited target-node cost]
   (swap! vis assoc

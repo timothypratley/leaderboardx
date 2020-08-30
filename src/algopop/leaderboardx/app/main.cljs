@@ -1,16 +1,14 @@
 (ns algopop.leaderboardx.app.main
-  (:require
-    [algopop.leaderboardx.app.db]
-    [algopop.leaderboardx.app.firebase :as firebase]
-    [algopop.leaderboardx.app.routes :as routes]
-    [algopop.leaderboardx.app.views.header :as header]
-    [cljsjs.bootstrap]
-    [goog.dom :as dom]
-    [goog.events :as events]
-    [goog.history.EventType :as EventType]
-    [reagent.core :as reagent])
-  (:import
-    goog.History))
+  (:require [algopop.leaderboardx.app.model.db]
+            [algopop.leaderboardx.app.firebase :as firebase]
+            [algopop.leaderboardx.app.routes :as routes]
+            [algopop.leaderboardx.app.views.header :as header]
+            [cljsjs.bootstrap]
+            [goog.dom :as dom]
+            [goog.events :as events]
+            [goog.history.EventType :as EventType]
+            [reagent.core :as reagent])
+  (:import [goog History]))
 
 (set! *warn-on-infer* true)
 

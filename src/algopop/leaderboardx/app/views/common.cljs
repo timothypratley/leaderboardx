@@ -1,10 +1,7 @@
 (ns algopop.leaderboardx.app.views.common
-  (:require [goog.dom.forms :as forms]
-            [reagent.core :as reagent]
-            [reagent.dom :as dom]
-            [cljs.test :as t :include-macros true :refer-macros [testing is]]
-            [devcards.core :as dc :refer-macros [defcard deftest]]
-            [cljs.tools.reader.edn :as edn]))
+  (:require [cljs.tools.reader.edn :as edn]
+            [goog.dom.forms :as forms]
+            [reagent.core :as reagent]))
 
 ;; TODO: advanced mode (set/map-invert (js->clj KeyCodes))
 (def key-code-name
@@ -22,57 +19,43 @@
   (when (and write (not= a b))
     (write b)))
 
-(defn editable-string [default-value write attrs input-type]
+(defn editable-string [default-value write attrs input-type on-submit]
   (let [visible-value (reagent/atom default-value)
         current-default (reagent/atom default-value)]
     (fn an-editable-string [default-value write attrs input-type]
       (when (not= default-value @current-default)
         (reset! current-default default-value)
         (reset! visible-value default-value))
-      [:input
+      [:input.editable
        (merge-with
-         merge
-         ;; TODO: what about decimal numbers?
-         {:type input-type
-          :style {:width "100%"
-                  :border "1px solid #f0f0f0"
-                  :background-color (if (= default-value @visible-value)
-                                      "white"
-                                      "#f8f8f8")}
-          :value @visible-value
-          :on-change
-          (fn editable-string-change [e]
-            (reset! visible-value
-                    ;; TODO: is this the right way to get numbers? /shrug seems to work
-                    (cond-> (.. e -target -value)
-                      (= input-type "number") (js/parseFloat))))
-          :on-blur
-          (fn editable-string-blur [e]
-            (save write default-value @visible-value))
-          :on-key-down
-          (fn editable-string-key-down [e]
-            (.stopPropagation e)
-            (.stopImmediatePropagation (.-nativeEvent e))
-            (case (key-code-name (.-keyCode e))
-              "ESC" (do
-                      (reset! visible-value default-value)
-                      (blur-active-input))
-              "ENTER" (do
-                        (.preventDefault e)
-                        (save write default-value @visible-value))
-              nil))}
-         attrs)])))
-
-(defcard editable-string-example
-  "editable string"
-  (dc/reagent [editable-string "foo" (fn [x] x)]))
-
-;; TODO: move tests to another namespace to save production build size
-(deftest some-test
-  "blah blah blah"
-  (testing "zzz"
-    (is (= 1 2) "nah")
-    (is (= 1 1) "obviously")))
+        merge
+        ;; TODO: what about decimal numbers?
+        {:type (or input-type "text")
+         :style {:background-color (if (= default-value @visible-value)
+                                     "white"
+                                     "#f8f8f8")}
+         :value @visible-value
+         :on-change
+         (fn editable-string-change [e]
+           (reset! visible-value
+                   ;; TODO: is this the right way to get numbers? /shrug seems to work
+                   (cond-> (.. e -target -value)
+                           (= input-type "number") (js/parseFloat))))
+         :on-blur
+         (fn editable-string-blur [e]
+           (save write default-value @visible-value))
+         :on-key-down
+         (fn editable-string-key-down [e]
+           (.stopPropagation e)
+           (.stopImmediatePropagation (.-nativeEvent e))
+           (case (key-code-name (.-keyCode e))
+             "ESC" (do (reset! visible-value default-value)
+                       (blur-active-input))
+             "ENTER" (do (.preventDefault e)
+                         (save write default-value @visible-value)
+                         (when on-submit (on-submit)))
+             nil))}
+        attrs)])))
 
 (defn form-data
   "Returns a kewordized map of forms input name, value pairs."
@@ -86,13 +69,13 @@
 
 (defn selectable [default-value write values labels]
   (into
-    [:select
-     {:value (pr-str default-value)
-      :on-change
-      (fn selection-change [e]
-        (save write default-value (edn/read-string (.. e -target -value))))}]
-    (for [[value label] (map vector values (or labels (map str values)))]
-      [:option {:value (pr-str value)} label])))
+   [:select
+    {:value (pr-str default-value)
+     :on-change
+     (fn selection-change [e]
+       (save write default-value (edn/read-string (.. e -target -value))))}]
+   (for [[value label] (map vector values (or labels (map str values)))]
+     [:option {:value (pr-str value)} label])))
 
 (defn add [label write]
   (let [show? (reagent/atom false)]
@@ -124,40 +107,39 @@
            [:h3 [:i title]]]]]
         [:tbody
          (doall
-           (for [[attribute value] (sort entity)
-                 :let [options (get schema attribute)]
-                 :when (not= options :hide)]
-             ^{:key attribute}
-             [:tr
-              [:td
-               {:style {:font-weight "bold"
-                        :width "40%"
-                        :text-align "right"}}
-               attribute ":"]
-              [:td
-               {:style {:width "60%"}}
-               (cond
-                 (seq? options)
-                 (if (<= (count options) 1)
-                   [:div value]
-                   [selectable value #(add-attribute id attribute %) options])
+          (for [[attribute value] (sort entity)
+                :let [options (get schema attribute)]
+                :when (not= options :hide)]
+            [:tr {:key attribute}
+             [:td
+              {:style {:font-weight "bold"
+                       :width "40%"
+                       :text-align "right"}}
+              attribute ":"]
+             [:td
+              {:style {:width "60%"}}
+              (cond
+                (seq? options)
+                (if (<= (count options) 1)
+                  [:div value]
+                  [selectable value #(add-attribute id attribute %) options])
 
-                 (= options :number)
-                 [editable-string value #(add-attribute id attribute %)
-                  {:auto-focus (= attribute @just-added)}
-                  "number"]
+                (= options :number)
+                [editable-string value #(add-attribute id attribute %)
+                 {:auto-focus (= attribute @just-added)}
+                 "number"]
 
-                 :else
-                 [editable-string value #(add-attribute id attribute %)
-                  {:auto-focus (= attribute @just-added)}])]
-              [:td
-               [:button.close
-                {:on-click
-                 (fn click-clear-attribute [e]
-                   ;; TODO: currently you can remove a node/type! that seems wrong...
-                   ;; maybe... but it works? maybe not a bad thing?
-                   (remove-attribute id attribute))}
-                "×"]]]))
+                :else
+                [editable-string value #(add-attribute id attribute %)
+                 {:auto-focus (= attribute @just-added)}])]
+             [:td
+              [:button.close
+               {:on-click
+                (fn click-clear-attribute [e]
+                  ;; TODO: currently you can remove a node/type! that seems wrong...
+                  ;; maybe... but it works? maybe not a bad thing?
+                  (remove-attribute id attribute))}
+               "×"]]]))
          [:tr
           [:td
            {:style {:text-align "right"
@@ -181,15 +163,15 @@
       {:style {:text-align "right"}}
       [add "Add" add-entity]]]
     (for [[entity-name entity] (sort entities)]
-      ^{:key entity-name}
       [:li.row
-       {:style {:padding "10px"}}
+       {:key entity-name
+        :style {:padding "10px"}}
        [:div.col-xs-11 [single-entity-editor entity-name entity entity-name add-attribute remove-attribute schema]]
        [:div.col-xs-1
         {:style {:text-align "right"}}
         [:button.close
          {:style {:float "left"}
           :on-click
-          (fn [e]
+          (fn remove-entity-click [e]
             (remove-entity entity-name))}
          "×"]]])]])

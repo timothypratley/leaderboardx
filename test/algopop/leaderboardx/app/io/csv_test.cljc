@@ -1,6 +1,6 @@
 (ns algopop.leaderboardx.app.io.csv-test
-  (:require [clojure.test :refer :all])
-  (:require [algopop.leaderboardx.app.io.csv :as csv]
+  (:require [clojure.test :refer [deftest is]]
+            [algopop.leaderboardx.app.io.csv :as csv]
             [algopop.leaderboardx.graph.seed :as seed]))
 
 (deftest read-write-graph-test

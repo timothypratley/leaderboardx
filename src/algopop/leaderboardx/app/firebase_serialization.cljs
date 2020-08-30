@@ -1,6 +1,6 @@
 (ns algopop.leaderboardx.app.firebase-serialization
   (:require
-    [clojure.string :as string])
+    [clojure.string :as str])
   (:require-macros
     [cljs.test :refer [deftest is]]))
 
@@ -18,7 +18,7 @@
   (zipmap special-codes special-characters))
 
 (def escape-regex
-  (js/RegExp. (string/join "|" (for [c special-characters]
+  (js/RegExp. (str/join "|" (for [c special-characters]
                                  (str "\\" c)))
               "g"))
 
@@ -26,7 +26,7 @@
   (.replace s escape-regex #(charToCode %)))
 
 (def unescape-regex
-  (js/RegExp. (string/join "|" special-codes) "g"))
+  (js/RegExp. (str/join "|" special-codes) "g"))
 
 (defn unescape [s]
   (if (string? s)
@@ -47,7 +47,7 @@
 
 (defn maybe-keyword [s]
   (if (and (string? s)
-           (string/starts-with? s ":"))
+           (str/starts-with? s ":"))
     (keyword (subs s 1))
     s))
 

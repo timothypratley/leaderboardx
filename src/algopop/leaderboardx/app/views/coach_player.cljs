@@ -1,6 +1,6 @@
 (ns algopop.leaderboardx.app.views.coach-player
   (:require [reagent.core :as reagent]
-            [algopop.leaderboardx.app.db :as db]))
+            [algopop.leaderboardx.app.model.db :as db]))
 
 (defn transpose [xs]
   (apply mapv vector xs))
@@ -56,7 +56,7 @@
    [:h4 "Player comments"]])
 
 (defn coach-player-view []
-  (let [p (db/player)]
+  (let [p (atom {})]
     (fn a-coach-player-view []
       [:div
        [:h1 (:name (ffirst @p))]

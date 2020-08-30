@@ -223,6 +223,7 @@
         (with-ranks))))
 
 (defn rename-node [g node-id new-node-id]
+  (prn "hi" node-id new-node-id (keys g))
   (if (= node-id new-node-id)
     g
     ;; TODO: edge attrs
