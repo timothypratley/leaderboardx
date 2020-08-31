@@ -46,7 +46,7 @@
                     to (take 2 (shuffle (remove #{from} ks)))]
                 [[from to] {:edge/type "likes"}])))
       (graph/with-ranks)
-      (assoc :show-pageranks? true
+      (assoc :scale-by :node/pagerank
              :collapse-reciprocal? true))))
 
 (defn set-rand! [g]
@@ -94,7 +94,7 @@
 (defn example-graph []
   (-> (basic-example-graph)
       (graph/with-ranks)
-      (assoc :show-pageranks? true
+      (assoc :scale-by :node/pagerank
              :collapse-reciprocal? true)))
 
 (defn set-example! [g]

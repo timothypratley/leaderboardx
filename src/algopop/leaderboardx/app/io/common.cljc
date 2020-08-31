@@ -5,4 +5,4 @@
   (str \" (string/replace s #"\"" "\\\"") \"))
 
 (def option-keys
-  [:show-pageranks? :straight-edges? :collapse-reciprocal?])
+  [:straight-edges? :collapse-reciprocal? :scale-by])

@@ -153,9 +153,14 @@
         (fn [acc km]
           (add-attrs acc km))
         g
-        (for [[k pr r] ranks]
-          [k {:node/pagerank pr
-              :node/rank r}])))))
+        (for [[k pagerank r] ranks
+              :let [in-degree (lg/in-degree g k)
+                    out-degree (lg/out-degree g k)]]
+          [k {:node/pagerank   pagerank
+              :node/rank       r
+              :node/in-degree  in-degree
+              :node/out-degree out-degree
+              :node/degree     (+ in-degree out-degree)}])))))
 
 (defn update-edge [g edge-id k v]
   (-> g
