@@ -21,52 +21,92 @@
      [:label
       "From"
       [:input.form-control
-       {:value @from
-        :on-change
-        (fn [e]
-          (reset! from (.. e -target -value)))}]]
+       {:value     @from
+        :on-change (fn [e]
+                     (reset! from (.. e -target -value)))}]]
      [:label
       "To"
       [:input.form-control
-       {:value @to
-        :on-change
-        (fn [e]
-          (reset! to (.. e -target -value)))}]]
+       {:value     @to
+        :on-change (fn [e]
+                     (reset! to (.. e -target -value)))}]]
      [:label
       "Step time (ms)"
       [:input.form-control
-       {:value @step-ms
-        :on-change
-        (fn [e]
-          (reset! step-ms (.. e -target -value)))}]]
+       {:value     @step-ms
+        :on-change (fn [e]
+                     (reset! step-ms (.. e -target -value)))}]]
      [:button.btn.btn-default
       {:on-click
        (fn [e]
          (sp/shortest-path g @from @to (js/parseInt @step-ms) (atom true)))}
       "Search"]]))
 
-(defn show-page-rank? [g selected-id]
-  [:div
-   [:div.form-check
-    [:label.form-check-label
-     [:input.form-check-input
-      {:type "checkbox"
-       :checked (:show-pageranks? @g true)
-       :on-change
-       (fn [e]
-         (swap! g assoc :show-pageranks? (.. e -target -checked)))}]
-     "Scale by pagerank?"]]])
+(defn scale-by [g selected-id]
+  ;; TODO: Should create a radio choice abstraction
+  (let [{:keys [scale-by]} @g]
+    [:form
+     [:div.form-check
+      [:label.form-check-label
+       [:input.form-check-input
+        {:type      "radio"
+         :name      "scale-by"
+         :value     nil
+         :checked   (= scale-by nil)
+         :on-change (fn [e]
+                      (swap! g dissoc :scale-by))}]
+       "None"]]
+     [:div.form-check
+      [:label.form-check-label
+       [:input.form-check-input
+        {:type      "radio"
+         :name      "scale-by"
+         :value     :node/pagerank
+         :checked   (= scale-by :node/pagerank)
+         :on-change (fn [e]
+                      (swap! g assoc :scale-by :node/pagerank))}]
+       "Pagerank"]]
+     [:div.form-check
+      [:label.form-check-label
+       [:input.form-check-input
+        {:type      "radio"
+         :name      "scale-by"
+         :value     :node/in-degree
+         :checked   (= scale-by :node/in-degree)
+         :on-change (fn [e]
+                      (swap! g assoc :scale-by :node/in-degree))}]
+       "Count of incoming relationships"]]
+     [:div.form-check
+      [:label.form-check-label
+       [:input.form-check-input
+        {:type    "radio"
+         :name    "scale-by"
+         :value   :node/out-degree
+         :checked (= scale-by :node/out-degree)
+         :on-change
+                  (fn [e]
+                    (swap! g assoc :scale-by :node/out-degree))}]
+       "Count of outgoing relationships"]]
+     [:div.form-check
+      [:label.form-check-label
+       [:input.form-check-input
+        {:type      "radio"
+         :name      "scale-by"
+         :value     :node/degree
+         :checked   (= scale-by :node/degree)
+         :on-change (fn [e]
+                      (swap! g assoc :scale-by :node/degree))}]
+       "Count of all relationships"]]]))
 
 (defn collapse-reciprocal-edges? [g selected-id]
   [:div
    [:div.form-check
     [:label.form-check-label
      [:input.form-check-input
-      {:type "checkbox"
-       :checked (:collapse-reciprocal? @g true)
-       :on-change
-       (fn [e]
-         (swap! g assoc :collapse-reciprocal? (.. e -target -checked)))}]
+      {:type      "checkbox"
+       :checked   (:collapse-reciprocal? @g true)
+       :on-change (fn [e]
+                    (swap! g assoc :collapse-reciprocal? (.. e -target -checked)))}]
      "Collapse reciprocal links?"]]])
 
 (defn straight-edges? [g selected-id]
@@ -74,11 +114,10 @@
    [:div.form-check
     [:label.form-check-label
      [:input.form-check-input
-      {:type "checkbox"
-       :checked (:straight-edges? @g false)
-       :on-change
-       (fn [e]
-         (swap! g assoc :straight-edges? (.. e -target -checked)))}]
+      {:type      "checkbox"
+       :checked   (:straight-edges? @g false)
+       :on-change (fn [e]
+                    (swap! g assoc :straight-edges? (.. e -target -checked)))}]
      "Draw straight edges?"]]])
 
 (defn algos [g selected-id]
@@ -90,13 +129,13 @@
      [:td [collapse-reciprocal-edges? g selected-id]]]
     [:tr
      [:td {:style {:text-align "right"}}
-      [:h4 "Pagerank: "]]
-     [:td [show-page-rank? g selected-id]]]
+      [:h4 "Scale by: "]]
+     [:td [scale-by g selected-id]]]
+    [:tr
+     [:td {:style {:text-align "right"}}
+      [:h4 "Edges: "]]
+     [:td [straight-edges? g selected-id]]]
     [:tr
      [:td {:style {:text-align "right"}}
       [:h4 "Shortest path: "]]
-     [:td [shortest-path g selected-id]]]
-    [:tr
-     [:td {:style {:text-align "right"}}
-      [:h4 "Straight edges: "]]
-     [:td [straight-edges? g selected-id]]]]])
+     [:td [shortest-path g selected-id]]]]])

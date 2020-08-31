@@ -146,7 +146,7 @@
   [node-types
    [node-id node]
    node-count
-   max-pagerank
+   scale
    simulation
    mouse-down?
    selected-id
@@ -157,13 +157,13 @@
           x (.-x particle)
           y (.-y particle)
           inherited (get @node-types (:node/type node "person"))
-          {:keys [node/size node/color node/tags node/text node/pagerank node/shape node/name-size]} (merge inherited node)
+          {:node/keys [size color tags text pagerank shape name-size]} (merge inherited node)
           selected? (= node-id @selected-id)
-          rank-scale (if max-pagerank (/ pagerank max-pagerank 0.5) 1)
+          ;; TODO: maybe use scaling instead of size? Maybe use link density instead of node count?
           count-factor (* (js/Math.sqrt node-count) 5)
           name-font-size (* (or name-size 1) count-factor)
-          height (* (or size 1) count-factor rank-scale)
-          width (* height (count node-id) 0.3 rank-scale)]
+          height (* (or size 1) count-factor scale)
+          width (* height (count node-id) 0.3 scale)]
       ^{:key node-id}
       [:g
        {:transform (str "translate(" x "," y ")"
@@ -192,7 +192,7 @@
             (reset! selected-id node-id)))}
        (if (email? node-id)
          [gravatar-background node-id [height height] node-id]
-         [shape-background shape [width height] (or color "white") rank-scale selected?])
+         [shape-background shape [width height] (or color "white") scale selected?])
        ;; TODO: why can't you click on text to select the node???
        [:text.unselectable
         {:text-anchor "middle"
@@ -387,10 +387,10 @@
   reduced
   (assoc snapshot :bounds (normalize-bounds (reduce bounds (initial-bounds (first simulation-nodes)) simulation-nodes))))
 
-(defn draw-svg [{:keys [show-pageranks?] :as options} node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id zoom-factor callbacks]
+(defn draw-svg [{:keys [scale-by] :as options} node-types edge-types nodes edges snapshot simulation mouse-down? zooming zoom selected-id zoom-factor callbacks]
   (let [{:keys [bounds]} @snapshot
-        max-pagerank (when show-pageranks?
-                       (reduce max (map :node/pagerank (vals @nodes))))
+        max-scale (when (and scale-by (seq @nodes))
+                    (reduce max (map scale-by (vals @nodes))))
         node-count (count @nodes)]
     [:svg.unselectable
      ;; TODO: reanimated interpolate to
@@ -402,8 +402,13 @@
        (concat
          (for [edge @edges]
            (draw-edge edge-types edge simulation mouse-down? selected-id options callbacks))
-         (for [node @nodes]
-           (draw-node node-types node node-count max-pagerank simulation mouse-down? selected-id zoom-factor callbacks))))
+         (for [kv @nodes
+               :let [scale (if max-scale
+                             (-> (scale-by (val kv))
+                                 (/ max-scale)
+                                 (* 2))
+                             1)]]
+           (draw-node node-types kv node-count scale simulation mouse-down? selected-id zoom-factor callbacks))))
      (when-let [[x y width height] zooming]
        [:rect
         {:stroke "black"
