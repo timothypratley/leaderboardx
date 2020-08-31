@@ -98,6 +98,11 @@ ws : #'\\s*'
     :subgraph graph
     graph))
 
+(defn maybe-update [m k f & args]
+  (if (get m k)
+    (apply update m k f args)
+    m))
+
 (defn read-graph [s]
   (let [ast (parse-dot s)]
     (if (insta/failure? ast)
@@ -110,15 +115,22 @@ ws : #'\\s*'
                          statements)
             graph (cond-> (graph/create)
                           (string? title) (assoc :title title))]
-        (reduce collect-statement graph statements)))))
+        (-> (reduce collect-statement graph statements)
+            (maybe-update :scale-by keyword))))))
+
+(defn pr-val [v]
+  (pr-str
+    (if (keyword? v)
+      (str (symbol v))
+      v)))
 
 ;; TODO: pretty print
 (defn maybe-attrs [label attrs]
   (when (seq (remove nil? (map second attrs)))
     (str label " ["
-         (string/join ", " (for [[k v] attrs
+         (string/join ",\n  " (for [[k v] attrs
                                  :when (not (nil? v))]
-                            (str (pr-str (name k)) " = " (pr-str v))))
+                            (str (pr-str (name k)) " = " (pr-val v))))
          "];")))
 
 (defn edges [g]
