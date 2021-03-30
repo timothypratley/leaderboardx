@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 cd $(dirname $0)
 lein with-profile uberjar do clean, cljsbuild once
