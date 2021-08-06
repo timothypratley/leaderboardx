@@ -4,6 +4,7 @@ set -e
 cd $(dirname $0)
 lein with-profile uberjar do clean, cljsbuild once
 cd ../resources/public
+rm -fr .git
 git init
 git add .
 git commit -m "Deploy to GitHub Pages"

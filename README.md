@@ -1,8 +1,7 @@
 # LeaderboardX
 
 Build Sociograms, and other Pageranked graphs quickly:
-http://leaderboardx.herokuapp.com/
-
+https://timothypratley.github.io/leaderboardx/
 
 ## Why?
 

@@ -1,6 +1,6 @@
 (defproject algopop/leaderboardx "0.1.0-SNAPSHOT"
   :description "LeaderboardX"
-  :url "http://leaderboardx.herokuapp.com"
+  :url "https://timothypratley.github.io/leaderboardx/"
 
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/clojurescript "1.10.520" :scope "provided"]
