@@ -9,7 +9,8 @@
   (:gen-class))
 
 (defroutes all-routes
-  (redirect "https://timothypratley.github.io/leaderboardx/"))
+  (ANY "*" []
+    (redirect "https://timothypratley.github.io/leaderboardx/")))
 
 (defn -main [& args]
   (run-server (site #'all-routes) {:port (Integer. (env :port 3000))})
