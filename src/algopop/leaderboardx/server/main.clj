@@ -10,7 +10,7 @@
 
 (defroutes all-routes
   (ANY "*" []
-    (redirect "https://timothypratley.github.io/leaderboardx/")))
+    (redirect "https://timothypratley.github.io/leaderboardx/" 301)))
 
 (defn -main [& args]
   (run-server (site #'all-routes) {:port (Integer. (env :port 3000))})
