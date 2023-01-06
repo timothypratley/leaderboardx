@@ -68,9 +68,7 @@ Om-next will be awesome.
 
 ## Deployment
 
-`./bin/deploy-dev.sh` to deploy to staging
-
-Deployment to production happens on any merge to master branch
+`./bin/deploy.sh
 
 
 ## License
