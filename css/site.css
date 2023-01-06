@@ -1,0 +1,82 @@
+html, body {
+  height: 100%;
+  min-height: 100%;
+  min-height: 100vh;
+  background-color: blue;
+  background: -webkit-linear-gradient(left top, rgb(70,85,125), rgb(45,55,80)); /* For Safari 5.1 to 6.0 */
+  background: -o-linear-gradient(bottom right, rgb(70,85,125), rgb(45,55,80)); /* For Opera 11.1 to 12.0 */
+  background: -moz-linear-gradient(bottom right, rgb(70,85,125), rgb(45,55,80)); /* For Firefox 3.6 to 15 */
+  background: linear-gradient(to bottom right, rgb(70,85,125) , rgb(45,55,80)); /* Standard syntax */
+  background-attachment: fixed;
+}
+.vertical-center {
+  min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+#app {
+  height: 100%;
+}
+.container-fluid {
+  min-height: 100%;
+}
+.container {
+  min-height: 100%;
+  margin: 1%;
+  padding: 1%;
+  width: 98% !important;
+}
+.well {
+  height: 90%;
+}
+
+.unselectable {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+
+.editable {
+    position: relative;
+    display: block;
+    background: white;
+    border: 1px solid lightgray;
+    margin: 2px;
+    width: 100%
+}
+.editable .edit {
+    display: none;
+    position: absolute;
+    left: -15px;
+}
+.editable:hover .edit {
+    display: block;
+}
+
+table td {
+    border-top: none !important;
+}
