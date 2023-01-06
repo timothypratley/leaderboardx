@@ -3,6 +3,8 @@
 Build Sociograms, and other Pageranked graphs quickly:
 https://timothypratley.github.io/leaderboardx/
 
+Sociograms are now even easier with my new diagramming app: https://hummi.app
+
 ## Why?
 
 Analysis
