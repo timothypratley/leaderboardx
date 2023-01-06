@@ -2,6 +2,9 @@
 
 (defn about-page []
   [:div
+   [:div.well
+    [:p "Sociograms are now even easier with my new diagramming app: "
+     [:a {:href "https://hummi.app"} [:img {:width 32 :src "img/hummi.png"}] "Hummi"]]]
    [:div.jumbotron
     [:h2 "Welcome to Leaderboard" [:i "X"]]
     [:p "build graphs of relationships"]
